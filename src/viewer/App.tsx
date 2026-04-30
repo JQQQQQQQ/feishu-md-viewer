@@ -3,7 +3,7 @@ import { type PageSource } from '../content/detector';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { type SaveStatusState } from './components/Common/SaveStatus';
 import { MarkdownRenderer } from './components/Markdown/MarkdownRenderer';
-import { MarkdownEditor } from './components/Markdown/MarkdownEditor';
+import { WysiwygEditor } from './components/Markdown/WysiwygEditor';
 import { AppShell } from './components/Layout/AppShell';
 import { useTOC } from './hooks/useTOC';
 import { useFileAccess } from './hooks/useFileAccess';
@@ -166,7 +166,7 @@ export function App({ markdown, source }: AppProps) {
         >
           {mode === 'edit' ? (
             <div className="feishu-viewer__page feishu-viewer__page--editor">
-              <MarkdownEditor />
+              <WysiwygEditor />
             </div>
           ) : (
             <div className="feishu-viewer__page">
