@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { type PageSource } from '../content/detector';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { MarkdownRenderer } from './components/Markdown/MarkdownRenderer';
+import { MarkdownEditor } from './components/Markdown/MarkdownEditor';
 import { AppShell } from './components/Layout/AppShell';
 import { useTOC } from './hooks/useTOC';
+import { useViewerStore } from './store';
 
 interface AppProps {
   markdown: string;
@@ -16,8 +18,19 @@ function extractTitle(markdown: string): string {
 }
 
 export function App({ markdown, source }: AppProps) {
-  const tocItems = useTOC(markdown);
-  const title = useMemo(() => extractTitle(markdown), [markdown]);
+  const initDocument = useViewerStore((s) => s.initDocument);
+  const content = useViewerStore((s) => s.content);
+  const mode = useViewerStore((s) => s.mode);
+
+  // Initialize the store with the markdown content
+  useEffect(() => {
+    initDocument(markdown);
+  }, [markdown, initDocument]);
+
+  const tocItems = useTOC(content || markdown);
+  const title = useMemo(() => extractTitle(content || markdown), [content, markdown]);
+
+  const displayContent = content || markdown;
 
   return (
     <ErrorBoundary>
@@ -28,11 +41,17 @@ export function App({ markdown, source }: AppProps) {
         data-source={source}
       >
         <AppShell title={title} tocItems={tocItems}>
-          <div className="feishu-viewer__page">
-            <div className="feishu-viewer__content">
-              <MarkdownRenderer content={markdown} />
+          {mode === 'edit' ? (
+            <div className="feishu-viewer__page feishu-viewer__page--editor">
+              <MarkdownEditor />
             </div>
-          </div>
+          ) : (
+            <div className="feishu-viewer__page">
+              <div className="feishu-viewer__content">
+                <MarkdownRenderer content={displayContent} />
+              </div>
+            </div>
+          )}
         </AppShell>
       </div>
     </ErrorBoundary>

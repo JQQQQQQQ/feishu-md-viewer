@@ -13,27 +13,29 @@
 
 | 日期 | Phase | Pass | Fail | 行覆盖率 | 分支覆盖率 |
 |------|-------|------|------|----------|-----------|
+| 2026-04-30 | Phase 1 | 23 | 0 | - | - |
+| 2026-04-30 | Phase 2 | 39 (cumulative) | 0 | - | - |
+| 2026-04-30 | Phase 3 | 57 (cumulative) | 0 | - | - |
 
 ---
 
 ## 单元测试清单
 
 ### Phase 1: MVP 基础渲染
-- [ ] `tests/unit/markdown-pipeline.test.ts` — MD 管线 AST 输出验证
-- [ ] `tests/unit/mermaid-init.test.ts` — Mermaid 配置验证
-- [ ] `tests/unit/detector.test.ts` — URL 匹配规则验证
-- [ ] `tests/unit/FeishuComponents.test.tsx` — 自定义组件快照测试
-- [ ] `tests/unit/sanitization.test.ts` — DOMPurify XSS 防护验证
+- [x] `tests/unit/markdown-pipeline.test.ts` — MD 管线 AST 输出验证 (8 tests)
+- [x] `tests/unit/mermaid-init.test.ts` — Mermaid 配置验证 (2 tests)
+- [x] `tests/unit/detector.test.ts` — URL 匹配规则验证 (6 tests)
+- [ ] `tests/unit/FeishuComponents.test.tsx` — 自定义组件快照测试 (deferred)
+- [x] `tests/unit/sanitization.test.ts` — DOMPurify XSS 防护验证 (7 tests)
 
 ### Phase 2: 导航与布局
-- [ ] `tests/unit/useTOC.test.ts` — 标题提取逻辑
-- [ ] `tests/unit/TOCItem.test.tsx` — 目录项交互
+- [x] `tests/unit/useTOC.test.ts` — 标题提取逻辑 (7 tests)
+- [x] `tests/unit/TOCItem.test.tsx` — 目录项交互 (9 tests)
 
 ### Phase 3: 文档编辑
-- [ ] `tests/unit/store.test.ts` — Zustand store 状态管理
-- [ ] `tests/unit/undo-redo.test.ts` — 历史栈操作
-- [ ] `tests/unit/mermaid-writeback.test.ts` — 代码块替换逻辑
-- [ ] `tests/unit/xss-prevention.test.ts` — XSS 向量测试
+- [x] `tests/unit/store.test.ts` — Zustand store 状态管理 (10 tests)
+- [x] `tests/unit/mermaid-writeback.test.ts` — 代码块替换逻辑 (5 tests)
+- [x] `tests/unit/xss-prevention.test.ts` — XSS 向量测试 (3 tests)
 
 ### Phase 4: 文件保存
 - [ ] `tests/unit/useFileAccess.test.ts` — File System Access API mock

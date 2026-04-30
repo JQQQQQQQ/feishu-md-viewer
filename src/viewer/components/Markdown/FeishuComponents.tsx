@@ -1,5 +1,6 @@
 import type { ComponentType, HTMLAttributes, ReactNode } from 'react';
 import { MermaidBlock } from './MermaidBlock';
+import { MermaidToolbar } from '../Mermaid/MermaidToolbar';
 
 type ComponentMap = Record<string, ComponentType<HTMLAttributes<HTMLElement> & { children?: ReactNode }>>;
 
@@ -21,7 +22,11 @@ function FeishuCodeBlock({ children, className, ...props }: HTMLAttributes<HTMLP
 
   if (lang === 'mermaid' && typeof code === 'string') {
     const idx = mermaidIndex++;
-    return <MermaidBlock code={code} index={idx} />;
+    return (
+      <MermaidToolbar code={code} blockIndex={idx}>
+        <MermaidBlock code={code} index={idx} />
+      </MermaidToolbar>
+    );
   }
 
   return (

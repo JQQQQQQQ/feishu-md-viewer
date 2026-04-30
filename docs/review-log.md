@@ -48,3 +48,26 @@
 
 ---
 
+## Phase 3 - Iteration 1
+
+- **日期**: 2026-04-30
+- **判定**: FAIL (1 issue)
+- **通过门禁**: TypeScript, Build, Tests (39 pass), Security, Undo/Redo, Mode toggle, XSS, Keyboard shortcuts
+- **未通过门禁**: ESLint (2 errors in SplitPane.tsx — jsx-a11y false positives on role="separator")
+- **问题**:
+  1. [Major] `src/viewer/components/Common/SplitPane.tsx:67,73` — role="separator" 缺少 onKeyDown 且 jsx-a11y 不认为 separator 是交互角色
+  2. [Important] `src/viewer/components/Markdown/MarkdownEditor.tsx` — debounce timer 在外部 content 变化时未清除
+- **修复要求**:
+  1. 添加 ArrowLeft/Right 键盘调整 + eslint-disable 注释
+  2. 在 content useEffect 中 clearTimeout
+- **修复结果**: 两项均已修复，ESLint 零错误
+
+## Phase 3 - Iteration 2
+
+- **日期**: 2026-04-30
+- **判定**: PASS
+- **通过门禁**: TypeScript strict, ESLint, Build, Security (no dangerouslySetInnerHTML in editors, DOMPurify pipeline intact), Undo/Redo (50 cap), Mode toggle, XSS prevention, Keyboard (Cmd+Z/Shift+Z, Arrow keys on separator)
+- **测试**: 57 tests pass (18 new for Phase 3: store 10 + mermaid-writeback 5 + xss-prevention 3)
+
+---
+
