@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockInitialize = vi.fn();
+const mockParse = vi.fn().mockResolvedValue(true);
 const mockRender = vi.fn().mockResolvedValue({ svg: '<svg>mock</svg>' });
 
 vi.mock('mermaid', () => ({
   default: {
     initialize: mockInitialize,
+    parse: mockParse,
     render: mockRender,
   },
 }));
@@ -14,7 +16,9 @@ describe('mermaid-init', () => {
   beforeEach(() => {
     vi.resetModules();
     mockInitialize.mockClear();
+    mockParse.mockClear();
     mockRender.mockClear();
+    mockParse.mockResolvedValue(true);
     mockRender.mockResolvedValue({ svg: '<svg>mock</svg>' });
   });
 

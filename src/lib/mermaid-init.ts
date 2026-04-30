@@ -1,6 +1,7 @@
 type MermaidAPI = {
   initialize: (config: Record<string, unknown>) => void;
-  render: (id: string, code: string, container?: HTMLElement) => Promise<{ svg: string }>;
+  parse: (code: string) => Promise<unknown>;
+  render: (id: string, code: string) => Promise<{ svg: string }>;
 };
 
 let mermaidInstance: MermaidAPI | null = null;
@@ -48,7 +49,14 @@ async function loadMermaid(): Promise<MermaidAPI> {
 export async function renderMermaid(code: string, id: string): Promise<string> {
   const mermaid = await loadMermaid();
 
-  // Mermaid needs a container element in the DOM with the target id
+  // Validate syntax first — parse() gives clean error messages
+  try {
+    await mermaid.parse(code);
+  } catch (parseError) {
+    const msg = parseError instanceof Error ? parseError.message : String(parseError);
+    throw new Error(msg || '语法错误：无法解析 Mermaid 代码');
+  }
+
   const container = document.createElement('div');
   container.id = `${id}-container`;
   container.style.position = 'absolute';
@@ -58,15 +66,12 @@ export async function renderMermaid(code: string, id: string): Promise<string> {
   document.body.appendChild(container);
 
   try {
-    // mermaid.render(id, code) — do NOT pass container as 3rd arg
     const { svg } = await mermaid.render(id, code);
     return svg;
-  } catch (error) {
-    container.innerHTML = '';
-    throw error;
+  } catch (renderError) {
+    throw new Error('Mermaid 渲染失败');
   } finally {
     container.remove();
-    // Clean up any elements mermaid may have injected
     const cleanup = document.getElementById(id);
     if (cleanup) cleanup.remove();
     document.querySelectorAll('[id^="dmermaid-"]').forEach((el) => el.remove());
