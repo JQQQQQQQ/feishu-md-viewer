@@ -23,9 +23,11 @@
   outline: none;
 }
 
-/* Remove any ProseMirror default outlines/borders that show "editing" */
+/* ProseMirror base styles */
 .ProseMirror {
   outline: none !important;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 .ProseMirror:focus {
   outline: none !important;
