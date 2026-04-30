@@ -2,8 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useInstance } from '@milkdown/react';
 import { editorViewCtx } from '@milkdown/core';
 import { callCommand } from '@milkdown/utils';
-import { toggleStrongCommand } from '@milkdown/preset-commonmark';
-import { toggleEmphasisCommand } from '@milkdown/preset-commonmark';
+import { toggleStrongCommand, toggleEmphasisCommand, toggleLinkCommand } from '@milkdown/preset-commonmark';
 import { toggleStrikethroughCommand } from '@milkdown/preset-gfm';
 
 interface ToolbarPosition {
@@ -68,13 +67,19 @@ export function FloatingToolbar() {
   }, [loading, getEditor]);
 
   const runCommand = useCallback(
-    (commandKey: Parameters<typeof callCommand>[0]) => {
+    (commandKey: Parameters<typeof callCommand>[0], payload?: unknown) => {
       const editor = getEditor();
       if (!editor) return;
-      editor.action(callCommand(commandKey));
+      editor.action(callCommand(commandKey, payload));
     },
     [getEditor],
   );
+
+  const handleInsertLink = useCallback(() => {
+    const url = prompt('请输入链接地址：');
+    if (!url) return;
+    runCommand(toggleLinkCommand.key, { href: url });
+  }, [runCommand]);
 
   if (!visible) return null;
 
@@ -102,6 +107,13 @@ export function FloatingToolbar() {
         title="删除线"
       >
         <s>S</s>
+      </button>
+      <div className="feishu-floating-toolbar__divider" />
+      <button
+        onClick={handleInsertLink}
+        title="插入链接"
+      >
+        🔗
       </button>
     </div>
   );

@@ -8,6 +8,8 @@ import { insert } from '@milkdown/utils';
 import { useViewerStore } from '../../store';
 import { BlockInsertMenu } from './BlockInsertMenu';
 import { FloatingToolbar } from './FloatingToolbar';
+import { TableOperations } from './TableOperations';
+import { CodeLanguageSelector } from './CodeLanguageSelector';
 
 const DEBOUNCE_DELAY = 300;
 
@@ -80,6 +82,8 @@ function MilkdownEditor() {
       <div className="feishu-wysiwyg__editor" style={{ position: 'relative' }}>
         <Milkdown />
         <FloatingToolbar />
+        <TableOperations />
+        <CodeLanguageSelector />
       </div>
       <BlockInsertMenu
         editorContainerRef={editorContainerRef}
