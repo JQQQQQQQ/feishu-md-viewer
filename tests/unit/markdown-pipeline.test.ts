@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { render } from '@testing-library/react';
 import { parseMarkdown, extractMermaidBlocks } from '@/lib/markdown-pipeline';
 
 describe('markdown-pipeline', () => {
@@ -17,6 +18,25 @@ describe('markdown-pipeline', () => {
       const result = parseMarkdown('<script>alert("xss")</script>Hello');
       expect(result).toBeDefined();
       // The sanitizer strips script tags, keeping only text content
+    });
+
+    it('blocks script tags from rendered output', () => {
+      const result = parseMarkdown('<script>alert("xss")</script>');
+      const { container } = render(result);
+      expect(container.innerHTML).not.toContain('alert');
+      expect(container.innerHTML).not.toContain('<script');
+    });
+
+    it('blocks event handler attributes from rendered output', () => {
+      const result = parseMarkdown('<img src=x onerror=alert(1)>');
+      const { container } = render(result);
+      expect(container.innerHTML).not.toContain('onerror');
+    });
+
+    it('blocks javascript: URLs from rendered output', () => {
+      const result = parseMarkdown('<a href="javascript:alert(1)">click</a>');
+      const { container } = render(result);
+      expect(container.innerHTML).not.toContain('javascript:');
     });
 
     it('handles GFM tables', () => {

@@ -4,7 +4,6 @@ import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeReact from 'rehype-react';
 import * as prod from 'react/jsx-runtime';
-import DOMPurify from 'dompurify';
 import { feishuComponents } from '../viewer/components/Markdown/FeishuComponents';
 import type { ReactElement } from 'react';
 
@@ -20,12 +19,7 @@ const processor = unified()
   });
 
 export function parseMarkdown(content: string): ReactElement {
-  const sanitized = DOMPurify.sanitize(content, {
-    ALLOWED_TAGS: [],
-    KEEP_CONTENT: true,
-  });
-
-  const file = processor.processSync(sanitized);
+  const file = processor.processSync(content);
   return file.result as ReactElement;
 }
 

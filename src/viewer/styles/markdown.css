@@ -104,7 +104,8 @@
 .feishu-code-block__copy-btn {
   position: absolute;
   top: 8px;
-  right: 60px;
+  right: auto;
+  left: 12px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
