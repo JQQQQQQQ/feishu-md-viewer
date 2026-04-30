@@ -193,6 +193,7 @@
 .feishu-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: var(--feishu-font-size-small);
 }
 
@@ -201,16 +202,18 @@
 }
 
 .feishu-table__header {
-  padding: 10px 16px;
+  padding: 8px 16px;
   text-align: left;
   font-weight: 600;
   color: var(--feishu-text-primary);
   border-bottom: 1px solid var(--feishu-border-light);
+  line-height: 1.4;
 }
 
 .feishu-table__cell {
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--feishu-border-lighter);
+  line-height: 1.4;
 }
 
 .feishu-table__row:nth-child(even) {
