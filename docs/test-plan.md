@@ -79,8 +79,18 @@
 
 ## E2E 手动验证清单
 
-> 以下用例需在真实 Chrome 浏览器中手动执行（加载 `dist/` 目录为未打包扩展）。
-> 状态说明：`[ ]` = 待验收 (需人工在浏览器中确认)，这些不属于自动化测试范畴。
+> **为什么无法自动化？** Chrome Extension E2E 存在以下安全限制：
+> - Playwright 无法访问 `file://` 协议 (浏览器安全策略阻止)
+> - Playwright 无法导航到 `chrome://extensions` (Chrome 内部页面禁止外部控制)
+> - Extension Page 的 JS 模块只能在扩展上下文中加载 (非 HTTP 可服务)
+> - 已尝试通过 WSL + Windows Playwright 自动化但确认受限
+>
+> **手动验收步骤：**
+> 1. 在 Chrome 地址栏输入 `chrome://extensions`
+> 2. 开启"开发者模式"
+> 3. 点击"加载已解压的扩展程序" → 选择 `C:\Users\Q\feishu-md-viewer-dist`
+> 4. 在扩展详情中勾选"允许访问文件网址"
+> 5. 打开 `file:///C:/Users/Q/test-e2e.md` 执行以下验收项
 
 ### Phase 1: 基础渲染
 - [ ] 打开 `file:///path/to/test.md` → 看到飞书风格渲染
