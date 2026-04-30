@@ -13,17 +13,17 @@ interface BlockInsertMenuProps {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'Heading 1', icon: 'H1', markdown: '\n# ', group: 'heading' },
-  { label: 'Heading 2', icon: 'H2', markdown: '\n## ', group: 'heading' },
-  { label: 'Heading 3', icon: 'H3', markdown: '\n### ', group: 'heading' },
-  { label: 'Code Block', icon: '</>', markdown: '\n```\n\n```\n', group: 'block' },
-  { label: 'Table', icon: '[]', markdown: '\n| Column 1 | Column 2 | Column 3 |\n| --- | --- | --- |\n| cell | cell | cell |\n', group: 'block' },
-  { label: 'Divider', icon: '---', markdown: '\n---\n', group: 'block' },
-  { label: 'Blockquote', icon: '>', markdown: '\n> ', group: 'block' },
-  { label: 'Bullet List', icon: '*', markdown: '\n- item\n- item\n- item\n', group: 'list' },
-  { label: 'Ordered List', icon: '1.', markdown: '\n1. item\n2. item\n3. item\n', group: 'list' },
-  { label: 'Task List', icon: '[]', markdown: '\n- [ ] task\n- [ ] task\n', group: 'list' },
-  { label: 'Mermaid Diagram', icon: 'M', markdown: '\n```mermaid\ngraph TD\n    A[Start] --> B[End]\n```\n', group: 'advanced' },
+  { label: '标题 1', icon: 'H1', markdown: '\n# \n', group: 'heading' },
+  { label: '标题 2', icon: 'H2', markdown: '\n## \n', group: 'heading' },
+  { label: '标题 3', icon: 'H3', markdown: '\n### \n', group: 'heading' },
+  { label: '代码块', icon: '</>', markdown: '\n```\n\n```\n', group: 'block' },
+  { label: '表格', icon: '[]', markdown: '\n| Column 1 | Column 2 |\n|---|---|\n| Cell | Cell |\n', group: 'block' },
+  { label: '分割线', icon: '---', markdown: '\n---\n', group: 'block' },
+  { label: '引用', icon: '>', markdown: '\n> \n', group: 'block' },
+  { label: '无序列表', icon: '*', markdown: '\n- \n', group: 'list' },
+  { label: '有序列表', icon: '1.', markdown: '\n1. \n', group: 'list' },
+  { label: '任务列表', icon: '[]', markdown: '\n- [ ] \n', group: 'list' },
+  { label: 'Mermaid 图表', icon: 'M', markdown: '\n```mermaid\ngraph TD\n  A[Start] --> B[End]\n```\n', group: 'advanced' },
 ];
 
 export function BlockInsertMenu({ editorContainerRef, onInsert }: BlockInsertMenuProps) {

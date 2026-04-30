@@ -6,9 +6,7 @@
 }
 
 .feishu-wysiwyg__editor {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 48px;
+  width: 100%;
   outline: none;
 }
 

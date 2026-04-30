@@ -17,7 +17,7 @@ function MilkdownEditor() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorInstanceRef = useRef<Editor | undefined>(undefined);
 
-  const { get } = useEditor((root) => {
+  const { get, loading } = useEditor((root) => {
     const editorInstance = Editor.make()
       .config((ctx) => {
         ctx.set(rootCtx, root);
@@ -38,10 +38,12 @@ function MilkdownEditor() {
     return editorInstance;
   }, []);
 
-  // Store the editor instance for command execution
-  const currentEditor = get();
-  if (currentEditor) {
-    editorInstanceRef.current = currentEditor;
+  // Store the editor instance once loading completes
+  if (!loading) {
+    const instance = get();
+    if (instance) {
+      editorInstanceRef.current = instance;
+    }
   }
 
   const handleInsert = useCallback(
