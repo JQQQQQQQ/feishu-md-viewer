@@ -75,7 +75,7 @@ export function TopBar({
           />
         </svg>
       </button>
-      <span className="feishu-topbar__brand">Feishu MD Viewer</span>
+      <span className="feishu-topbar__brand">飞书文档</span>
       {title && (
         <>
           <span className="feishu-topbar__separator" aria-hidden="true" />
@@ -94,8 +94,8 @@ export function TopBar({
             className="feishu-topbar__save-btn"
             onClick={onSave}
             type="button"
-            aria-label="Save document"
-            title="Save (Ctrl+S)"
+            aria-label="保存"
+            title="保存 (Ctrl+S)"
             disabled={!isDirty && saveStatus === 'saved'}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -209,7 +209,7 @@ export function TopBar({
             />
           </svg>
         )}
-        {mode === 'edit' ? 'Reading' : 'Edit'}
+        {mode === 'edit' ? '阅读' : '编辑'}
         {isDirty && <span className="feishu-topbar__dirty-indicator" aria-label="Unsaved changes" />}
       </button>
     </header>

@@ -29,8 +29,8 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback;
       return (
         <div className="feishu-error" role="alert">
-          <h2>Rendering Error</h2>
-          <p>An error occurred while rendering this document.</p>
+          <h2>渲染错误</h2>
+          <p>文档渲染出错</p>
           <pre className="feishu-error__detail">
             {this.state.error?.message}
           </pre>

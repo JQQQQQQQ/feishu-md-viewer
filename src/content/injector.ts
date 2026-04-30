@@ -34,14 +34,18 @@ export function injectViewerContainer(): InjectionContext {
 }
 
 function hideOriginalContent(): void {
-  // For file:// protocol, hide the <pre> element that contains raw text
-  const preElement = document.querySelector('pre');
-  if (preElement) {
-    preElement.style.display = 'none';
+  // Hide ALL existing body children to prevent content from showing twice.
+  // For file:// protocol the raw text lives in a <pre>, but other elements
+  // (e.g. styling divs, extra nodes injected by browsers) can also appear.
+  const children = Array.from(document.body.children);
+  for (const child of children) {
+    if (child.id === 'feishu-md-viewer-host') continue; // Don't hide our own host
+    (child as HTMLElement).style.display = 'none';
   }
 
-  // For GitHub/GitLab, we overlay on top rather than hide
-  // This preserves the site navigation
+  // Reset body margin/padding to avoid layout gaps
+  document.body.style.margin = '0';
+  document.body.style.padding = '0';
 }
 
 export function injectStyles(shadowRoot: ShadowRoot, cssText: string): void {

@@ -51,7 +51,7 @@ export function TableOfContents({ items, containerRef }: TableOfContentsProps) {
 
   return (
     <nav className="feishu-toc" aria-label="Table of contents" role="navigation">
-      <div className="feishu-toc__header">Contents</div>
+      <div className="feishu-toc__header">目录</div>
       <ul className="feishu-toc__list" role="tree">
         {items.map((item) => (
           <TOCItem key={item.id} item={item} activeId={activeId} onNavigate={handleNavigate} />

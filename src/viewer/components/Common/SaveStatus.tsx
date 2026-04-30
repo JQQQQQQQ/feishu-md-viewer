@@ -7,10 +7,10 @@ interface SaveStatusProps {
 }
 
 const STATUS_LABELS: Record<SaveStatusState, string> = {
-  saved: 'Saved',
-  saving: 'Saving...',
-  unsaved: 'Unsaved changes',
-  error: 'Save failed',
+  saved: '已保存',
+  saving: '保存中...',
+  unsaved: '未保存',
+  error: '保存失败',
 };
 
 function formatTime(date: Date): string {

@@ -41,7 +41,7 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
   if (error) {
     return (
       <div className="feishu-mermaid feishu-mermaid--error" role="alert">
-        <div className="feishu-mermaid__error-header">Mermaid Diagram Error</div>
+        <div className="feishu-mermaid__error-header">Mermaid 图表错误</div>
         <div className="feishu-mermaid__error-message">{error}</div>
         <pre className="feishu-mermaid__source">
           <code>{code}</code>
@@ -53,7 +53,7 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
   if (!svg) {
     return (
       <div className="feishu-mermaid feishu-mermaid--loading" aria-busy="true">
-        <span>Rendering diagram...</span>
+        <span>渲染中...</span>
       </div>
     );
   }

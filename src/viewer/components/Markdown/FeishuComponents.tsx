@@ -34,14 +34,14 @@ function CopyButton({ text }: { text: string }) {
       className="feishu-code-block__copy-btn"
       onClick={() => void handleCopy()}
       type="button"
-      aria-label={copied ? 'Copied to clipboard' : 'Copy code to clipboard'}
+      aria-label={copied ? '已复制' : '复制代码'}
     >
       {copied ? (
         <>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M2 7.5L5 10.5L12 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Copied!
+          已复制
         </>
       ) : (
         <>
@@ -49,7 +49,7 @@ function CopyButton({ text }: { text: string }) {
             <rect x="4.5" y="4.5" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
             <path d="M9.5 4.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h1.5" stroke="currentColor" strokeWidth="1.2" />
           </svg>
-          Copy
+          复制
         </>
       )}
     </button>

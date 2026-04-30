@@ -33,7 +33,7 @@ describe('CopyButton clipboard functionality', () => {
 
   it('renders a copy button for code blocks', () => {
     renderCodeBlock('const x = 1;');
-    const copyBtn = screen.getByRole('button', { name: /copy code to clipboard/i });
+    const copyBtn = screen.getByRole('button', { name: /复制代码/i });
     expect(copyBtn).toBeDefined();
   });
 
@@ -41,7 +41,7 @@ describe('CopyButton clipboard functionality', () => {
     const code = 'console.log("hello world");';
     renderCodeBlock(code);
 
-    const copyBtn = screen.getByRole('button', { name: /copy code to clipboard/i });
+    const copyBtn = screen.getByRole('button', { name: /复制代码/i });
     await act(async () => {
       fireEvent.click(copyBtn);
       // Let the promise resolve
@@ -54,37 +54,37 @@ describe('CopyButton clipboard functionality', () => {
   it('shows "Copied!" text after clicking', async () => {
     renderCodeBlock('const y = 2;');
 
-    const copyBtn = screen.getByRole('button', { name: /copy code to clipboard/i });
+    const copyBtn = screen.getByRole('button', { name: /复制代码/i });
     await act(async () => {
       fireEvent.click(copyBtn);
       // Allow microtask (clipboard promise) to resolve
       await Promise.resolve();
     });
 
-    const copiedBtn = screen.getByRole('button', { name: /copied to clipboard/i });
-    expect(copiedBtn.textContent).toContain('Copied!');
+    const copiedBtn = screen.getByRole('button', { name: /已复制/i });
+    expect(copiedBtn.textContent).toContain('已复制');
   });
 
   it('reverts back to "Copy" after 2 seconds', async () => {
     vi.useFakeTimers();
     renderCodeBlock('const z = 3;');
 
-    const copyBtn = screen.getByRole('button', { name: /copy code to clipboard/i });
+    const copyBtn = screen.getByRole('button', { name: /复制代码/i });
     await act(async () => {
       fireEvent.click(copyBtn);
       await Promise.resolve();
     });
 
     // Verify it says "Copied!" first
-    expect(screen.getByRole('button', { name: /copied to clipboard/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /已复制/i })).toBeDefined();
 
     // Advance timer by 2000ms
     act(() => {
       vi.advanceTimersByTime(2000);
     });
 
-    const revertedBtn = screen.getByRole('button', { name: /copy code to clipboard/i });
-    expect(revertedBtn.textContent).toContain('Copy');
+    const revertedBtn = screen.getByRole('button', { name: /复制代码/i });
+    expect(revertedBtn.textContent).toContain('复制');
 
     vi.useRealTimers();
   });
@@ -93,7 +93,7 @@ describe('CopyButton clipboard functionality', () => {
     writeTextMock.mockRejectedValue(new Error('Clipboard not available'));
     renderCodeBlock('const fail = true;');
 
-    const copyBtn = screen.getByRole('button', { name: /copy code to clipboard/i });
+    const copyBtn = screen.getByRole('button', { name: /复制代码/i });
 
     // Should not throw
     await act(async () => {
@@ -104,6 +104,6 @@ describe('CopyButton clipboard functionality', () => {
     });
 
     // Button should still be in "Copy" state since the write failed
-    expect(copyBtn.textContent).toContain('Copy');
+    expect(copyBtn.textContent).toContain('复制');
   });
 });

@@ -104,7 +104,7 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
                 strokeLinejoin="round"
               />
             </svg>
-            Edit
+            编辑
           </button>
         )}
         <button
