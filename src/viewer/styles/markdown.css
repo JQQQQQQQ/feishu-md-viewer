@@ -6,10 +6,10 @@
 }
 
 .feishu-viewer__content {
-  max-width: 100%;
+  max-width: 900px;
   margin: 0 auto;
-  background-color: var(--feishu-bg-content);
   padding: 0 48px;
+  background-color: var(--feishu-bg-content);
 }
 
 /* Markdown Body */
@@ -60,21 +60,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  margin-right: 4px;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
   border: none;
   background: none;
   cursor: pointer;
   color: var(--feishu-text-placeholder);
-  transition: transform 0.2s;
+  transition: transform 0.15s, color 0.15s;
   vertical-align: middle;
+  padding: 0;
+  border-radius: 2px;
 }
+
 .feishu-heading__toggle--expanded {
   transform: rotate(90deg);
 }
+
 .feishu-heading__toggle:hover {
   color: var(--feishu-text-primary);
+  background-color: var(--feishu-code-bg);
 }
 
 /* Paragraphs */
@@ -259,12 +264,14 @@
 
 /* Mermaid */
 .feishu-mermaid {
-  margin: 1em 0;
-  padding: 16px;
+  margin: 1.5em 0;
+  padding: 24px;
   background-color: var(--feishu-bg-content);
   border: 1px solid var(--feishu-border-lighter);
   border-radius: var(--feishu-radius);
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   overflow-x: auto;
 }
 
