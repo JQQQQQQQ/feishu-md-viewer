@@ -123,11 +123,12 @@
   font-size: 13px;
 }
 
-/* Tables — match feishu style (NOT dark!) */
+/* Tables — match feishu style exactly */
 .feishu-wysiwyg__editor table {
   width: 100%;
   border-collapse: collapse;
   border-spacing: 0;
+  table-layout: fixed;
   font-size: var(--feishu-font-size-small);
   margin: 1em 0;
   border: 1px solid var(--feishu-border-light);
@@ -143,16 +144,22 @@
   background-color: var(--feishu-table-header-bg) !important;
   color: var(--feishu-text-primary) !important;
   font-weight: 600;
-  padding: 10px 16px;
+  padding: 8px 16px;
   text-align: left;
   border-bottom: 1px solid var(--feishu-border-light);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .feishu-wysiwyg__editor td {
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--feishu-border-lighter);
   color: var(--feishu-text-primary);
   background-color: var(--feishu-bg-content) !important;
+  line-height: 1.4;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .feishu-wysiwyg__editor tr {
@@ -164,6 +171,14 @@
   background-color: var(--feishu-table-stripe-bg) !important;
 }
 
+/* Prevent bold text from changing table column widths */
+.feishu-wysiwyg__editor td p,
+.feishu-wysiwyg__editor th p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Blockquote */
 .feishu-wysiwyg__editor blockquote {
   margin: 1em 0;
@@ -172,6 +187,13 @@
   border-left: 3px solid var(--feishu-blockquote-border);
   border-radius: 0 var(--feishu-radius-sm) var(--feishu-radius-sm) 0;
   color: var(--feishu-text-primary);
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.feishu-wysiwyg__editor blockquote p {
+  margin: 0.25em 0;
+  display: inline;
 }
 
 /* Links */
