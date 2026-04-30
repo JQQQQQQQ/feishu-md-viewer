@@ -1,4 +1,4 @@
-import { useState, useCallback, type ComponentType, type HTMLAttributes, type ReactNode } from 'react';
+import { useState, useCallback, useRef, type ComponentType, type HTMLAttributes, type ReactNode } from 'react';
 import { MermaidBlock } from './MermaidBlock';
 import { MermaidToolbar } from '../Mermaid/MermaidToolbar';
 
@@ -11,7 +11,44 @@ function FeishuHeading({ level, children, ...props }: { level: 1 | 2 | 3 | 4 | 5
   const id = typeof children === 'string'
     ? children.toLowerCase().replace(/[^a-z0-9一-龥]+/g, '-').replace(/(^-|-$)/g, '')
     : undefined;
-  return <Tag id={id} className={`feishu-heading feishu-h${level}`} {...props}>{children}</Tag>;
+  const [collapsed, setCollapsed] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  const isCollapsible = level === 2 || level === 3;
+
+  const handleToggle = useCallback(() => {
+    if (!headingRef.current) return;
+    const next = !collapsed;
+    setCollapsed(next);
+
+    let sibling = headingRef.current.nextElementSibling;
+    while (sibling) {
+      const tagName = sibling.tagName.toLowerCase();
+      if (/^h[1-6]$/.test(tagName)) {
+        const siblingLevel = parseInt(tagName.charAt(1), 10);
+        if (siblingLevel <= level) break;
+      }
+      (sibling as HTMLElement).style.display = next ? 'none' : '';
+      sibling = sibling.nextElementSibling;
+    }
+  }, [collapsed, level]);
+
+  return (
+    <Tag ref={headingRef} id={id} className={`feishu-heading feishu-h${level}`} {...props}>
+      {isCollapsible && (
+        <button
+          type="button"
+          className={`feishu-heading__toggle${collapsed ? '' : ' feishu-heading__toggle--expanded'}`}
+          onClick={handleToggle}
+          aria-label={collapsed ? '展开' : '折叠'}
+          aria-expanded={!collapsed}
+        >
+          &#9654;
+        </button>
+      )}
+      {children}
+    </Tag>
+  );
 }
 
 function CopyButton({ text }: { text: string }) {

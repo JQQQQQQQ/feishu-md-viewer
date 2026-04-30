@@ -46,6 +46,9 @@ export async function renderMermaid(code: string, id: string): Promise<string> {
   try {
     const { svg } = await mermaid.render(id, code, container);
     return svg;
+  } catch (error) {
+    container.innerHTML = '';
+    throw error;
   } finally {
     container.remove();
     // Clean up any stale mermaid elements

@@ -1,17 +1,15 @@
 /* Page Layout */
 .feishu-viewer__page {
   min-height: 100vh;
-  background-color: var(--feishu-bg-page);
+  background-color: var(--feishu-bg-content);
   padding: 32px 0;
 }
 
 .feishu-viewer__content {
-  max-width: 900px;
+  max-width: 100%;
   margin: 0 auto;
   background-color: var(--feishu-bg-content);
-  border-radius: var(--feishu-radius);
-  padding: var(--feishu-spacing-page);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 0 48px;
 }
 
 /* Markdown Body */
@@ -55,6 +53,28 @@
 .feishu-h6 {
   font-size: var(--feishu-font-size-small);
   color: var(--feishu-text-secondary);
+}
+
+/* Heading Toggle */
+.feishu-heading__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--feishu-text-placeholder);
+  transition: transform 0.2s;
+  vertical-align: middle;
+}
+.feishu-heading__toggle--expanded {
+  transform: rotate(90deg);
+}
+.feishu-heading__toggle:hover {
+  color: var(--feishu-text-primary);
 }
 
 /* Paragraphs */
