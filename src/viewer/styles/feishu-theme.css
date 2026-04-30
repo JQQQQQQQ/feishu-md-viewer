@@ -1,0 +1,40 @@
+:host,
+.feishu-viewer {
+  --feishu-bg-page: #f5f6f7;
+  --feishu-bg-content: #ffffff;
+  --feishu-brand-primary: #3370ff;
+  --feishu-brand-primary-hover: #2860e1;
+  --feishu-text-primary: #1f2329;
+  --feishu-text-secondary: #646a73;
+  --feishu-text-placeholder: #8f959e;
+  --feishu-border-light: #dee0e3;
+  --feishu-border-lighter: #e5e6eb;
+  --feishu-font-size-body: 15px;
+  --feishu-font-size-small: 13px;
+  --feishu-font-size-h1: 28px;
+  --feishu-font-size-h2: 24px;
+  --feishu-font-size-h3: 20px;
+  --feishu-font-size-h4: 16px;
+  --feishu-line-height: 1.75;
+  --feishu-spacing-page: 54px;
+  --feishu-spacing-sm: 8px;
+  --feishu-spacing-md: 16px;
+  --feishu-spacing-lg: 24px;
+  --feishu-radius: 8px;
+  --feishu-radius-sm: 4px;
+  --feishu-code-bg: #f7f8fa;
+  --feishu-code-text: #d63384;
+  --feishu-blockquote-bg: #f0f5ff;
+  --feishu-blockquote-border: #3370ff;
+  --feishu-table-header-bg: #f5f6f7;
+  --feishu-table-stripe-bg: #fafbfc;
+  --feishu-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --feishu-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+
+  font-family: var(--feishu-font-family);
+  font-size: var(--feishu-font-size-body);
+  line-height: var(--feishu-line-height);
+  color: var(--feishu-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

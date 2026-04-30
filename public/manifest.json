@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Feishu MD Viewer",
+  "version": "0.1.0",
+  "description": "Render Markdown files with Feishu (Lark) document styling and Mermaid diagram support",
+  "permissions": ["activeTab", "storage", "contextMenus"],
+  "host_permissions": [
+    "file:///*",
+    "https://github.com/*",
+    "https://gitlab.com/*",
+    "https://raw.githubusercontent.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "file:///*/*.md",
+        "file:///*/*.markdown",
+        "https://github.com/*/*/blob/*/*.md",
+        "https://github.com/*/*/blob/*/*.markdown",
+        "https://gitlab.com/*/*/-/blob/*/*.md",
+        "https://gitlab.com/*/*/-/blob/*/*.markdown"
+      ],
+      "js": ["src/content/index.tsx"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
