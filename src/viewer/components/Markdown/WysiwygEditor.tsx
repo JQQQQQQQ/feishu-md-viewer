@@ -49,10 +49,29 @@ function MilkdownEditor() {
   const handleInsert = useCallback(
     (markdownSnippet: string) => {
       const editor = editorInstanceRef.current;
-      if (!editor) return;
-      editor.action(insert(markdownSnippet));
+      if (!editor) {
+        // Fallback: append to store content directly
+        const current = useViewerStore.getState().content || '';
+        setContent(current + markdownSnippet);
+        return;
+      }
+      // Refocus the editor before inserting
+      const editorEl = editorContainerRef.current?.querySelector('.ProseMirror') as HTMLElement | null;
+      if (editorEl) {
+        editorEl.focus();
+      }
+      // Small delay to ensure focus is established
+      setTimeout(() => {
+        try {
+          editor.action(insert(markdownSnippet));
+        } catch {
+          // Fallback if insert action fails
+          const current = useViewerStore.getState().content || '';
+          setContent(current + markdownSnippet);
+        }
+      }, 50);
     },
-    [],
+    [setContent],
   );
 
   return (
