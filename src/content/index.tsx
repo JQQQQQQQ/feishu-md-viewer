@@ -1,4 +1,4 @@
-import { detectMarkdownPage, fetchGitHubRawContent, fetchGitLabRawContent } from './detector';
+import { getActiveAdapter } from './adapters';
 import { injectViewerContainer, injectStyles } from './injector';
 import { createRoot } from 'react-dom/client';
 import { App } from '../viewer/App';
@@ -10,18 +10,13 @@ import saveStatusStyles from '../viewer/styles/save-status.css?inline';
 import tailwindStyles from '../viewer/styles/tailwind-output.css?inline';
 
 async function main(): Promise<void> {
-  const detection = detectMarkdownPage();
-  if (!detection.isMarkdown || !detection.source) return;
+  const adapter = getActiveAdapter();
+  if (!adapter) return;
 
-  let content = detection.rawContent;
-
-  if (!content && detection.source === 'github') {
-    content = await fetchGitHubRawContent();
-  }
-  if (!content && detection.source === 'gitlab') {
-    content = await fetchGitLabRawContent();
-  }
+  const content = await adapter.getContent();
   if (!content) return;
+
+  const source = adapter.name as 'file' | 'github' | 'gitlab';
 
   const { shadowRoot, mountPoint } = injectViewerContainer();
 
@@ -33,7 +28,7 @@ async function main(): Promise<void> {
   injectStyles(shadowRoot, saveStatusStyles);
 
   const root = createRoot(mountPoint);
-  root.render(<App markdown={content} source={detection.source} />);
+  root.render(<App markdown={content} source={source} />);
 }
 
 main();

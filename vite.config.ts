@@ -18,6 +18,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         content: resolve(__dirname, 'src/content/index.tsx'),
+        viewer: resolve(__dirname, 'src/viewer/viewer.html'),
       },
     },
   },

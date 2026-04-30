@@ -17,6 +17,7 @@
 | 2026-04-30 | Phase 2 | 39 (cumulative) | 0 | - | - |
 | 2026-04-30 | Phase 3 | 57 (cumulative) | 0 | - | - |
 | 2026-04-30 | Phase 4 | 73 (cumulative) | 0 | - | - |
+| 2026-04-30 | Phase 5 | 114 (cumulative) | 0 | - | - |
 
 ---
 
@@ -44,9 +45,9 @@
 - [x] `tests/unit/indexeddb-persistence.test.ts` — 句柄持久化 (4 tests)
 
 ### Phase 5: 多平台适配
-- [ ] `tests/unit/github-adapter.test.ts` — GitHub 内容提取
-- [ ] `tests/unit/gitlab-adapter.test.ts` — GitLab 内容提取
-- [ ] `tests/unit/service-worker.test.ts` — 消息路由
+- [x] `tests/unit/github-adapter.test.ts` — GitHub adapter detect/title (11 tests)
+- [x] `tests/unit/gitlab-adapter.test.ts` — GitLab adapter detect/title (11 tests)
+- [x] `tests/unit/service-worker.test.ts` — URL validation allowlist (19 tests)
 
 ### Phase 6: 打磨与发布
 - [ ] `tests/unit/theme-switching.test.ts` — 主题切换

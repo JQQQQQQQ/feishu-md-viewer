@@ -81,3 +81,17 @@
 
 ---
 
+## Phase 5 - Iteration 1
+
+- **日期**: 2026-04-30
+- **判定**: PASS (首次即通过)
+- **通过门禁**: TypeScript strict, ESLint, Build, All tests (73), URL validation (allowlist), CORS (extension context), Error handling (rate limit/network), Adapter pattern, Context menu
+- **安全审查**: URL allowlist 在 service-worker 和 viewer-entry 双重验证, Content-Type 校验防止 HTML 注入, 无 eval
+- **改进建议** (非阻塞):
+  1. GitLab 适配器暂不支持嵌套 group (gitlab.com/org/subgroup/repo)
+  2. content/index.tsx 中 adapter.getContent() 缺少 try/catch
+  3. detector.ts 为遗留代码，可后续清理
+- **测试**: 114 tests pass (41 new: github-adapter 11 + gitlab-adapter 11 + url-validation 19)
+
+---
+

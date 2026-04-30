@@ -10,6 +10,9 @@
     "https://gitlab.com/*",
     "https://raw.githubusercontent.com/*"
   ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts"
+  },
   "content_scripts": [
     {
       "matches": [
