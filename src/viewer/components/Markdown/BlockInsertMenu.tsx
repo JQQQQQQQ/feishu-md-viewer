@@ -32,6 +32,11 @@ export function BlockInsertMenu({ editorContainerRef, onInsert }: BlockInsertMen
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleContextMenu = useCallback((e: MouseEvent) => {
+    // Don't show insert menu inside tables (would break table structure)
+    const target = e.target as HTMLElement;
+    if (target.closest('table') || target.closest('th') || target.closest('td')) {
+      return;
+    }
     e.preventDefault();
     setPosition({ x: e.clientX, y: e.clientY });
     setVisible(true);

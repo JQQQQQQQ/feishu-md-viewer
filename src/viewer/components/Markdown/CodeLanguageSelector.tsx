@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useInstance } from '@milkdown/react';
 import { editorViewCtx } from '@milkdown/core';
-import { callCommand } from '@milkdown/utils';
-import { updateCodeBlockLanguageCommand } from '@milkdown/preset-commonmark';
 
 interface SelectorPosition {
   top: number;
@@ -114,7 +112,15 @@ export function CodeLanguageSelector() {
       const pos = codeBlockPosRef.current;
       if (pos < 0) return;
 
-      editor.action(callCommand(updateCodeBlockLanguageCommand.key, { pos, language }));
+      // Use ProseMirror directly — more reliable than callCommand
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { state, dispatch } = view;
+        const node = state.doc.nodeAt(pos);
+        if (node && node.type.name === 'code_block') {
+          dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, language }));
+        }
+      });
       setCurrentLanguage(language);
       setDropdownOpen(false);
     },
