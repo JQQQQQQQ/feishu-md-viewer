@@ -121,6 +121,116 @@
   flex-shrink: 0;
 }
 
+/* ===== Font Size Controls ===== */
+.feishu-topbar__font-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.feishu-topbar__font-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--feishu-border-light);
+  background: transparent;
+  border-radius: var(--feishu-radius-sm);
+  cursor: pointer;
+  color: var(--feishu-text-secondary);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.feishu-topbar__font-btn:hover {
+  background-color: var(--feishu-bg-page);
+  color: var(--feishu-text-primary);
+}
+
+.feishu-topbar__font-btn:focus-visible {
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: 1px;
+}
+
+.feishu-topbar__font-size {
+  font-size: 12px;
+  color: var(--feishu-text-secondary);
+  min-width: 20px;
+  text-align: center;
+  user-select: none;
+}
+
+/* ===== Theme Toggle ===== */
+.feishu-topbar__theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--feishu-border-light);
+  background: transparent;
+  border-radius: var(--feishu-radius-sm);
+  cursor: pointer;
+  color: var(--feishu-text-secondary);
+  flex-shrink: 0;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.feishu-topbar__theme-btn:hover {
+  background-color: var(--feishu-bg-page);
+  color: var(--feishu-text-primary);
+}
+
+.feishu-topbar__theme-btn:focus-visible {
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: 1px;
+}
+
+/* ===== Mermaid Toolbar ===== */
+.mermaid-toolbar-wrapper {
+  position: relative;
+}
+
+.mermaid-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  background-color: var(--feishu-table-header-bg);
+  border: 1px solid var(--feishu-border-lighter);
+  border-bottom: none;
+  border-radius: var(--feishu-radius) var(--feishu-radius) 0 0;
+}
+
+.mermaid-toolbar__edit-btn,
+.mermaid-toolbar__export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: var(--feishu-radius-sm);
+  background: var(--feishu-bg-content);
+  color: var(--feishu-text-secondary);
+  font-size: 12px;
+  font-family: var(--feishu-font-family);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.mermaid-toolbar__edit-btn:hover,
+.mermaid-toolbar__export-btn:hover {
+  background-color: var(--feishu-bg-page);
+  color: var(--feishu-text-primary);
+}
+
+.mermaid-toolbar__edit-btn:focus-visible,
+.mermaid-toolbar__export-btn:focus-visible {
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: 1px;
+}
+
 /* ===== Sidebar ===== */
 .feishu-sidebar {
   position: fixed;

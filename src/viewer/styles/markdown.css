@@ -101,6 +101,41 @@
   user-select: none;
 }
 
+.feishu-code-block__copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 60px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: var(--feishu-radius-sm);
+  background-color: var(--feishu-bg-content);
+  color: var(--feishu-text-secondary);
+  font-size: 12px;
+  font-family: var(--feishu-font-family);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s;
+  z-index: 1;
+}
+
+.feishu-code-block:hover .feishu-code-block__copy-btn {
+  opacity: 1;
+}
+
+.feishu-code-block__copy-btn:hover {
+  background-color: var(--feishu-table-header-bg);
+  color: var(--feishu-text-primary);
+}
+
+.feishu-code-block__copy-btn:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: 1px;
+}
+
 .feishu-code-block__pre {
   margin: 0;
   padding: 16px 20px;

@@ -14,6 +14,8 @@ import './styles/layout.css';
 import './styles/editor.css';
 import './styles/save-status.css';
 import './styles/tailwind-output.css';
+import './styles/dark-theme.css';
+import './styles/print.css';
 
 const ALLOWED_ORIGINS = [
   'file://',

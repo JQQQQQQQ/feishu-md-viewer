@@ -106,7 +106,6 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
   padding: 4px 12px;
   border: 1px solid var(--feishu-border, #dee0e3);
   border-radius: 6px;
@@ -115,6 +114,7 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 
@@ -138,45 +138,7 @@
   margin-left: 4px;
 }
 
-/* --- Mermaid Toolbar --- */
-.mermaid-toolbar-wrapper {
-  position: relative;
-}
-
-.mermaid-toolbar {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.mermaid-toolbar-wrapper:hover .mermaid-toolbar,
-.mermaid-toolbar-wrapper:focus-within .mermaid-toolbar {
-  opacity: 1;
-}
-
-.mermaid-toolbar__edit-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid var(--feishu-border, #dee0e3);
-  border-radius: 4px;
-  background: var(--feishu-bg-primary, #ffffff);
-  color: var(--feishu-text-secondary, #646a73);
-  font-size: 12px;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-  transition: all 0.15s ease;
-}
-
-.mermaid-toolbar__edit-btn:hover {
-  color: var(--feishu-primary, #3370ff);
-  border-color: var(--feishu-primary, #3370ff);
-  background: var(--feishu-primary-light, #e8f0ff);
-}
+/* --- Mermaid Toolbar (overrides from layout.css for editor context) --- */
 
 /* --- Mermaid Editor Overlay --- */
 .mermaid-editor__overlay {

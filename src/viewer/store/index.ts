@@ -1,8 +1,12 @@
 import { create } from 'zustand';
 
 const MAX_HISTORY = 50;
+const FONT_SIZE_MIN = 12;
+const FONT_SIZE_MAX = 24;
+const FONT_SIZE_DEFAULT = 15;
 
 type EditorMode = 'read' | 'edit';
+export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface DocumentSlice {
   content: string;
@@ -20,6 +24,12 @@ interface UISlice {
   sidebarOpen: boolean;
 }
 
+interface SettingsSlice {
+  theme: ThemeMode;
+  fontSize: number;
+  autoSaveEnabled: boolean;
+}
+
 interface Actions {
   setContent: (content: string) => void;
   setMode: (mode: EditorMode) => void;
@@ -29,9 +39,29 @@ interface Actions {
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   initDocument: (content: string) => void;
+  setTheme: (theme: ThemeMode) => void;
+  setFontSize: (size: number) => void;
+  increaseFontSize: () => void;
+  decreaseFontSize: () => void;
+  setAutoSaveEnabled: (enabled: boolean) => void;
+  loadSettings: () => Promise<void>;
 }
 
-export type ViewerStore = DocumentSlice & EditorSlice & UISlice & Actions;
+export type ViewerStore = DocumentSlice & EditorSlice & UISlice & SettingsSlice & Actions;
+
+function clampFontSize(size: number): number {
+  return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, size));
+}
+
+async function persistSettings(settings: Partial<SettingsSlice>): Promise<void> {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      await chrome.storage.local.set({ viewerSettings: settings });
+    }
+  } catch {
+    // Storage may not be available in all contexts
+  }
+}
 
 export const useViewerStore = create<ViewerStore>((set, get) => ({
   // Document slice
@@ -46,6 +76,11 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
 
   // UI slice
   sidebarOpen: true,
+
+  // Settings slice
+  theme: 'system',
+  fontSize: FONT_SIZE_DEFAULT,
+  autoSaveEnabled: true,
 
   // Actions
   initDocument: (content: string) => {
@@ -125,5 +160,53 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
 
   setSidebarOpen: (open: boolean) => {
     set({ sidebarOpen: open });
+  },
+
+  setTheme: (theme: ThemeMode) => {
+    set({ theme });
+    void persistSettings({ theme, fontSize: get().fontSize, autoSaveEnabled: get().autoSaveEnabled });
+  },
+
+  setFontSize: (size: number) => {
+    const clamped = clampFontSize(size);
+    set({ fontSize: clamped });
+    void persistSettings({ theme: get().theme, fontSize: clamped, autoSaveEnabled: get().autoSaveEnabled });
+  },
+
+  increaseFontSize: () => {
+    const state = get();
+    const newSize = clampFontSize(state.fontSize + 1);
+    set({ fontSize: newSize });
+    void persistSettings({ theme: state.theme, fontSize: newSize, autoSaveEnabled: state.autoSaveEnabled });
+  },
+
+  decreaseFontSize: () => {
+    const state = get();
+    const newSize = clampFontSize(state.fontSize - 1);
+    set({ fontSize: newSize });
+    void persistSettings({ theme: state.theme, fontSize: newSize, autoSaveEnabled: state.autoSaveEnabled });
+  },
+
+  setAutoSaveEnabled: (enabled: boolean) => {
+    set({ autoSaveEnabled: enabled });
+    void persistSettings({ theme: get().theme, fontSize: get().fontSize, autoSaveEnabled: enabled });
+  },
+
+  loadSettings: async () => {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        const result = await chrome.storage.local.get('viewerSettings');
+        const settings = result['viewerSettings'] as Partial<SettingsSlice> | undefined;
+        if (settings) {
+          set({
+            theme: settings.theme ?? 'system',
+            fontSize: clampFontSize(settings.fontSize ?? FONT_SIZE_DEFAULT),
+            autoSaveEnabled: settings.autoSaveEnabled ?? true,
+          });
+        }
+      }
+    } catch {
+      // Storage may not be available
+    }
   },
 }));

@@ -1,4 +1,4 @@
-import type { ComponentType, HTMLAttributes, ReactNode } from 'react';
+import { useState, useCallback, type ComponentType, type HTMLAttributes, type ReactNode } from 'react';
 import { MermaidBlock } from './MermaidBlock';
 import { MermaidToolbar } from '../Mermaid/MermaidToolbar';
 
@@ -12,6 +12,48 @@ function FeishuHeading({ level, children, ...props }: { level: 1 | 2 | 3 | 4 | 5
     ? children.toLowerCase().replace(/[^a-z0-9一-龥]+/g, '-').replace(/(^-|-$)/g, '')
     : undefined;
   return <Tag id={id} className={`feishu-heading feishu-h${level}`} {...props}>{children}</Tag>;
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch {
+      // Clipboard API may not be available in some contexts
+    }
+  }, [text]);
+
+  return (
+    <button
+      className="feishu-code-block__copy-btn"
+      onClick={() => void handleCopy()}
+      type="button"
+      aria-label={copied ? 'Copied to clipboard' : 'Copy code to clipboard'}
+    >
+      {copied ? (
+        <>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M2 7.5L5 10.5L12 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Copied!
+        </>
+      ) : (
+        <>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <rect x="4.5" y="4.5" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M9.5 4.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h1.5" stroke="currentColor" strokeWidth="1.2" />
+          </svg>
+          Copy
+        </>
+      )}
+    </button>
+  );
 }
 
 function FeishuCodeBlock({ children, className, ...props }: HTMLAttributes<HTMLPreElement> & { children?: ReactNode }) {
@@ -29,9 +71,12 @@ function FeishuCodeBlock({ children, className, ...props }: HTMLAttributes<HTMLP
     );
   }
 
+  const codeText = typeof code === 'string' ? code : '';
+
   return (
     <div className="feishu-code-block">
       {lang && <span className="feishu-code-block__lang">{lang}</span>}
+      {codeText && <CopyButton text={codeText} />}
       <pre className={`feishu-code-block__pre ${className ?? ''}`} {...props}>
         {children}
       </pre>

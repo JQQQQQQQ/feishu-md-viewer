@@ -1,0 +1,116 @@
+/* Print styles for Feishu MD Viewer */
+@media print {
+  /* Hide interactive elements */
+  .feishu-sidebar,
+  .feishu-topbar,
+  .mermaid-toolbar,
+  .feishu-code-block__copy-btn,
+  .feishu-topbar__mode-toggle,
+  .feishu-topbar__save-section,
+  .feishu-topbar__toggle {
+    display: none !important;
+  }
+
+  /* Full-width content */
+  .feishu-viewer {
+    background: white !important;
+    color: black !important;
+  }
+
+  .feishu-viewer__page {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .feishu-viewer__content {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .feishu-layout {
+    display: block !important;
+  }
+
+  .feishu-layout__main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Typography adjustments for print */
+  .feishu-heading {
+    page-break-after: avoid;
+  }
+
+  .feishu-paragraph {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Tables */
+  .feishu-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .feishu-table {
+    page-break-inside: avoid;
+  }
+
+  /* Code blocks */
+  .feishu-code-block {
+    page-break-inside: avoid;
+    border: 1px solid #ccc !important;
+    background: #f9f9f9 !important;
+  }
+
+  .feishu-code-block__pre {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+  }
+
+  /* Mermaid diagrams sized to fit page */
+  .feishu-mermaid {
+    page-break-inside: avoid;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .feishu-mermaid svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Links: show URL after link text */
+  .feishu-link::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Blockquotes */
+  .feishu-blockquote {
+    page-break-inside: avoid;
+    border-left: 3px solid #333 !important;
+    background: transparent !important;
+  }
+
+  /* Images */
+  .feishu-image {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Reset dark mode variables for print */
+  .feishu-viewer--dark,
+  .feishu-viewer--system {
+    --feishu-bg-page: #ffffff;
+    --feishu-bg-content: #ffffff;
+    --feishu-text-primary: #000000;
+    --feishu-text-secondary: #333333;
+    --feishu-border-light: #cccccc;
+    --feishu-code-bg: #f9f9f9;
+    --feishu-code-text: #d63384;
+    color-scheme: light;
+  }
+}

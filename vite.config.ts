@@ -19,6 +19,7 @@ export default defineConfig({
       input: {
         content: resolve(__dirname, 'src/content/index.tsx'),
         viewer: resolve(__dirname, 'src/viewer/viewer.html'),
+        options: resolve(__dirname, 'src/options/options.html'),
       },
     },
   },

@@ -23,11 +23,25 @@ function extractTitle(markdown: string): string {
   return match?.[1]?.trim() ?? '';
 }
 
+function getThemeClass(theme: 'light' | 'dark' | 'system'): string {
+  switch (theme) {
+    case 'dark':
+      return 'feishu-viewer--dark';
+    case 'system':
+      return 'feishu-viewer--system';
+    default:
+      return '';
+  }
+}
+
 export function App({ markdown, source }: AppProps) {
   const initDocument = useViewerStore((s) => s.initDocument);
   const content = useViewerStore((s) => s.content);
   const mode = useViewerStore((s) => s.mode);
   const isDirty = useViewerStore((s) => s.isDirty);
+  const theme = useViewerStore((s) => s.theme);
+  const fontSize = useViewerStore((s) => s.fontSize);
+  const loadSettings = useViewerStore((s) => s.loadSettings);
 
   // File system access
   const {
@@ -41,6 +55,11 @@ export function App({ markdown, source }: AppProps) {
     persistHandle,
     setFileHandle,
   } = useFileAccess();
+
+  // Load stored settings on mount
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   // Initialize the store with the markdown content
   useEffect(() => {
@@ -124,13 +143,17 @@ export function App({ markdown, source }: AppProps) {
 
   const saveErrorMessage = autoSave.error || fileError;
 
+  const themeClass = getThemeClass(theme);
+  const viewerClasses = ['feishu-viewer', themeClass].filter(Boolean).join(' ');
+
   return (
     <ErrorBoundary>
       <div
-        className="feishu-viewer"
+        className={viewerClasses}
         role="article"
         aria-label="Rendered markdown document"
         data-source={source}
+        style={{ '--feishu-font-size-body': `${fontSize}px` } as React.CSSProperties}
       >
         <AppShell
           title={title}

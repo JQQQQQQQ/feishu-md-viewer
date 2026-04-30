@@ -8,6 +8,8 @@ import layoutStyles from '../viewer/styles/layout.css?inline';
 import editorStyles from '../viewer/styles/editor.css?inline';
 import saveStatusStyles from '../viewer/styles/save-status.css?inline';
 import tailwindStyles from '../viewer/styles/tailwind-output.css?inline';
+import darkThemeStyles from '../viewer/styles/dark-theme.css?inline';
+import printStyles from '../viewer/styles/print.css?inline';
 
 async function main(): Promise<void> {
   const adapter = getActiveAdapter();
@@ -26,6 +28,8 @@ async function main(): Promise<void> {
   injectStyles(shadowRoot, layoutStyles);
   injectStyles(shadowRoot, editorStyles);
   injectStyles(shadowRoot, saveStatusStyles);
+  injectStyles(shadowRoot, darkThemeStyles);
+  injectStyles(shadowRoot, printStyles);
 
   const root = createRoot(mountPoint);
   root.render(<App markdown={content} source={source} />);

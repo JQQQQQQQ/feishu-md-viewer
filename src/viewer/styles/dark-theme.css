@@ -1,0 +1,206 @@
+/* Dark theme overrides for Feishu MD Viewer */
+/* Applied when .feishu-viewer--dark is on the root element */
+
+.feishu-viewer--dark {
+  --feishu-bg-page: #1a1a1a;
+  --feishu-bg-content: #242424;
+  --feishu-brand-primary: #4e83fd;
+  --feishu-brand-primary-hover: #6b9bff;
+  --feishu-text-primary: #e8e8e8;
+  --feishu-text-secondary: #a0a0a0;
+  --feishu-text-placeholder: #6b6b6b;
+  --feishu-border-light: #3a3a3a;
+  --feishu-border-lighter: #333333;
+  --feishu-code-bg: #2d2d2d;
+  --feishu-code-text: #f0a0c0;
+  --feishu-blockquote-bg: #1e2a3d;
+  --feishu-blockquote-border: #4e83fd;
+  --feishu-table-header-bg: #2a2a2a;
+  --feishu-table-stripe-bg: #222222;
+
+  color-scheme: dark;
+}
+
+/* Topbar dark adjustments */
+.feishu-viewer--dark .feishu-topbar {
+  background-color: var(--feishu-bg-content);
+  border-bottom-color: var(--feishu-border-light);
+}
+
+/* Sidebar dark adjustments */
+.feishu-viewer--dark .feishu-sidebar {
+  background-color: var(--feishu-bg-page);
+  border-right-color: var(--feishu-border-light);
+}
+
+/* Code block dark adjustments */
+.feishu-viewer--dark .feishu-code-block {
+  background-color: var(--feishu-code-bg);
+  border-color: var(--feishu-border-light);
+}
+
+.feishu-viewer--dark .feishu-code-block__lang {
+  background-color: #383838;
+  color: var(--feishu-text-secondary);
+}
+
+/* Mermaid dark adjustments */
+.feishu-viewer--dark .feishu-mermaid {
+  background-color: var(--feishu-bg-content);
+  border-color: var(--feishu-border-light);
+}
+
+/* Table dark adjustments */
+.feishu-viewer--dark .feishu-table {
+  border-color: var(--feishu-border-light);
+}
+
+.feishu-viewer--dark .feishu-table__header {
+  border-color: var(--feishu-border-light);
+}
+
+.feishu-viewer--dark .feishu-table__cell {
+  border-color: var(--feishu-border-light);
+}
+
+/* Inline code dark */
+.feishu-viewer--dark .feishu-inline-code {
+  background-color: var(--feishu-code-bg);
+  color: var(--feishu-code-text);
+}
+
+/* Buttons and interactive elements */
+.feishu-viewer--dark .feishu-topbar__mode-toggle {
+  color: var(--feishu-text-secondary);
+  border-color: var(--feishu-border-light);
+}
+
+.feishu-viewer--dark .feishu-topbar__mode-toggle:hover {
+  background-color: #333333;
+}
+
+.feishu-viewer--dark .feishu-topbar__mode-toggle--active {
+  background-color: #1e3a5f;
+  border-color: var(--feishu-brand-primary);
+  color: var(--feishu-brand-primary);
+}
+
+/* Link colors in dark mode */
+.feishu-viewer--dark .feishu-link {
+  color: var(--feishu-brand-primary);
+}
+
+/* Divider */
+.feishu-viewer--dark .feishu-divider {
+  border-color: var(--feishu-border-light);
+}
+
+/* Image backgrounds */
+.feishu-viewer--dark .feishu-image {
+  background-color: var(--feishu-bg-content);
+}
+
+/* Copy button in dark mode */
+.feishu-viewer--dark .feishu-code-block__copy-btn {
+  background-color: #383838;
+  color: var(--feishu-text-secondary);
+  border-color: var(--feishu-border-light);
+}
+
+.feishu-viewer--dark .feishu-code-block__copy-btn:hover {
+  background-color: #444444;
+  color: var(--feishu-text-primary);
+}
+
+/* System preference: respect prefers-color-scheme as default */
+@media (prefers-color-scheme: dark) {
+  .feishu-viewer--system {
+    --feishu-bg-page: #1a1a1a;
+    --feishu-bg-content: #242424;
+    --feishu-brand-primary: #4e83fd;
+    --feishu-brand-primary-hover: #6b9bff;
+    --feishu-text-primary: #e8e8e8;
+    --feishu-text-secondary: #a0a0a0;
+    --feishu-text-placeholder: #6b6b6b;
+    --feishu-border-light: #3a3a3a;
+    --feishu-border-lighter: #333333;
+    --feishu-code-bg: #2d2d2d;
+    --feishu-code-text: #f0a0c0;
+    --feishu-blockquote-bg: #1e2a3d;
+    --feishu-blockquote-border: #4e83fd;
+    --feishu-table-header-bg: #2a2a2a;
+    --feishu-table-stripe-bg: #222222;
+
+    color-scheme: dark;
+  }
+
+  .feishu-viewer--system .feishu-topbar {
+    background-color: var(--feishu-bg-content);
+    border-bottom-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-sidebar {
+    background-color: var(--feishu-bg-page);
+    border-right-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-code-block {
+    background-color: var(--feishu-code-bg);
+    border-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-code-block__lang {
+    background-color: #383838;
+    color: var(--feishu-text-secondary);
+  }
+
+  .feishu-viewer--system .feishu-mermaid {
+    background-color: var(--feishu-bg-content);
+    border-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-table,
+  .feishu-viewer--system .feishu-table__header,
+  .feishu-viewer--system .feishu-table__cell {
+    border-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-inline-code {
+    background-color: var(--feishu-code-bg);
+    color: var(--feishu-code-text);
+  }
+
+  .feishu-viewer--system .feishu-topbar__mode-toggle {
+    color: var(--feishu-text-secondary);
+    border-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-topbar__mode-toggle:hover {
+    background-color: #333333;
+  }
+
+  .feishu-viewer--system .feishu-topbar__mode-toggle--active {
+    background-color: #1e3a5f;
+    border-color: var(--feishu-brand-primary);
+    color: var(--feishu-brand-primary);
+  }
+
+  .feishu-viewer--system .feishu-link {
+    color: var(--feishu-brand-primary);
+  }
+
+  .feishu-viewer--system .feishu-divider {
+    border-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-code-block__copy-btn {
+    background-color: #383838;
+    color: var(--feishu-text-secondary);
+    border-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-code-block__copy-btn:hover {
+    background-color: #444444;
+    color: var(--feishu-text-primary);
+  }
+}

@@ -18,6 +18,7 @@
 | 2026-04-30 | Phase 3 | 57 (cumulative) | 0 | - | - |
 | 2026-04-30 | Phase 4 | 73 (cumulative) | 0 | - | - |
 | 2026-04-30 | Phase 5 | 114 (cumulative) | 0 | - | - |
+| 2026-04-30 | Phase 6 | 139 (cumulative) | 0 | - | - |
 
 ---
 
@@ -50,9 +51,10 @@
 - [x] `tests/unit/service-worker.test.ts` — URL validation allowlist (19 tests)
 
 ### Phase 6: 打磨与发布
-- [ ] `tests/unit/theme-switching.test.ts` — 主题切换
-- [ ] `tests/unit/katex-integration.test.ts` — 公式渲染
-- [ ] `tests/unit/export-mermaid.test.ts` — 导出功能
+- [x] `tests/unit/theme-switching.test.ts` — 主题切换 + 字体大小 (13 tests)
+- [x] `tests/unit/export-mermaid.test.ts` — SVG/PNG 导出 (7 tests)
+- [x] `tests/unit/copy-button.test.ts` — 代码复制按钮 (5 tests)
+- [ ] `tests/unit/katex-integration.test.ts` — 公式渲染 (KaTeX deferred)
 
 ---
 

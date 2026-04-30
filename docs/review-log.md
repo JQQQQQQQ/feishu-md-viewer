@@ -95,3 +95,23 @@
 
 ---
 
+## Phase 6 - Iteration 1
+
+- **日期**: 2026-04-30
+- **判定**: FAIL (1 issue)
+- **通过门禁**: TypeScript, ESLint, Build (mermaid code-split), Dark theme, Mermaid lazy, Print styles, Clipboard API, Options page
+- **未通过门禁**: Tests (1 failure — mermaid-init.test.ts 引用已删除的 `initMermaid` export)
+- **问题**:
+  1. [Major] `tests/unit/mermaid-init.test.ts` — 导入不存在的 `initMermaid`，需适配新的 lazy-load API
+- **修复结果**: 测试改为通过 `renderMermaid` 触发懒加载并验证 initialize 调用
+
+## Phase 6 - Iteration 2
+
+- **日期**: 2026-04-30
+- **判定**: PASS
+- **通过门禁**: TypeScript strict, ESLint, Build (Mermaid code-split 585KB chunk), All tests (114→139), Dark theme (CSS vars overridden), Mermaid lazy (dynamic import), Print styles (UI hidden), Clipboard API (navigator.clipboard.writeText), Options page (chrome.storage.local), Font size (12-24 clamped)
+- **安全审查**: 无 eval, Clipboard API (非 execCommand), SVG export 用 XMLSerializer, PNG 用 canvas
+- **测试**: 139 tests pass (25 new: theme-switching 13 + export-mermaid 7 + copy-button 5)
+
+---
+
