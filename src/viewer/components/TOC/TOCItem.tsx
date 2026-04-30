@@ -35,7 +35,7 @@ export function TOCItem({ item, activeId, onNavigate }: TOCItemProps) {
   }, [item.id, onNavigate, hasChildren, expanded]);
 
   return (
-    <li className="feishu-toc__item" role="treeitem" aria-expanded={hasChildren ? expanded : undefined}>
+    <li className="feishu-toc__item" role="treeitem" aria-selected={isActive} aria-expanded={hasChildren ? expanded : undefined}>
       <div
         className={`feishu-toc__link ${isActive ? 'feishu-toc__link--active' : ''}`}
         style={{ paddingLeft: `${(item.level - 1) * 12 + 12}px` }}

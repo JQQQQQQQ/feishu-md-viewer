@@ -25,3 +25,26 @@
 
 ---
 
+## Phase 2 - Iteration 1
+
+- **日期**: 2026-04-30
+- **判定**: FAIL (2 issues)
+- **通过门禁**: TypeScript, Build, Security, Keyboard, Responsive, Animation, No inline styles
+- **未通过门禁**: ESLint (aria-selected missing), Visual completeness (TOC styles missing)
+- **问题**:
+  1. [Critical] `src/viewer/components/TOC/TOCItem.tsx:38` — `role="treeitem"` 缺少 `aria-selected` 属性
+  2. [Critical] 所有 `.feishu-toc*` CSS 类无样式定义，TOC 视觉上完全无效
+- **修复要求**:
+  1. 添加 `aria-selected={isActive}` 到 `<li role="treeitem">`
+  2. 在 layout.css 中添加完整 TOC 样式
+- **修复结果**: 两项均已修复
+
+## Phase 2 - Iteration 2
+
+- **日期**: 2026-04-30
+- **判定**: PASS
+- **通过门禁**: TypeScript strict, ESLint, Build, Accessibility (aria-selected, aria-expanded, skip-link, aria-label), Keyboard (Escape), Responsive (<768px drawer), Animation (prefers-reduced-motion), TOC styles complete
+- **测试**: 39 tests pass (16 new for Phase 2: useTOC 7 + TOCItem 9)
+
+---
+
