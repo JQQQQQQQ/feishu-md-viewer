@@ -1,0 +1,96 @@
+/* ===== Save Section in TopBar ===== */
+.feishu-topbar__save-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.feishu-topbar__save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--feishu-border, #dee0e3);
+  border-radius: 6px;
+  background: var(--feishu-bg-primary, #ffffff);
+  color: var(--feishu-text-secondary, #646a73);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.feishu-topbar__save-btn:hover:not(:disabled) {
+  background: var(--feishu-bg-secondary, #f5f6f7);
+  border-color: var(--feishu-primary, #3370ff);
+  color: var(--feishu-primary, #3370ff);
+}
+
+.feishu-topbar__save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.feishu-topbar__save-btn:focus-visible {
+  outline: 2px solid var(--feishu-primary, #3370ff);
+  outline-offset: 2px;
+}
+
+/* ===== Save Status Indicator ===== */
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--feishu-text-secondary, #646a73);
+  user-select: none;
+}
+
+.save-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.save-status__dot--saved {
+  background-color: #34c759;
+}
+
+.save-status__dot--saving {
+  background-color: #007aff;
+  animation: save-status-pulse 1.2s ease-in-out infinite;
+}
+
+.save-status__dot--unsaved {
+  background-color: #ff9500;
+}
+
+.save-status__dot--error {
+  background-color: #ff3b30;
+}
+
+.save-status__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.save-status--error .save-status__label {
+  color: #ff3b30;
+}
+
+@keyframes save-status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}

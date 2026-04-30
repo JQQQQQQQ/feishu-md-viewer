@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import type { TOCItem } from '../../hooks/useTOC';
+import type { SaveStatusState } from '../Common/SaveStatus';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 
@@ -7,6 +8,11 @@ interface AppShellProps {
   title: string;
   tocItems: TOCItem[];
   children: ReactNode;
+  onSave?: () => void;
+  saveStatus?: SaveStatusState;
+  saveError?: string | null;
+  lastSaved?: Date | null;
+  showSaveControls?: boolean;
 }
 
 function useIsDrawerMode(): boolean {
@@ -29,7 +35,16 @@ function useIsDrawerMode(): boolean {
   return isDrawer;
 }
 
-export function AppShell({ title, tocItems, children }: AppShellProps) {
+export function AppShell({
+  title,
+  tocItems,
+  children,
+  onSave,
+  saveStatus,
+  saveError,
+  lastSaved,
+  showSaveControls,
+}: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const contentRef = useRef<HTMLElement | null>(null);
   const isDrawerMode = useIsDrawerMode();
@@ -66,6 +81,11 @@ export function AppShell({ title, tocItems, children }: AppShellProps) {
         title={title}
         isSidebarOpen={sidebarOpen}
         onToggleSidebar={handleToggleSidebar}
+        onSave={onSave}
+        saveStatus={saveStatus}
+        saveError={saveError}
+        lastSaved={lastSaved}
+        showSaveControls={showSaveControls}
       />
       <div className="feishu-app-shell__body">
         <Sidebar

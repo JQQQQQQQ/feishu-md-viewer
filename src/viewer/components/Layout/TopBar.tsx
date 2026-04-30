@@ -1,12 +1,27 @@
 import { useViewerStore } from '../../store';
+import { SaveStatus, type SaveStatusState } from '../Common/SaveStatus';
 
 interface TopBarProps {
   title: string;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
+  onSave?: () => void;
+  saveStatus?: SaveStatusState;
+  saveError?: string | null;
+  lastSaved?: Date | null;
+  showSaveControls?: boolean;
 }
 
-export function TopBar({ title, isSidebarOpen, onToggleSidebar }: TopBarProps) {
+export function TopBar({
+  title,
+  isSidebarOpen,
+  onToggleSidebar,
+  onSave,
+  saveStatus = 'saved',
+  saveError,
+  lastSaved,
+  showSaveControls = false,
+}: TopBarProps) {
   const mode = useViewerStore((s) => s.mode);
   const setMode = useViewerStore((s) => s.setMode);
   const isDirty = useViewerStore((s) => s.isDirty);
@@ -46,6 +61,49 @@ export function TopBar({ title, isSidebarOpen, onToggleSidebar }: TopBarProps) {
           <span className="feishu-topbar__title">{title}</span>
         </>
       )}
+
+      {showSaveControls && (
+        <div className="feishu-topbar__save-section">
+          <SaveStatus
+            status={saveStatus}
+            errorMessage={saveError ?? undefined}
+            lastSaved={lastSaved}
+          />
+          <button
+            className="feishu-topbar__save-btn"
+            onClick={onSave}
+            type="button"
+            aria-label="Save document"
+            title="Save (Ctrl+S)"
+            disabled={!isDirty && saveStatus === 'saved'}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M12.667 14H3.333A1.333 1.333 0 0 1 2 12.667V3.333A1.333 1.333 0 0 1 3.333 2h7.334L14 5.333v7.334A1.333 1.333 0 0 1 12.667 14Z"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M11.333 14V9.333H4.667V14"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M4.667 2v3.333h5.333"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <button
         className={modeToggleClass}
         onClick={handleToggleMode}

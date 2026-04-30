@@ -16,6 +16,7 @@
 | 2026-04-30 | Phase 1 | 23 | 0 | - | - |
 | 2026-04-30 | Phase 2 | 39 (cumulative) | 0 | - | - |
 | 2026-04-30 | Phase 3 | 57 (cumulative) | 0 | - | - |
+| 2026-04-30 | Phase 4 | 73 (cumulative) | 0 | - | - |
 
 ---
 
@@ -38,9 +39,9 @@
 - [x] `tests/unit/xss-prevention.test.ts` — XSS 向量测试 (3 tests)
 
 ### Phase 4: 文件保存
-- [ ] `tests/unit/useFileAccess.test.ts` — File System Access API mock
-- [ ] `tests/unit/useAutoSave.test.ts` — 自动保存防抖
-- [ ] `tests/unit/indexeddb-persistence.test.ts` — 句柄持久化
+- [x] `tests/unit/useFileAccess.test.ts` — File System Access API mock (7 tests)
+- [x] `tests/unit/useAutoSave.test.ts` — 自动保存防抖 (5 tests)
+- [x] `tests/unit/indexeddb-persistence.test.ts` — 句柄持久化 (4 tests)
 
 ### Phase 5: 多平台适配
 - [ ] `tests/unit/github-adapter.test.ts` — GitHub 内容提取
