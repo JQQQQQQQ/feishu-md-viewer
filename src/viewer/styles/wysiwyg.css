@@ -127,12 +127,12 @@
 
 /* Tables — match feishu style exactly */
 .feishu-wysiwyg__editor table {
-  width: 100%;
+  width: calc(100% - 28px);
   border-collapse: collapse;
   border-spacing: 0;
   table-layout: fixed;
   font-size: var(--feishu-font-size-small);
-  margin: 1em 0;
+  margin: 1.5em 0 1em 28px;
   border: 1px solid var(--feishu-border-light);
   border-radius: var(--feishu-radius);
   overflow: hidden;
@@ -363,50 +363,84 @@
 }
 
 /* ===========================
-   Table Operations Toolbar
+   Table Border Controls (Feishu-style)
    =========================== */
 
-.feishu-table-ops {
+.feishu-table-border-controls {
   position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px 6px;
-  background: var(--feishu-bg-content);
-  border: 1px solid var(--feishu-border-light);
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  z-index: 100;
-  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+  top: 0;
+  left: 0;
 }
 
-.feishu-table-ops button {
+.feishu-table-border-controls__col-btn,
+.feishu-table-border-controls__row-btn {
+  position: absolute;
+  pointer-events: all;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--feishu-brand-primary);
+  color: white;
+  border: 2px solid white;
+  font-size: 14px;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 24px;
-  padding: 0 4px;
-  border: none;
-  background: none;
-  border-radius: 4px;
   cursor: pointer;
-  color: var(--feishu-text-secondary);
-  font-size: 11px;
-  font-family: var(--feishu-font-family);
-  transition: background-color 0.15s, color 0.15s;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  line-height: 1;
 }
 
-.feishu-table-ops button:hover {
-  background: var(--feishu-code-bg);
-  color: var(--feishu-text-primary);
+/* Show "+" buttons when hovering within the overlay */
+.feishu-table-border-controls:hover .feishu-table-border-controls__col-btn,
+.feishu-table-border-controls:hover .feishu-table-border-controls__row-btn {
+  opacity: 1;
 }
 
-.feishu-table-ops__divider {
-  width: 1px;
+.feishu-table-border-controls__col-btn:hover,
+.feishu-table-border-controls__row-btn:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+  background: var(--feishu-brand-primary-hover, #2b5fd9);
+}
+
+.feishu-table-border-controls__col-handle,
+.feishu-table-border-controls__row-handle {
+  position: absolute;
+  pointer-events: all;
+  width: 16px;
   height: 16px;
-  background: var(--feishu-border-lighter);
-  margin: 0 2px;
+  border-radius: 50%;
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+
+.feishu-table-border-controls:hover .feishu-table-border-controls__col-handle,
+.feishu-table-border-controls:hover .feishu-table-border-controls__row-handle {
+  opacity: 0.6;
+}
+
+.feishu-table-border-controls__col-handle:hover,
+.feishu-table-border-controls__row-handle:hover {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.2);
 }
 
 /* ===========================
