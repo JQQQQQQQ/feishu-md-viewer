@@ -38,7 +38,9 @@ export function BlockInsertMenu({ editorContainerRef, onInsert }: BlockInsertMen
   }, []);
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
-    if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+    // Use composedPath() to correctly handle ShadowDOM event retargeting
+    const path = e.composedPath();
+    if (menuRef.current && !path.includes(menuRef.current)) {
       setVisible(false);
     }
   }, []);
@@ -53,14 +55,17 @@ export function BlockInsertMenu({ editorContainerRef, onInsert }: BlockInsertMen
     const el = editorContainerRef.current;
     if (!el) return;
 
+    // Get the root node (ShadowRoot or Document) for proper event handling
+    const rootNode = el.getRootNode() as Document | ShadowRoot;
+
     el.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
+    rootNode.addEventListener('mousedown', handleClickOutside as EventListener);
+    rootNode.addEventListener('keydown', handleKeyDown as EventListener);
 
     return () => {
       el.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      rootNode.removeEventListener('mousedown', handleClickOutside as EventListener);
+      rootNode.removeEventListener('keydown', handleKeyDown as EventListener);
     };
   }, [editorContainerRef, handleContextMenu, handleClickOutside, handleKeyDown]);
 
