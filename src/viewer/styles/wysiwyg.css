@@ -127,6 +127,7 @@
 .feishu-wysiwyg__editor table {
   width: 100%;
   border-collapse: collapse;
+  border-spacing: 0;
   font-size: var(--feishu-font-size-small);
   margin: 1em 0;
   border: 1px solid var(--feishu-border-light);
@@ -134,7 +135,10 @@
   overflow: hidden;
 }
 
-.feishu-wysiwyg__editor thead,
+.feishu-wysiwyg__editor thead {
+  background-color: var(--feishu-table-header-bg) !important;
+}
+
 .feishu-wysiwyg__editor th {
   background-color: var(--feishu-table-header-bg) !important;
   color: var(--feishu-text-primary) !important;
@@ -149,6 +153,11 @@
   border-bottom: 1px solid var(--feishu-border-lighter);
   color: var(--feishu-text-primary);
   background-color: var(--feishu-bg-content) !important;
+}
+
+.feishu-wysiwyg__editor tr {
+  margin: 0;
+  padding: 0;
 }
 
 .feishu-wysiwyg__editor tr:nth-child(even) td {
@@ -278,4 +287,53 @@
   height: 1px;
   background-color: var(--feishu-border-lighter);
   margin: 4px 0;
+}
+
+/* ===========================
+   Floating Text Format Toolbar
+   =========================== */
+
+.feishu-floating-toolbar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  background: var(--feishu-bg-content);
+  border: 1px solid var(--feishu-border-light);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  transform: translateX(-50%);
+}
+
+.feishu-floating-toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--feishu-text-primary);
+  font-size: 14px;
+  font-family: var(--feishu-font-family);
+}
+
+.feishu-floating-toolbar button:hover {
+  background: var(--feishu-code-bg);
+}
+
+.feishu-floating-toolbar button.active {
+  background: var(--feishu-blockquote-bg);
+  color: var(--feishu-brand-primary);
+}
+
+.feishu-floating-toolbar__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--feishu-border-lighter);
+  margin: 0 4px;
 }

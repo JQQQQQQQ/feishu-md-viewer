@@ -7,6 +7,7 @@ import { useEditor, Milkdown, MilkdownProvider } from '@milkdown/react';
 import { insert } from '@milkdown/utils';
 import { useViewerStore } from '../../store';
 import { BlockInsertMenu } from './BlockInsertMenu';
+import { FloatingToolbar } from './FloatingToolbar';
 
 const DEBOUNCE_DELAY = 300;
 
@@ -76,8 +77,9 @@ function MilkdownEditor() {
 
   return (
     <div className="feishu-wysiwyg" ref={editorContainerRef}>
-      <div className="feishu-wysiwyg__editor">
+      <div className="feishu-wysiwyg__editor" style={{ position: 'relative' }}>
         <Milkdown />
+        <FloatingToolbar />
       </div>
       <BlockInsertMenu
         editorContainerRef={editorContainerRef}
