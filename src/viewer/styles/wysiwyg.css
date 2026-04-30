@@ -1,10 +1,8 @@
-/* Milkdown WYSIWYG Editor - Feishu Theme Overrides */
+/* Milkdown WYSIWYG Editor - Feishu Theme (seamless with read mode) */
 
+/* Make the Milkdown editor visually identical to read mode */
 .feishu-wysiwyg {
-  position: relative;
-  min-height: 100vh;
-  padding: 32px 0;
-  background-color: var(--feishu-bg-content);
+  min-height: 100%;
 }
 
 .feishu-wysiwyg__editor {
@@ -27,6 +25,14 @@
   outline: none;
 }
 
+/* Remove any ProseMirror default outlines/borders that show "editing" */
+.ProseMirror {
+  outline: none !important;
+}
+.ProseMirror:focus {
+  outline: none !important;
+}
+
 .feishu-wysiwyg__editor .ProseMirror {
   outline: none;
   min-height: 60vh;
@@ -36,134 +42,129 @@
   outline: none;
 }
 
-/* Headings */
+/* Hide ProseMirror decorations that break the seamless feel */
+.ProseMirror-gapcursor { display: none !important; }
+
+/* Apply feishu heading styles */
+.feishu-wysiwyg__editor .milkdown h1,
 .feishu-wysiwyg__editor h1 {
   font-size: var(--feishu-font-size-h1);
-  font-weight: 700;
-  margin: 24px 0 12px;
-  line-height: 1.3;
+  font-weight: 600;
   color: var(--feishu-text-primary);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--feishu-border-lighter);
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
 }
 
 .feishu-wysiwyg__editor h2 {
   font-size: var(--feishu-font-size-h2);
   font-weight: 600;
-  margin: 20px 0 10px;
-  line-height: 1.35;
   color: var(--feishu-text-primary);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
 }
 
 .feishu-wysiwyg__editor h3 {
   font-size: var(--feishu-font-size-h3);
   font-weight: 600;
-  margin: 16px 0 8px;
-  line-height: 1.4;
   color: var(--feishu-text-primary);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
 }
 
-.feishu-wysiwyg__editor h4 {
-  font-size: var(--feishu-font-size-h4);
-  font-weight: 600;
-  margin: 14px 0 6px;
-  line-height: 1.45;
-  color: var(--feishu-text-primary);
-}
+.feishu-wysiwyg__editor h4 { font-size: var(--feishu-font-size-h4); font-weight: 600; margin-top: 1.5em; margin-bottom: 0.5em; }
+.feishu-wysiwyg__editor h5 { font-size: var(--feishu-font-size-body); font-weight: 600; margin-top: 1.5em; margin-bottom: 0.5em; }
+.feishu-wysiwyg__editor h6 { font-size: var(--feishu-font-size-small); font-weight: 600; color: var(--feishu-text-secondary); margin-top: 1.5em; margin-bottom: 0.5em; }
 
 /* Paragraphs */
 .feishu-wysiwyg__editor p {
-  margin: 8px 0;
+  margin: 0.75em 0;
   line-height: var(--feishu-line-height);
-}
-
-/* Code blocks */
-.feishu-wysiwyg__editor pre {
-  background-color: var(--feishu-code-bg);
-  border-radius: var(--feishu-radius);
-  padding: 16px 20px;
-  margin: 12px 0;
-  overflow-x: auto;
-  font-family: var(--feishu-font-mono);
-  font-size: var(--feishu-font-size-small);
-  line-height: 1.6;
-}
-
-.feishu-wysiwyg__editor pre code {
-  background: none;
-  padding: 0;
-  border-radius: 0;
   color: var(--feishu-text-primary);
 }
 
-/* Inline code */
-.feishu-wysiwyg__editor code {
-  background-color: var(--feishu-code-bg);
-  color: var(--feishu-code-text);
-  padding: 2px 6px;
-  border-radius: var(--feishu-radius-sm);
-  font-family: var(--feishu-font-mono);
-  font-size: 0.9em;
-}
-
-/* Blockquotes */
-.feishu-wysiwyg__editor blockquote {
-  border-left: 3px solid var(--feishu-blockquote-border);
-  background-color: var(--feishu-blockquote-bg);
-  padding: 12px 16px;
-  margin: 12px 0;
-  border-radius: 0 var(--feishu-radius-sm) var(--feishu-radius-sm) 0;
-  color: var(--feishu-text-secondary);
-}
-
 /* Lists */
-.feishu-wysiwyg__editor ul,
-.feishu-wysiwyg__editor ol {
-  padding-left: 24px;
-  margin: 8px 0;
-}
-
-.feishu-wysiwyg__editor li {
-  margin: 4px 0;
-  line-height: var(--feishu-line-height);
-}
+.feishu-wysiwyg__editor ul { padding-left: 1.5em; margin: 0.75em 0; list-style-type: disc; }
+.feishu-wysiwyg__editor ol { padding-left: 1.5em; margin: 0.75em 0; list-style-type: decimal; }
+.feishu-wysiwyg__editor li { margin: 0.25em 0; line-height: var(--feishu-line-height); }
 
 .feishu-wysiwyg__editor li > p {
   margin: 0;
 }
 
-/* Tables */
+/* Code blocks — match feishu style */
+.feishu-wysiwyg__editor pre {
+  margin: 1em 0;
+  padding: 16px 20px;
+  border-radius: var(--feishu-radius);
+  background-color: var(--feishu-code-bg) !important;
+  font-family: var(--feishu-font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--feishu-text-primary) !important;
+  overflow-x: auto;
+}
+
+.feishu-wysiwyg__editor code {
+  font-family: var(--feishu-font-mono);
+  font-size: 0.9em;
+  color: var(--feishu-code-text);
+  background-color: var(--feishu-code-bg);
+  padding: 2px 6px;
+  border-radius: var(--feishu-radius-sm);
+}
+
+.feishu-wysiwyg__editor pre code {
+  color: var(--feishu-text-primary);
+  background: none;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* Tables — match feishu style (NOT dark!) */
 .feishu-wysiwyg__editor table {
   width: 100%;
   border-collapse: collapse;
-  margin: 12px 0;
+  font-size: var(--feishu-font-size-small);
+  margin: 1em 0;
   border: 1px solid var(--feishu-border-light);
-  border-radius: var(--feishu-radius-sm);
+  border-radius: var(--feishu-radius);
   overflow: hidden;
 }
 
+.feishu-wysiwyg__editor thead,
 .feishu-wysiwyg__editor th {
-  background-color: var(--feishu-table-header-bg);
+  background-color: var(--feishu-table-header-bg) !important;
+  color: var(--feishu-text-primary) !important;
   font-weight: 600;
+  padding: 10px 16px;
   text-align: left;
-  padding: 10px 14px;
-  border: 1px solid var(--feishu-border-light);
-  font-size: var(--feishu-font-size-small);
+  border-bottom: 1px solid var(--feishu-border-light);
 }
 
 .feishu-wysiwyg__editor td {
-  padding: 10px 14px;
-  border: 1px solid var(--feishu-border-light);
-  font-size: var(--feishu-font-size-body);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--feishu-border-lighter);
+  color: var(--feishu-text-primary);
+  background-color: var(--feishu-bg-content) !important;
 }
 
 .feishu-wysiwyg__editor tr:nth-child(even) td {
-  background-color: var(--feishu-table-stripe-bg);
+  background-color: var(--feishu-table-stripe-bg) !important;
 }
 
-/* Horizontal rule */
-.feishu-wysiwyg__editor hr {
-  border: none;
-  border-top: 1px solid var(--feishu-border-light);
-  margin: 24px 0;
+/* Blockquote */
+.feishu-wysiwyg__editor blockquote {
+  margin: 1em 0;
+  padding: 12px 16px;
+  background-color: var(--feishu-blockquote-bg);
+  border-left: 3px solid var(--feishu-blockquote-border);
+  border-radius: 0 var(--feishu-radius-sm) var(--feishu-radius-sm) 0;
+  color: var(--feishu-text-primary);
 }
 
 /* Links */
@@ -171,18 +172,19 @@
   color: var(--feishu-brand-primary);
   text-decoration: none;
 }
+.feishu-wysiwyg__editor a:hover { text-decoration: underline; }
 
-.feishu-wysiwyg__editor a:hover {
-  color: var(--feishu-brand-primary-hover);
-  text-decoration: underline;
+/* HR */
+.feishu-wysiwyg__editor hr {
+  border: none;
+  border-top: 1px solid var(--feishu-border-lighter);
+  margin: 1.5em 0;
 }
 
 /* Images */
 .feishu-wysiwyg__editor img {
   max-width: 100%;
-  height: auto;
   border-radius: var(--feishu-radius-sm);
-  margin: 12px 0;
 }
 
 /* Task list items */

@@ -3,7 +3,6 @@ import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
 import { commonmark } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
-import { nord } from '@milkdown/theme-nord';
 import { useEditor, Milkdown, MilkdownProvider } from '@milkdown/react';
 import { insert } from '@milkdown/utils';
 import { useViewerStore } from '../../store';
@@ -32,7 +31,6 @@ function MilkdownEditor() {
           }, DEBOUNCE_DELAY);
         });
       })
-      .config(nord)
       .use(commonmark)
       .use(gfm)
       .use(listener);

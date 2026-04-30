@@ -165,8 +165,10 @@ export function App({ markdown, source }: AppProps) {
           showSaveControls={mode === 'edit'}
         >
           {mode === 'edit' ? (
-            <div className="feishu-viewer__page feishu-viewer__page--editor">
-              <WysiwygEditor />
+            <div className="feishu-viewer__page">
+              <div className="feishu-viewer__content">
+                <WysiwygEditor />
+              </div>
             </div>
           ) : (
             <div className="feishu-viewer__page">
