@@ -43,8 +43,8 @@ function FeishuHeading({ level, children, ...props }: { level: 1 | 2 | 3 | 4 | 5
           aria-label={collapsed ? '展开' : '折叠'}
           aria-expanded={!collapsed}
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-            <path d="M3 2L7 5L3 8Z"/>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M5 3L11 8L5 13Z"/>
           </svg>
         </button>
       )}

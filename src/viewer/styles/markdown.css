@@ -60,17 +60,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-right: 6px;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
   border: none;
   background: none;
   cursor: pointer;
-  color: var(--feishu-text-placeholder);
+  color: var(--feishu-text-secondary);
   transition: transform 0.15s, color 0.15s;
   vertical-align: middle;
   padding: 0;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 .feishu-heading__toggle--expanded {
