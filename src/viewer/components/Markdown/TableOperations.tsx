@@ -71,100 +71,89 @@ export function TableOperations() {
       const mouseX = e.clientX;
       const mouseY = e.clientY;
 
-      // Near top edge: within 24px above or 8px below the table top
-      const nearTop = mouseY >= tableRect.top - 24 && mouseY <= tableRect.top + 8;
-      // Near left edge: within 24px left or 8px inside the table left
-      const nearLeft = mouseX >= tableRect.left - 24 && mouseX <= tableRect.left + 8;
+      const THRESHOLD = 10; // px distance from border to trigger
 
-      if (nearTop) {
-        const firstRow = table.querySelector('tr');
-        if (!firstRow) {
-          setButton(null);
-          return;
+      // Check if mouse is near ANY row border (full width of the table)
+      const rows = Array.from(table.querySelectorAll('tr'));
+      let nearestRow: { index: number; y: number; dist: number } | null = null;
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row) continue;
+        const borderY = row.getBoundingClientRect().top;
+        const dist = Math.abs(mouseY - borderY);
+        if (dist < THRESHOLD && (!nearestRow || dist < nearestRow.dist)) {
+          nearestRow = { index: i, y: borderY - editorRect.top, dist };
         }
-        const cells = Array.from(firstRow.cells);
-        let closestIndex = -1;
-        let closestDist = Infinity;
-        let closestX = 0;
+      }
+      // Bottom edge (append row)
+      const lastRow = rows[rows.length - 1];
+      if (lastRow) {
+        const bottomEdge = lastRow.getBoundingClientRect().bottom;
+        const dist = Math.abs(mouseY - bottomEdge);
+        if (dist < THRESHOLD && (!nearestRow || dist < nearestRow.dist)) {
+          nearestRow = { index: rows.length, y: bottomEdge - editorRect.top, dist };
+        }
+      }
 
-        // Check borders between columns (left edge of each cell starting from index 1)
+      // Check if mouse is near ANY column border (full height of the table)
+      const firstRow = table.querySelector('tr');
+      let nearestCol: { index: number; x: number; dist: number } | null = null;
+
+      if (firstRow) {
+        const cells = Array.from(firstRow.cells);
         for (let i = 1; i < cells.length; i++) {
           const cell = cells[i];
           if (!cell) continue;
-          const cellRect = cell.getBoundingClientRect();
-          const borderX = cellRect.left;
+          const borderX = cell.getBoundingClientRect().left;
           const dist = Math.abs(mouseX - borderX);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestIndex = i;
-            closestX = borderX - editorRect.left;
+          if (dist < THRESHOLD && (!nearestCol || dist < nearestCol.dist)) {
+            nearestCol = { index: i, x: borderX - editorRect.left, dist };
           }
         }
-
-        // Also check right edge of last cell (append column)
+        // Right edge (append column)
         const lastCell = cells[cells.length - 1];
         if (lastCell) {
           const rightEdge = lastCell.getBoundingClientRect().right;
           const dist = Math.abs(mouseX - rightEdge);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestIndex = cells.length;
-            closestX = rightEdge - editorRect.left;
+          if (dist < THRESHOLD && (!nearestCol || dist < nearestCol.dist)) {
+            nearestCol = { index: cells.length, x: rightEdge - editorRect.left, dist };
           }
         }
+      }
 
-        if (closestIndex >= 0 && closestDist < 40) {
-          setButton({
-            type: 'col',
-            x: closestX,
-            y: tableRect.top - editorRect.top - 14,
-            index: closestIndex,
-          });
-        } else {
-          setButton(null);
-        }
-      } else if (nearLeft) {
-        const rows = Array.from(table.querySelectorAll('tr'));
-        let closestIndex = -1;
-        let closestDist = Infinity;
-        let closestY = 0;
-
-        // Check borders between rows (top edge of each row starting from index 1)
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row) continue;
-          const rowRect = row.getBoundingClientRect();
-          const borderY = rowRect.top;
-          const dist = Math.abs(mouseY - borderY);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestIndex = i;
-            closestY = borderY - editorRect.top;
-          }
-        }
-
-        // Also check bottom of last row (append row)
-        const lastRow = rows[rows.length - 1];
-        if (lastRow) {
-          const bottomEdge = lastRow.getBoundingClientRect().bottom;
-          const dist = Math.abs(mouseY - bottomEdge);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestIndex = rows.length;
-            closestY = bottomEdge - editorRect.top;
-          }
-        }
-
-        if (closestIndex >= 0 && closestDist < 40) {
+      // Prefer the closest match (row or col)
+      if (nearestRow && nearestCol) {
+        // If both are close, pick the one with smaller distance
+        if (nearestRow.dist <= nearestCol.dist) {
           setButton({
             type: 'row',
-            x: tableRect.left - editorRect.left - 14,
-            y: closestY,
-            index: closestIndex,
+            x: tableRect.left - editorRect.left - 16,
+            y: nearestRow.y,
+            index: nearestRow.index,
           });
         } else {
-          setButton(null);
+          setButton({
+            type: 'col',
+            x: nearestCol.x,
+            y: tableRect.top - editorRect.top - 16,
+            index: nearestCol.index,
+          });
         }
+      } else if (nearestRow) {
+        setButton({
+          type: 'row',
+          x: tableRect.left - editorRect.left - 16,
+          y: nearestRow.y,
+          index: nearestRow.index,
+        });
+      } else if (nearestCol) {
+        setButton({
+          type: 'col',
+          x: nearestCol.x,
+          y: tableRect.top - editorRect.top - 16,
+          index: nearestCol.index,
+        });
       } else {
         setButton(null);
       }
