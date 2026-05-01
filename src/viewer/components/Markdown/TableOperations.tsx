@@ -122,38 +122,21 @@ export function TableOperations() {
         }
       }
 
+      // Position button outside the table: rows → left side, cols → top side
+      const rowBtnX = tableRect.left - editorRect.left - 20;
+      const colBtnY = tableRect.top - editorRect.top - 20;
+
       // Prefer the closest match (row or col)
       if (nearestRow && nearestCol) {
-        // If both are close, pick the one with smaller distance
         if (nearestRow.dist <= nearestCol.dist) {
-          setButton({
-            type: 'row',
-            x: tableRect.left - editorRect.left - 16,
-            y: nearestRow.y,
-            index: nearestRow.index,
-          });
+          setButton({ type: 'row', x: rowBtnX, y: nearestRow.y, index: nearestRow.index });
         } else {
-          setButton({
-            type: 'col',
-            x: nearestCol.x,
-            y: tableRect.top - editorRect.top - 16,
-            index: nearestCol.index,
-          });
+          setButton({ type: 'col', x: nearestCol.x, y: colBtnY, index: nearestCol.index });
         }
       } else if (nearestRow) {
-        setButton({
-          type: 'row',
-          x: tableRect.left - editorRect.left - 16,
-          y: nearestRow.y,
-          index: nearestRow.index,
-        });
+        setButton({ type: 'row', x: rowBtnX, y: nearestRow.y, index: nearestRow.index });
       } else if (nearestCol) {
-        setButton({
-          type: 'col',
-          x: nearestCol.x,
-          y: tableRect.top - editorRect.top - 16,
-          index: nearestCol.index,
-        });
+        setButton({ type: 'col', x: nearestCol.x, y: colBtnY, index: nearestCol.index });
       } else {
         setButton(null);
       }

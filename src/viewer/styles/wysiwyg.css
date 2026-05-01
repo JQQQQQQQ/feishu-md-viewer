@@ -132,7 +132,7 @@
   border-spacing: 0;
   table-layout: fixed;
   font-size: var(--feishu-font-size-small);
-  margin: 1.5em 0 1em 28px;
+  margin: 1.5em 0 1em 32px;
   border: 1px solid var(--feishu-border-light);
   border-radius: var(--feishu-radius);
   overflow: hidden;
@@ -373,6 +373,12 @@
   z-index: 49;
   pointer-events: none;
   border-radius: 1px;
+}
+
+/* Resize cursor when hovering near table borders */
+.feishu-wysiwyg__editor table td,
+.feishu-wysiwyg__editor table th {
+  position: relative;
 }
 
 /* Table insert button */
