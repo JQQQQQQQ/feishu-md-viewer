@@ -363,21 +363,11 @@
 }
 
 /* ===========================
-   Table Border Controls (Feishu-style)
+   Table Insert Button (Feishu-style, single button at nearest border)
    =========================== */
 
-.feishu-table-border-controls {
+.feishu-table-insert-btn {
   position: absolute;
-  pointer-events: none;
-  z-index: 50;
-  top: 0;
-  left: 0;
-}
-
-.feishu-table-border-controls__col-btn,
-.feishu-table-border-controls__row-btn {
-  position: absolute;
-  pointer-events: all;
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -385,62 +375,22 @@
   color: white;
   border: 2px solid white;
   font-size: 14px;
-  font-weight: bold;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: opacity 0.15s, transform 0.15s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  padding: 0;
+  z-index: 50;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: transform 0.1s, box-shadow 0.1s;
   line-height: 1;
-}
-
-/* Show "+" buttons when hovering within the overlay */
-.feishu-table-border-controls:hover .feishu-table-border-controls__col-btn,
-.feishu-table-border-controls:hover .feishu-table-border-controls__row-btn {
-  opacity: 1;
-}
-
-.feishu-table-border-controls__col-btn:hover,
-.feishu-table-border-controls__row-btn:hover {
-  transform: translate(-50%, -50%) scale(1.2);
-  background: var(--feishu-brand-primary-hover, #2b5fd9);
-}
-
-.feishu-table-border-controls__col-handle,
-.feishu-table-border-controls__row-handle {
-  position: absolute;
-  pointer-events: all;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #ff4d4f;
-  color: white;
-  border: none;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: opacity 0.15s, transform 0.15s;
   padding: 0;
-  line-height: 1;
 }
 
-.feishu-table-border-controls:hover .feishu-table-border-controls__col-handle,
-.feishu-table-border-controls:hover .feishu-table-border-controls__row-handle {
-  opacity: 0.6;
-}
-
-.feishu-table-border-controls__col-handle:hover,
-.feishu-table-border-controls__row-handle:hover {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1.2);
+.feishu-table-insert-btn:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* ===========================
