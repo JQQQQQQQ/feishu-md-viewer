@@ -9,6 +9,7 @@ import { useViewerStore } from '../../store';
 import { BlockInsertMenu } from './BlockInsertMenu';
 import { FloatingToolbar } from './FloatingToolbar';
 import { TableOperations } from './TableOperations';
+import { TableResize } from './TableResize';
 import { CodeLanguageSelector } from './CodeLanguageSelector';
 
 const DEBOUNCE_DELAY = 300;
@@ -83,6 +84,7 @@ function MilkdownEditor() {
         <Milkdown />
         <FloatingToolbar />
         <TableOperations />
+        <TableResize />
         <CodeLanguageSelector />
       </div>
       <BlockInsertMenu

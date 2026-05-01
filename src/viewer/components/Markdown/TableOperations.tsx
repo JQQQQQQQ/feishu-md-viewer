@@ -71,7 +71,7 @@ export function TableOperations() {
       const mouseX = e.clientX;
       const mouseY = e.clientY;
 
-      const THRESHOLD = 10; // px distance from border to trigger
+      const THRESHOLD = 15; // px distance from border to trigger
 
       // Check if mouse is near ANY row border (full width of the table)
       const rows = Array.from(table.querySelectorAll('tr'));
