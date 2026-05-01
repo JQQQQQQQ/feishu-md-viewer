@@ -51,6 +51,12 @@ export function TableOperations() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+
+      // Don't hide when hovering the insert button itself
+      if (target.closest('.feishu-table-insert-btn') || target.closest('.feishu-table-border-line')) {
+        return;
+      }
+
       const table = target.closest('table');
 
       if (!table || !(table instanceof HTMLTableElement)) {
@@ -164,10 +170,12 @@ export function TableOperations() {
       }
     };
 
-    editorDom.addEventListener('mousemove', handleMouseMove);
+    // Listen on parent to also catch hover on the insert button itself
+    const listenTarget = editorDom.parentElement ?? editorDom;
+    listenTarget.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      editorDom.removeEventListener('mousemove', handleMouseMove);
+      listenTarget.removeEventListener('mousemove', handleMouseMove);
     };
   }, [loading, getEditor]);
 
@@ -233,18 +241,41 @@ export function TableOperations() {
     setButton(null);
   }, [button, tableEl, getEditor]);
 
-  if (!button) return null;
+  if (!button || !tableEl || !editorDomRef.current) return null;
+
+  // Calculate the highlight line position and length
+  const tableRect = tableEl.getBoundingClientRect();
+  const editorRect = editorDomRef.current.getBoundingClientRect();
+
+  const lineStyle: React.CSSProperties = button.type === 'col'
+    ? {
+        left: button.x,
+        top: tableRect.top - editorRect.top,
+        width: '2px',
+        height: tableRect.height,
+      }
+    : {
+        left: tableRect.left - editorRect.left,
+        top: button.y,
+        width: tableRect.width,
+        height: '2px',
+      };
 
   return (
-    <button
-      className="feishu-table-insert-btn"
-      style={{ top: button.y, left: button.x }}
-      onClick={handleClick}
-      onMouseDown={(e) => e.preventDefault()}
-      title={button.type === 'col' ? '插入列' : '插入行'}
-      aria-label={button.type === 'col' ? `在第${button.index}列处插入列` : `在第${button.index}行处插入行`}
-    >
-      +
-    </button>
+    <>
+      {/* Highlight line at the border */}
+      <div className="feishu-table-border-line" style={lineStyle} />
+      {/* Insert button centered on the border */}
+      <button
+        className="feishu-table-insert-btn"
+        style={{ top: button.y, left: button.x }}
+        onClick={handleClick}
+        onMouseDown={(e) => e.preventDefault()}
+        title={button.type === 'col' ? '插入列' : '插入行'}
+        aria-label={button.type === 'col' ? '插入列' : '插入行'}
+      >
+        +
+      </button>
+    </>
   );
 }

@@ -366,15 +366,25 @@
    Table Insert Button (Feishu-style, single button at nearest border)
    =========================== */
 
+/* Table border highlight line */
+.feishu-table-border-line {
+  position: absolute;
+  background: var(--feishu-brand-primary);
+  z-index: 49;
+  pointer-events: none;
+  border-radius: 1px;
+}
+
+/* Table insert button */
 .feishu-table-insert-btn {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--feishu-brand-primary);
   color: white;
   border: 2px solid white;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -383,14 +393,15 @@
   transform: translate(-50%, -50%);
   z-index: 50;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
   line-height: 1;
   padding: 0;
 }
 
 .feishu-table-insert-btn:hover {
-  transform: translate(-50%, -50%) scale(1.15);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  background: var(--feishu-brand-primary-hover);
 }
 
 /* ===========================
