@@ -117,13 +117,29 @@ export function TableOperations() {
       const target = e.target as HTMLElement;
 
       // Don't hide when hovering the dot controls themselves
-      if (target.closest('.feishu-table-dot')) {
+      if (target.closest('.feishu-table-dot') || target.closest('.feishu-table-border-line')) {
         return;
       }
 
       const table = target.closest('table');
 
       if (!table || !(table instanceof HTMLTableElement)) {
+        // Check if mouse is still within the expanded table area (where dots are)
+        if (tableEl) {
+          const tableRect = tableEl.getBoundingClientRect();
+          const expandedLeft = tableRect.left - 40;
+          const expandedTop = tableRect.top - 30;
+          const expandedRight = tableRect.right + 10;
+          const expandedBottom = tableRect.bottom + 10;
+
+          if (
+            e.clientX >= expandedLeft && e.clientX <= expandedRight &&
+            e.clientY >= expandedTop && e.clientY <= expandedBottom
+          ) {
+            return; // Still in the expanded zone, keep dots visible
+          }
+        }
+
         if (tableHoverRef.current) {
           tableHoverRef.current = false;
           setDots([]);
