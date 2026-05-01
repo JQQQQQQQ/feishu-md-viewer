@@ -31,7 +31,6 @@ export function TableOperations() {
   const editorDomRef = useRef<HTMLElement | null>(null);
   const tableHoverRef = useRef(false);
   const tableElRef = useRef<HTMLTableElement | null>(null);
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -115,58 +114,63 @@ export function TableOperations() {
       return result;
     };
 
-    const hideDots = () => {
-      tableHoverRef.current = false;
-      tableElRef.current = null;
-      setDots([]);
-      setTableEl(null);
-      setHoveredDot(null);
-    };
-
-    const scheduleHide = () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = setTimeout(hideDots, 400);
-    };
-
-    const cancelHide = () => {
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = null;
-      }
-    };
-
     const handleMouseMove = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      // Hovering the dot controls — cancel any pending hide
+      // Mouse is on a dot or border line — keep visible, do nothing
       if (target.closest('.feishu-table-dot') || target.closest('.feishu-table-border-line')) {
-        cancelHide();
         return;
       }
 
+      // Check if mouse is directly on a table
       const table = target.closest('table');
 
-      if (!table || !(table instanceof HTMLTableElement)) {
-        // Mouse left table — schedule delayed hide (gives time to reach dots)
-        if (tableHoverRef.current) {
-          scheduleHide();
-        }
+      if (table && table instanceof HTMLTableElement) {
+        // Mouse on table — show dots
+        tableHoverRef.current = true;
+        tableElRef.current = table;
+        setTableEl(table);
+        setDots(computeDots(table));
         return;
       }
 
-      // Mouse is on a table — cancel any pending hide and show dots
-      cancelHide();
-      tableHoverRef.current = true;
-      tableElRef.current = table;
-      setTableEl(table);
-      setDots(computeDots(table));
+      // Mouse is NOT on table and NOT on dot — check if in expanded zone
+      const currentTable = tableElRef.current;
+      if (currentTable && tableHoverRef.current) {
+        const rect = currentTable.getBoundingClientRect();
+        // Expanded zone: 50px left, 40px top, 20px right/bottom
+        if (
+          e.clientX >= rect.left - 50 &&
+          e.clientX <= rect.right + 20 &&
+          e.clientY >= rect.top - 40 &&
+          e.clientY <= rect.bottom + 20
+        ) {
+          return; // In expanded zone — keep dots visible
+        }
+      }
+
+      // Outside everything — hide dots immediately
+      if (tableHoverRef.current) {
+        tableHoverRef.current = false;
+        tableElRef.current = null;
+        setDots([]);
+        setTableEl(null);
+        setHoveredDot(null);
+      }
     };
 
     const handleMouseLeave = () => {
-      scheduleHide();
+      if (tableHoverRef.current) {
+        tableHoverRef.current = false;
+        tableElRef.current = null;
+        setDots([]);
+        setTableEl(null);
+        setHoveredDot(null);
+      }
     };
 
-    const listenTarget = editorDom.parentElement ?? editorDom;
+    // Attach to .feishu-wysiwyg__editor (common parent of editor content AND dots)
+    const listenTarget = (editorDom.closest('.feishu-wysiwyg__editor') as HTMLElement | null) ?? editorDom.parentElement ?? editorDom;
     listenTarget.addEventListener('mousemove', handleMouseMove);
     listenTarget.addEventListener('mouseleave', handleMouseLeave);
 
@@ -278,10 +282,13 @@ export function TableOperations() {
           key={`${dot.type}-${dot.index}`}
           className={`feishu-table-dot ${hoveredDot === i ? 'feishu-table-dot--active' : ''}`}
           style={{ top: dot.y, left: dot.x }}
+          role="button"
+          tabIndex={-1}
           onMouseEnter={() => setHoveredDot(i)}
           onMouseLeave={() => setHoveredDot(null)}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => handleDotClick(dot)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleDotClick(dot); }}
           title={dot.type === 'col' ? '插入列' : '插入行'}
           aria-label={dot.type === 'col' ? '插入列' : '插入行'}
         />
