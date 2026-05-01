@@ -30,6 +30,7 @@ export function TableOperations() {
   const [hoveredDot, setHoveredDot] = useState<number | null>(null);
   const editorDomRef = useRef<HTMLElement | null>(null);
   const tableHoverRef = useRef(false);
+  const tableElRef = useRef<HTMLTableElement | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -125,8 +126,10 @@ export function TableOperations() {
 
       if (!table || !(table instanceof HTMLTableElement)) {
         // Check if mouse is still within the expanded table area (where dots are)
-        if (tableEl) {
-          const tableRect = tableEl.getBoundingClientRect();
+        // Use ref to avoid stale closure issue with React state
+        const currentTable = tableElRef.current;
+        if (currentTable) {
+          const tableRect = currentTable.getBoundingClientRect();
           const expandedLeft = tableRect.left - 40;
           const expandedTop = tableRect.top - 30;
           const expandedRight = tableRect.right + 10;
@@ -143,6 +146,7 @@ export function TableOperations() {
         if (tableHoverRef.current) {
           tableHoverRef.current = false;
           setDots([]);
+          tableElRef.current = null;
           setTableEl(null);
           setHoveredDot(null);
         }
@@ -169,12 +173,14 @@ export function TableOperations() {
       }
 
       tableHoverRef.current = true;
+      tableElRef.current = table;
       setTableEl(table);
       setDots(computeDots(table));
     };
 
     const handleMouseLeave = () => {
       tableHoverRef.current = false;
+      tableElRef.current = null;
       setDots([]);
       setTableEl(null);
       setHoveredDot(null);
