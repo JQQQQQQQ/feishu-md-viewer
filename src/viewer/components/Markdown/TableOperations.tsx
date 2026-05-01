@@ -31,6 +31,7 @@ export function TableOperations() {
   const editorDomRef = useRef<HTMLElement | null>(null);
   const tableHoverRef = useRef(false);
   const tableElRef = useRef<HTMLTableElement | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -114,64 +115,47 @@ export function TableOperations() {
       return result;
     };
 
+    const hideDots = () => {
+      tableHoverRef.current = false;
+      tableElRef.current = null;
+      setDots([]);
+      setTableEl(null);
+      setHoveredDot(null);
+    };
+
+    const scheduleHide = () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(hideDots, 400);
+    };
+
+    const cancelHide = () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
+
     const handleMouseMove = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      // Don't hide when hovering the dot controls themselves
+      // Hovering the dot controls — cancel any pending hide
       if (target.closest('.feishu-table-dot') || target.closest('.feishu-table-border-line')) {
+        cancelHide();
         return;
       }
 
       const table = target.closest('table');
 
       if (!table || !(table instanceof HTMLTableElement)) {
-        // Check if mouse is still within the expanded table area (where dots are)
-        // Use ref to avoid stale closure issue with React state
-        const currentTable = tableElRef.current;
-        if (currentTable) {
-          const tableRect = currentTable.getBoundingClientRect();
-          const expandedLeft = tableRect.left - 40;
-          const expandedTop = tableRect.top - 30;
-          const expandedRight = tableRect.right + 10;
-          const expandedBottom = tableRect.bottom + 10;
-
-          if (
-            e.clientX >= expandedLeft && e.clientX <= expandedRight &&
-            e.clientY >= expandedTop && e.clientY <= expandedBottom
-          ) {
-            return; // Still in the expanded zone, keep dots visible
-          }
-        }
-
+        // Mouse left table — schedule delayed hide (gives time to reach dots)
         if (tableHoverRef.current) {
-          tableHoverRef.current = false;
-          setDots([]);
-          tableElRef.current = null;
-          setTableEl(null);
-          setHoveredDot(null);
+          scheduleHide();
         }
         return;
       }
 
-      // Check if mouse is within the table's extended area (includes dot zones)
-      const tableRect = table.getBoundingClientRect();
-      const ZONE = 20; // Extra zone around the table for dots
-      const inZone =
-        e.clientX >= tableRect.left - ZONE &&
-        e.clientX <= tableRect.right + ZONE &&
-        e.clientY >= tableRect.top - ZONE &&
-        e.clientY <= tableRect.bottom + ZONE;
-
-      if (!inZone) {
-        if (tableHoverRef.current) {
-          tableHoverRef.current = false;
-          setDots([]);
-          setTableEl(null);
-          setHoveredDot(null);
-        }
-        return;
-      }
-
+      // Mouse is on a table — cancel any pending hide and show dots
+      cancelHide();
       tableHoverRef.current = true;
       tableElRef.current = table;
       setTableEl(table);
@@ -179,11 +163,7 @@ export function TableOperations() {
     };
 
     const handleMouseLeave = () => {
-      tableHoverRef.current = false;
-      tableElRef.current = null;
-      setDots([]);
-      setTableEl(null);
-      setHoveredDot(null);
+      scheduleHide();
     };
 
     const listenTarget = editorDom.parentElement ?? editorDom;
