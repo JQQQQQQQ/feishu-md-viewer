@@ -381,33 +381,43 @@
   position: relative;
 }
 
-/* Table insert button */
-.feishu-table-insert-btn {
+/* Table dot controls - small indicators at column/row borders */
+.feishu-table-dot {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--feishu-brand-primary);
-  color: white;
-  border: 2px solid white;
-  font-size: 16px;
-  font-weight: 600;
+  background: var(--feishu-border-light);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-  z-index: 50;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
-  line-height: 1;
-  padding: 0;
 }
 
-.feishu-table-insert-btn:hover {
-  transform: translate(-50%, -50%) scale(1.2);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
-  background: var(--feishu-brand-primary-hover);
+.feishu-table-dot::after {
+  content: '+';
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  line-height: 1;
+}
+
+.feishu-table-dot:hover,
+.feishu-table-dot--active {
+  width: 22px;
+  height: 22px;
+  background: var(--feishu-brand-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.feishu-table-dot:hover::after,
+.feishu-table-dot--active::after {
+  opacity: 1;
 }
 
 /* ===========================
