@@ -19,9 +19,10 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
         const id = `mermaid-diagram-${index}-${Date.now()}`;
         const result = await renderMermaid(code, id);
         if (!cancelled) {
-          // Mermaid with securityLevel:'strict' produces safe SVG.
-          // DOMPurify was stripping layout-critical SVG attributes causing text truncation.
-          setSvg(result);
+          // Remove clip-path that causes text truncation in ShadowDOM
+          // (Mermaid miscalculates text width, clip-path clips the last char)
+          const cleaned = result.replace(/clip-path="[^"]*"/g, '');
+          setSvg(cleaned);
           setError(null);
         }
       } catch (err) {
