@@ -214,12 +214,8 @@
   padding: 8px 16px;
   border-bottom: 1px solid var(--feishu-border-lighter);
   line-height: 1.4;
-  min-height: 38px;
-}
-
-/* Hide completely empty rows (all cells empty — from Milkdown table serialization) */
-.feishu-table__body .feishu-table__row:has(.feishu-table__cell:empty) {
-  display: none;
+  height: 40px;
+  vertical-align: middle;
 }
 
 .feishu-table__row:nth-child(even) {
@@ -230,11 +226,6 @@
   border-bottom: none;
 }
 
-/* Also hide empty rows in raw table rendering */
-.feishu-table tbody tr:has(> td:empty:first-child:last-child),
-.feishu-markdown-body table tbody tr:has(> td:empty) {
-  display: none;
-}
 
 /* Blockquote */
 .feishu-blockquote {

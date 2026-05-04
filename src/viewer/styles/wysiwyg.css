@@ -160,6 +160,8 @@
   color: var(--feishu-text-primary);
   background-color: var(--feishu-bg-content) !important;
   line-height: 1.4;
+  height: 40px;
+  vertical-align: middle;
   overflow: hidden;
   word-break: break-word;
 }
