@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import DOMPurify from 'dompurify';
 import { renderMermaid } from '../../../lib/mermaid-init';
 
 interface MermaidBlockProps {
@@ -20,12 +19,9 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
         const id = `mermaid-diagram-${index}-${Date.now()}`;
         const result = await renderMermaid(code, id);
         if (!cancelled) {
-          const sanitizedSvg = DOMPurify.sanitize(result, {
-            USE_PROFILES: { svg: true, svgFilters: true },
-            ADD_TAGS: ['foreignObject', 'style'],
-            ADD_ATTR: ['xmlns', 'viewBox', 'style', 'width', 'height', 'transform', 'x', 'y', 'dx', 'dy'],
-          });
-          setSvg(sanitizedSvg);
+          // Mermaid with securityLevel:'strict' produces safe SVG.
+          // DOMPurify was stripping layout-critical SVG attributes causing text truncation.
+          setSvg(result);
           setError(null);
         }
       } catch (err) {
