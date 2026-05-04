@@ -561,6 +561,14 @@
   color: #ff4d4f !important;
 }
 
+.feishu-table-handle-toolbar__clear {
+  color: var(--feishu-text-secondary);
+}
+
+.feishu-table-handle-toolbar__bgcolor {
+  color: var(--feishu-text-secondary);
+}
+
 .feishu-table-handle-toolbar__divider {
   width: 1px;
   height: 18px;

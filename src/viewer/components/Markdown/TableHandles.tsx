@@ -20,6 +20,9 @@ interface HandleInfo {
   height: number;
 }
 
+/** Background colors to cycle through (empty string = reset) */
+const BG_COLORS = ['', '#fffde7', '#e3f2fd', '#e8f5e9', '#fce4ec', '#f3e5f5'];
+
 /**
  * Feishu-style table column/row selection handles.
  * Shows thin strips above columns and to the left of rows when hovering a table.
@@ -32,6 +35,7 @@ export function TableHandles() {
   const [tableEl, setTableEl] = useState<HTMLTableElement | null>(null);
   const tableElRef = useRef<HTMLTableElement | null>(null);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [bgColorIndex, setBgColorIndex] = useState(0);
 
   // Detect table hover and compute handle positions
   useEffect(() => {
@@ -247,7 +251,99 @@ export function TableHandles() {
     [activeHandle, tableEl, getEditor, focusCellAt]
   );
 
+  // Clear cell content (text only) without removing the row/column structure
+  const handleClearContent = useCallback(() => {
+    if (!activeHandle || !tableEl) return;
+    const editor = getEditor();
+    if (!editor) return;
+
+    try {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { state } = view;
+        let tr = state.tr;
+
+        // Find the table node position in the document
+        const rows = tableEl.querySelectorAll('tr');
+        if (activeHandle.type === 'row') {
+          const row = rows[activeHandle.index];
+          if (!row) return;
+          const cells = row.querySelectorAll('td, th');
+          // Process cells in reverse order to keep positions stable
+          const positions: { from: number; to: number }[] = [];
+          cells.forEach((cell) => {
+            const pos = view.posAtDOM(cell, 0);
+            const $pos = state.doc.resolve(pos);
+            const cellNode = $pos.parent;
+            if (cellNode.content.size > 0) {
+              positions.push({ from: pos, to: pos + cellNode.content.size });
+            }
+          });
+          positions.sort((a, b) => b.from - a.from);
+          positions.forEach(({ from, to }) => {
+            tr = tr.delete(from, to);
+          });
+        } else {
+          // Column: iterate each row, get cell at column index
+          const positions: { from: number; to: number }[] = [];
+          rows.forEach((row) => {
+            const cell = row.cells[activeHandle.index];
+            if (!cell) return;
+            const pos = view.posAtDOM(cell, 0);
+            const $pos = state.doc.resolve(pos);
+            const cellNode = $pos.parent;
+            if (cellNode.content.size > 0) {
+              positions.push({ from: pos, to: pos + cellNode.content.size });
+            }
+          });
+          positions.sort((a, b) => b.from - a.from);
+          positions.forEach(({ from, to }) => {
+            tr = tr.delete(from, to);
+          });
+        }
+
+        if (tr.docChanged) {
+          view.dispatch(tr);
+        }
+      });
+    } catch {
+      // Silently ignore DOM resolution errors
+    }
+
+    setActiveHandle(null);
+  }, [activeHandle, tableEl, getEditor]);
+
+  // Cycle background color on cells via direct DOM manipulation
+  const handleBgColor = useCallback(() => {
+    if (!activeHandle || !tableEl) return;
+
+    const nextIndex = (bgColorIndex + 1) % BG_COLORS.length;
+    const color = BG_COLORS[nextIndex] ?? '';
+    setBgColorIndex(nextIndex);
+
+    const rows = tableEl.querySelectorAll('tr');
+    if (activeHandle.type === 'row') {
+      const row = rows[activeHandle.index];
+      if (row) {
+        Array.from(row.querySelectorAll('td, th')).forEach((cell) => {
+          (cell as HTMLElement).style.backgroundColor = color;
+        });
+      }
+    } else {
+      rows.forEach((row) => {
+        const cell = row.cells[activeHandle.index];
+        if (cell) {
+          (cell as HTMLElement).style.backgroundColor = color;
+        }
+      });
+    }
+  }, [activeHandle, tableEl, bgColorIndex]);
+
   if (handles.length === 0) return null;
+
+  // Toolbar dimensions for positioning
+  const TOOLBAR_HEIGHT = 34;
+  const TOOLBAR_WIDTH = 220;
 
   return (
     <>
@@ -278,10 +374,10 @@ export function TableHandles() {
             left:
               activeHandle.type === 'col'
                 ? activeHandle.x
-                : activeHandle.x - 110,
+                : activeHandle.x - TOOLBAR_WIDTH,
             top:
               activeHandle.type === 'col'
-                ? activeHandle.y - 34
+                ? activeHandle.y - TOOLBAR_HEIGHT - 4
                 : activeHandle.y,
           }}
           onMouseLeave={() => setActiveHandle(null)}
@@ -295,6 +391,34 @@ export function TableHandles() {
           </button>
           <button onClick={() => handleFormat('strikethrough')} title="删除线">
             <s>S</s>
+          </button>
+          <div className="feishu-table-handle-toolbar__divider" />
+          <button
+            onClick={handleBgColor}
+            title="单元格背景色"
+            className="feishu-table-handle-toolbar__bgcolor"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <rect
+                x="3"
+                y="3"
+                width="18"
+                height="18"
+                rx="2"
+                fill={BG_COLORS[bgColorIndex] || '#f5f5f5'}
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={handleClearContent}
+            title="清除内容"
+            className="feishu-table-handle-toolbar__clear"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 5H9l-7 7 7 7h11a2 2 0 002-2V7a2 2 0 00-2-2zM18 9l-6 6M12 9l6 6" />
+            </svg>
           </button>
           <div className="feishu-table-handle-toolbar__divider" />
           <button
