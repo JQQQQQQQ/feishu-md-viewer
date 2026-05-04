@@ -19,9 +19,12 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
         const id = `mermaid-diagram-${index}-${Date.now()}`;
         const result = await renderMermaid(code, id);
         if (!cancelled) {
-          // Remove clip-path that causes text truncation in ShadowDOM
-          // (Mermaid miscalculates text width, clip-path clips the last char)
-          const cleaned = result.replace(/clip-path="[^"]*"/g, '');
+          // Fix text truncation in ShadowDOM:
+          // 1. Remove clip-path (node shapes clip text)
+          // 2. Set SVG overflow:visible (viewBox boundary clips text)
+          const cleaned = result
+            .replace(/clip-path="[^"]*"/g, '')
+            .replace('<svg ', '<svg style="overflow:visible" ');
           setSvg(cleaned);
           setError(null);
         }
