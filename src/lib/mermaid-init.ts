@@ -31,7 +31,7 @@ async function loadMermaid(): Promise<MermaidAPI> {
         useMaxWidth: true,
         htmlLabels: false,
         curve: 'basis',
-        padding: 20,
+        padding: 40,
         nodeSpacing: 50,
         rankSpacing: 60,
       },
