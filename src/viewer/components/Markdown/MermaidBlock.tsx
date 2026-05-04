@@ -20,11 +20,18 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
         const result = await renderMermaid(code, id);
         if (!cancelled) {
           // Fix text truncation in ShadowDOM:
-          // 1. Remove clip-path (node shapes clip text)
-          // 2. Set SVG overflow:visible (viewBox boundary clips text)
+          // Mermaid miscalculates text width outside ShadowDOM.
+          // Expand viewBox by 50px on each side to give text room.
           const cleaned = result
             .replace(/clip-path="[^"]*"/g, '')
-            .replace('<svg ', '<svg style="overflow:visible" ');
+            .replace('<svg ', '<svg style="overflow:visible" ')
+            .replace(/viewBox="([^"]*)"/, (_, vb: string) => {
+              const parts = vb.split(/[\s,]+/).map(Number);
+              if (parts.length === 4) {
+                return `viewBox="${parts[0]! - 30} ${parts[1]! - 10} ${parts[2]! + 60} ${parts[3]! + 20}"`;
+              }
+              return `viewBox="${vb}"`;
+            });
           setSvg(cleaned);
           setError(null);
         }
