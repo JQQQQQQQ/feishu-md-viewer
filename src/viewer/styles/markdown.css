@@ -282,7 +282,7 @@
 }
 
 .feishu-mermaid svg {
-  max-width: 100%;
+  max-width: none;
   height: auto;
 }
 
