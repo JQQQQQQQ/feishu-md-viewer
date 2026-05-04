@@ -497,3 +497,73 @@
   color: var(--feishu-brand-primary);
   font-weight: 500;
 }
+
+/* ===========================
+   Table Column/Row Selection Handles
+   =========================== */
+
+.feishu-table-handle {
+  position: absolute;
+  border-radius: 3px;
+  background: var(--feishu-border-light);
+  cursor: pointer;
+  transition: background 0.15s;
+  z-index: 45;
+}
+
+.feishu-table-handle:hover,
+.feishu-table-handle--active {
+  background: var(--feishu-brand-primary);
+}
+
+.feishu-table-handle--col {
+  border-radius: 3px 3px 0 0;
+}
+
+.feishu-table-handle--row {
+  border-radius: 3px 0 0 3px;
+}
+
+/* Handle formatting toolbar */
+.feishu-table-handle-toolbar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--feishu-bg-content);
+  border: 1px solid var(--feishu-border-light);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  z-index: 60;
+}
+
+.feishu-table-handle-toolbar button {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--feishu-text-primary);
+  font-family: var(--feishu-font-family);
+}
+
+.feishu-table-handle-toolbar button:hover {
+  background: var(--feishu-code-bg);
+}
+
+.feishu-table-handle-toolbar__delete {
+  color: #ff4d4f !important;
+}
+
+.feishu-table-handle-toolbar__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--feishu-border-lighter);
+  margin: 0 4px;
+}
