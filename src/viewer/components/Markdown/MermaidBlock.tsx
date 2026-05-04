@@ -22,7 +22,8 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
         if (!cancelled) {
           const sanitizedSvg = DOMPurify.sanitize(result, {
             USE_PROFILES: { svg: true, svgFilters: true },
-            ADD_TAGS: ['foreignObject'],
+            ADD_TAGS: ['foreignObject', 'style'],
+            ADD_ATTR: ['xmlns', 'viewBox', 'style', 'width', 'height', 'transform', 'x', 'y', 'dx', 'dy'],
           });
           setSvg(sanitizedSvg);
           setError(null);

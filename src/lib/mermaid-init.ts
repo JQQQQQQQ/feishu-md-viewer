@@ -28,10 +28,10 @@ async function loadMermaid(): Promise<MermaidAPI> {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       },
       flowchart: {
-        useMaxWidth: true,
+        useMaxWidth: false,
         htmlLabels: true,
         curve: 'basis',
-        padding: 15,
+        padding: 20,
         nodeSpacing: 50,
         rankSpacing: 60,
       },
