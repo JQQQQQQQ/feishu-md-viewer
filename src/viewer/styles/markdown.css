@@ -282,10 +282,9 @@
 }
 
 .feishu-mermaid svg {
-  max-width: none;
+  max-width: 100%;
   height: auto;
-  display: block;
-  margin: 0 auto;
+  overflow: visible;
 }
 
 .feishu-mermaid--loading {

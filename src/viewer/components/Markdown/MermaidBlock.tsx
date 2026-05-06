@@ -19,19 +19,9 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
         const id = `mermaid-diagram-${index}-${Date.now()}`;
         const result = await renderMermaid(code, id);
         if (!cancelled) {
-          // Fix text truncation in ShadowDOM:
-          // Mermaid miscalculates text width outside ShadowDOM.
-          // Expand viewBox by 50px on each side to give text room.
-          const cleaned = result
-            .replace(/clip-path="[^"]*"/g, '')
-            .replace('<svg ', '<svg style="overflow:visible" ')
-            .replace(/viewBox="([^"]*)"/, (_, vb: string) => {
-              const parts = vb.split(/[\s,]+/).map(Number);
-              if (parts.length === 4) {
-                return `viewBox="${parts[0]! - 30} ${parts[1]! - 10} ${parts[2]! + 60} ${parts[3]! + 20}"`;
-              }
-              return `viewBox="${vb}"`;
-            });
+          // Fix text truncation: remove clip-path + set overflow visible
+          // Mermaid miscalculates text width in ShadowDOM by ~5px
+          const cleaned = result.replace(/clip-path="[^"]*"/g, '');
           setSvg(cleaned);
           setError(null);
         }
