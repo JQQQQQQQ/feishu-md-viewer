@@ -5,6 +5,7 @@ import { type SaveStatusState } from './components/Common/SaveStatus';
 import { MarkdownRenderer } from './components/Markdown/MarkdownRenderer';
 import { WysiwygEditor } from './components/Markdown/WysiwygEditor';
 import { AppShell } from './components/Layout/AppShell';
+import { ReadingProgress } from './components/Layout/ReadingProgress';
 import { useTOC } from './hooks/useTOC';
 import { useFileAccess } from './hooks/useFileAccess';
 import { useAutoSave } from './hooks/useAutoSave';
@@ -155,6 +156,7 @@ export function App({ markdown, source }: AppProps) {
         data-source={source}
         style={{ '--feishu-font-size-body': `${fontSize}px` } as React.CSSProperties}
       >
+        {mode !== 'edit' && <ReadingProgress />}
         <AppShell
           title={title}
           tocItems={tocItems}

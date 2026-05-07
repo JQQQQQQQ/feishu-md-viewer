@@ -6,6 +6,7 @@ type MermaidAPI = {
 
 let mermaidInstance: MermaidAPI | null = null;
 let loadingPromise: Promise<MermaidAPI> | null = null;
+let renderQueue: Promise<void> = Promise.resolve();
 
 async function loadMermaid(): Promise<MermaidAPI> {
   if (mermaidInstance) return mermaidInstance;
@@ -38,6 +39,9 @@ async function loadMermaid(): Promise<MermaidAPI> {
       sequence: {
         useMaxWidth: true,
       },
+      block: {
+        padding: 24,
+      },
     });
     mermaidInstance = mermaid;
     return mermaid;
@@ -47,6 +51,20 @@ async function loadMermaid(): Promise<MermaidAPI> {
 }
 
 export async function renderMermaid(code: string, id: string): Promise<string> {
+  const renderTask = renderQueue.then(
+    () => renderMermaidNow(code, id),
+    () => renderMermaidNow(code, id)
+  );
+
+  renderQueue = renderTask.then(
+    () => undefined,
+    () => undefined
+  );
+
+  return renderTask;
+}
+
+async function renderMermaidNow(code: string, id: string): Promise<string> {
   const mermaid = await loadMermaid();
 
   // Validate syntax first — parse() gives clean error messages
@@ -69,7 +87,9 @@ export async function renderMermaid(code: string, id: string): Promise<string> {
     const { svg } = await mermaid.render(id, code);
     return svg;
   } catch (renderError) {
-    throw new Error('Mermaid 渲染失败');
+    const msg = renderError instanceof Error ? renderError.message : String(renderError);
+    console.error('Mermaid render failed', renderError);
+    throw new Error(msg || 'Mermaid 渲染失败');
   } finally {
     container.remove();
     const cleanup = document.getElementById(id);

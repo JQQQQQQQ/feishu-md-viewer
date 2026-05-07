@@ -13,10 +13,15 @@
   --feishu-border-lighter: #333333;
   --feishu-code-bg: #2d2d2d;
   --feishu-code-text: #f0a0c0;
+  --feishu-inline-code-bg: #1f2f4d;
+  --feishu-inline-code-text: #8fb5ff;
   --feishu-blockquote-bg: #1e2a3d;
   --feishu-blockquote-border: #4e83fd;
   --feishu-table-header-bg: #2a2a2a;
   --feishu-table-stripe-bg: #222222;
+  --feishu-scrollbar-track: #1f1f1f;
+  --feishu-scrollbar-thumb: #4a4a4a;
+  --feishu-scrollbar-thumb-hover: #5f5f5f;
 
   color-scheme: dark;
 }
@@ -50,6 +55,10 @@
   border-color: var(--feishu-border-light);
 }
 
+.feishu-viewer--dark .mermaid-toolbar {
+  background-color: rgba(36, 36, 36, 0.92);
+}
+
 /* Table dark adjustments */
 .feishu-viewer--dark .feishu-table {
   border-color: var(--feishu-border-light);
@@ -65,8 +74,61 @@
 
 /* Inline code dark */
 .feishu-viewer--dark .feishu-inline-code {
-  background-color: var(--feishu-code-bg);
-  color: var(--feishu-code-text);
+  background-color: var(--feishu-inline-code-bg);
+  color: var(--feishu-inline-code-text);
+}
+
+.feishu-viewer--dark .feishu-blockquote {
+  background: linear-gradient(90deg, var(--feishu-blockquote-bg), rgba(36, 36, 36, 0.72));
+}
+
+.feishu-viewer--dark .feishu-callout {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.feishu-viewer--dark .feishu-callout__icon {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.feishu-viewer--dark .feishu-callout--note {
+  --feishu-callout-bg: rgba(51, 112, 255, 0.16);
+  --feishu-callout-bg-end: rgba(51, 112, 255, 0.06);
+  --feishu-callout-border: rgba(78, 131, 253, 0.34);
+  --feishu-callout-accent: #6b9bff;
+  --feishu-callout-title: #a9c4ff;
+}
+
+.feishu-viewer--dark .feishu-callout--tip {
+  --feishu-callout-bg: rgba(45, 164, 78, 0.16);
+  --feishu-callout-bg-end: rgba(45, 164, 78, 0.06);
+  --feishu-callout-border: rgba(74, 194, 107, 0.32);
+  --feishu-callout-accent: #69db8a;
+  --feishu-callout-title: #a0e8b4;
+}
+
+.feishu-viewer--dark .feishu-callout--warning {
+  --feishu-callout-bg: rgba(214, 138, 0, 0.18);
+  --feishu-callout-bg-end: rgba(214, 138, 0, 0.06);
+  --feishu-callout-border: rgba(240, 178, 71, 0.34);
+  --feishu-callout-accent: #f0b247;
+  --feishu-callout-title: #ffd98a;
+}
+
+.feishu-viewer--dark .feishu-callout--important {
+  --feishu-callout-bg: rgba(124, 58, 237, 0.18);
+  --feishu-callout-bg-end: rgba(124, 58, 237, 0.06);
+  --feishu-callout-border: rgba(168, 126, 255, 0.34);
+  --feishu-callout-accent: #b794ff;
+  --feishu-callout-title: #d7c4ff;
+}
+
+.feishu-viewer--dark .feishu-callout--caution {
+  --feishu-callout-bg: rgba(217, 45, 32, 0.18);
+  --feishu-callout-bg-end: rgba(217, 45, 32, 0.06);
+  --feishu-callout-border: rgba(255, 117, 107, 0.34);
+  --feishu-callout-accent: #ff8a80;
+  --feishu-callout-title: #ffb4ad;
 }
 
 /* Buttons and interactive elements */
@@ -126,10 +188,15 @@
     --feishu-border-lighter: #333333;
     --feishu-code-bg: #2d2d2d;
     --feishu-code-text: #f0a0c0;
+    --feishu-inline-code-bg: #1f2f4d;
+    --feishu-inline-code-text: #8fb5ff;
     --feishu-blockquote-bg: #1e2a3d;
     --feishu-blockquote-border: #4e83fd;
     --feishu-table-header-bg: #2a2a2a;
     --feishu-table-stripe-bg: #222222;
+    --feishu-scrollbar-track: #1f1f1f;
+    --feishu-scrollbar-thumb: #4a4a4a;
+    --feishu-scrollbar-thumb-hover: #5f5f5f;
 
     color-scheme: dark;
   }
@@ -159,6 +226,10 @@
     border-color: var(--feishu-border-light);
   }
 
+  .feishu-viewer--system .mermaid-toolbar {
+    background-color: rgba(36, 36, 36, 0.92);
+  }
+
   .feishu-viewer--system .feishu-table,
   .feishu-viewer--system .feishu-table__header,
   .feishu-viewer--system .feishu-table__cell {
@@ -166,8 +237,61 @@
   }
 
   .feishu-viewer--system .feishu-inline-code {
-    background-color: var(--feishu-code-bg);
-    color: var(--feishu-code-text);
+    background-color: var(--feishu-inline-code-bg);
+    color: var(--feishu-inline-code-text);
+  }
+
+  .feishu-viewer--system .feishu-blockquote {
+    background: linear-gradient(90deg, var(--feishu-blockquote-bg), rgba(36, 36, 36, 0.72));
+  }
+
+  .feishu-viewer--system .feishu-callout {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .feishu-viewer--system .feishu-callout__icon {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .feishu-viewer--system .feishu-callout--note {
+    --feishu-callout-bg: rgba(51, 112, 255, 0.16);
+    --feishu-callout-bg-end: rgba(51, 112, 255, 0.06);
+    --feishu-callout-border: rgba(78, 131, 253, 0.34);
+    --feishu-callout-accent: #6b9bff;
+    --feishu-callout-title: #a9c4ff;
+  }
+
+  .feishu-viewer--system .feishu-callout--tip {
+    --feishu-callout-bg: rgba(45, 164, 78, 0.16);
+    --feishu-callout-bg-end: rgba(45, 164, 78, 0.06);
+    --feishu-callout-border: rgba(74, 194, 107, 0.32);
+    --feishu-callout-accent: #69db8a;
+    --feishu-callout-title: #a0e8b4;
+  }
+
+  .feishu-viewer--system .feishu-callout--warning {
+    --feishu-callout-bg: rgba(214, 138, 0, 0.18);
+    --feishu-callout-bg-end: rgba(214, 138, 0, 0.06);
+    --feishu-callout-border: rgba(240, 178, 71, 0.34);
+    --feishu-callout-accent: #f0b247;
+    --feishu-callout-title: #ffd98a;
+  }
+
+  .feishu-viewer--system .feishu-callout--important {
+    --feishu-callout-bg: rgba(124, 58, 237, 0.18);
+    --feishu-callout-bg-end: rgba(124, 58, 237, 0.06);
+    --feishu-callout-border: rgba(168, 126, 255, 0.34);
+    --feishu-callout-accent: #b794ff;
+    --feishu-callout-title: #d7c4ff;
+  }
+
+  .feishu-viewer--system .feishu-callout--caution {
+    --feishu-callout-bg: rgba(217, 45, 32, 0.18);
+    --feishu-callout-bg-end: rgba(217, 45, 32, 0.06);
+    --feishu-callout-border: rgba(255, 117, 107, 0.34);
+    --feishu-callout-accent: #ff8a80;
+    --feishu-callout-title: #ffb4ad;
   }
 
   .feishu-viewer--system .feishu-topbar__mode-toggle {

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { renderMermaid } from '../../../lib/mermaid-init';
+import { expandMermaidSvgBounds } from '../../utils/mermaid-svg';
 
 interface MermaidBlockProps {
   code: string;
@@ -19,19 +20,7 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
         const id = `mermaid-diagram-${index}-${Date.now()}`;
         const result = await renderMermaid(code, id);
         if (!cancelled) {
-          // Fix text truncation in ShadowDOM: expand viewBox width
-          // Mermaid miscalculates text width by ~5-10px in ShadowDOM.
-          // With useMaxWidth:true, expanding viewBox adds internal padding.
-          const cleaned = result
-            .replace(/clip-path="[^"]*"/g, '')
-            .replace(/viewBox="([^"]*)"/, (_, vb: string) => {
-              const parts = vb.split(/[\s,]+/).map(Number);
-              if (parts.length === 4) {
-                return `viewBox="${parts[0]!} ${parts[1]!} ${parts[2]! + 60} ${parts[3]!}"`;
-              }
-              return `viewBox="${vb}"`;
-            });
-          setSvg(cleaned);
+          setSvg(expandMermaidSvgBounds(result));
           setError(null);
         }
       } catch (err) {

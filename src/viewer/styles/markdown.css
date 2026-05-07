@@ -20,11 +20,20 @@
 
 /* Headings */
 .feishu-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-weight: 600;
   color: var(--feishu-text-primary);
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   line-height: 1.4;
+  scroll-margin-top: calc(var(--feishu-topbar-height, 56px) + 18px);
+}
+
+.feishu-heading__text {
+  min-width: 0;
 }
 
 .feishu-h1 {
@@ -80,6 +89,40 @@
 .feishu-heading__toggle:hover {
   color: var(--feishu-text-primary);
   background-color: var(--feishu-code-bg);
+}
+
+.feishu-heading__anchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--feishu-radius-sm);
+  background: transparent;
+  color: var(--feishu-text-placeholder);
+  cursor: pointer;
+  flex: 0 0 auto;
+  opacity: 0;
+  transform: translateX(-2px);
+  transition: opacity 150ms ease, transform 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.feishu-heading:hover .feishu-heading__anchor,
+.feishu-heading__anchor:focus-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.feishu-heading__anchor:hover {
+  color: var(--feishu-brand-primary);
+  background-color: var(--feishu-inline-code-bg, var(--feishu-code-bg));
+}
+
+.feishu-heading__anchor:focus-visible {
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: 1px;
 }
 
 /* Paragraphs */
@@ -176,8 +219,8 @@
 .feishu-inline-code {
   font-family: var(--feishu-font-mono);
   font-size: 0.9em;
-  color: var(--feishu-code-text);
-  background-color: var(--feishu-code-bg);
+  color: var(--feishu-inline-code-text, var(--feishu-code-text));
+  background-color: var(--feishu-inline-code-bg, var(--feishu-code-bg));
   padding: 2px 6px;
   border-radius: var(--feishu-radius-sm);
 }
@@ -231,14 +274,102 @@
 .feishu-blockquote {
   margin: 1em 0;
   padding: 12px 16px;
-  background-color: var(--feishu-blockquote-bg);
-  border-left: 3px solid var(--feishu-blockquote-border);
-  border-radius: 0 var(--feishu-radius-sm) var(--feishu-radius-sm) 0;
+  background: linear-gradient(90deg, var(--feishu-blockquote-bg), rgba(255, 255, 255, 0.72));
+  border: 1px solid var(--feishu-border-lighter);
+  border-left: 4px solid var(--feishu-blockquote-border);
+  border-radius: var(--feishu-radius);
   color: var(--feishu-text-primary);
 }
 
 .feishu-blockquote .feishu-paragraph {
   margin: 0.25em 0;
+}
+
+.feishu-callout {
+  --feishu-callout-bg: #f0f5ff;
+  --feishu-callout-bg-end: rgba(240, 245, 255, 0.32);
+  --feishu-callout-border: #bacefd;
+  --feishu-callout-accent: #3370ff;
+  --feishu-callout-title: #1f4fd6;
+
+  position: relative;
+  padding: 14px 18px 16px;
+  background:
+    linear-gradient(135deg, var(--feishu-callout-bg), var(--feishu-callout-bg-end)),
+    var(--feishu-bg-content);
+  border: 1px solid var(--feishu-callout-border);
+  border-left: 4px solid var(--feishu-callout-accent);
+  border-radius: var(--feishu-radius);
+  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.feishu-callout__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--feishu-callout-title);
+  font-size: var(--feishu-font-size-small);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.feishu-callout__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--feishu-callout-accent);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.06);
+  flex: 0 0 auto;
+}
+
+.feishu-callout__content {
+  color: var(--feishu-text-primary);
+}
+
+.feishu-callout__content > .feishu-paragraph:first-child {
+  margin-top: 0;
+}
+
+.feishu-callout__content > .feishu-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.feishu-callout--tip {
+  --feishu-callout-bg: #effbf3;
+  --feishu-callout-bg-end: rgba(239, 251, 243, 0.34);
+  --feishu-callout-border: #b7ebc6;
+  --feishu-callout-accent: #2da44e;
+  --feishu-callout-title: #1f7a3d;
+}
+
+.feishu-callout--warning {
+  --feishu-callout-bg: #fff8e6;
+  --feishu-callout-bg-end: rgba(255, 248, 230, 0.38);
+  --feishu-callout-border: #f6d48f;
+  --feishu-callout-accent: #d68a00;
+  --feishu-callout-title: #9a6700;
+}
+
+.feishu-callout--important {
+  --feishu-callout-bg: #f7f1ff;
+  --feishu-callout-bg-end: rgba(247, 241, 255, 0.36);
+  --feishu-callout-border: #d8c2ff;
+  --feishu-callout-accent: #7c3aed;
+  --feishu-callout-title: #5f2bbd;
+}
+
+.feishu-callout--caution {
+  --feishu-callout-bg: #fff1f0;
+  --feishu-callout-bg-end: rgba(255, 241, 240, 0.36);
+  --feishu-callout-border: #ffccc7;
+  --feishu-callout-accent: #d92d20;
+  --feishu-callout-title: #a11d16;
 }
 
 /* Links */
@@ -254,11 +385,120 @@
 }
 
 /* Images */
+.feishu-image-trigger {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  vertical-align: top;
+}
+
 .feishu-image {
+  display: block;
   max-width: 100%;
   height: auto;
   border-radius: var(--feishu-radius-sm);
   margin: 0.75em 0;
+  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.06);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.feishu-image-trigger:hover .feishu-image {
+  box-shadow: 0 8px 24px rgba(31, 35, 41, 0.14);
+}
+
+.feishu-image-trigger:focus-visible {
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: 3px;
+  border-radius: var(--feishu-radius-sm);
+}
+
+.feishu-image-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 32px 32px;
+}
+
+.feishu-image-preview__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+  cursor: zoom-out;
+}
+
+.feishu-image-preview__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-width: min(1180px, 94vw);
+  max-height: calc(100vh - 104px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: var(--feishu-bg-content);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.34);
+}
+
+.feishu-image-preview__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid var(--feishu-border-lighter);
+  background: color-mix(in srgb, var(--feishu-bg-content) 92%, #ffffff 8%);
+}
+
+.feishu-image-preview__caption {
+  min-width: 0;
+  margin-right: auto;
+  overflow: hidden;
+  color: var(--feishu-text-secondary);
+  font-size: var(--feishu-font-size-small);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feishu-image-preview__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: var(--feishu-radius-sm);
+  background: var(--feishu-bg-content);
+  color: var(--feishu-text-secondary);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.feishu-image-preview__action:hover {
+  color: var(--feishu-brand-primary);
+  background: var(--feishu-inline-code-bg, var(--feishu-code-bg));
+}
+
+.feishu-image-preview__image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 148px);
+  object-fit: contain;
+  background:
+    linear-gradient(45deg, rgba(148, 163, 184, 0.12) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(148, 163, 184, 0.12) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(148, 163, 184, 0.12) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(148, 163, 184, 0.12) 75%);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
 }
 
 /* Divider */
@@ -271,7 +511,7 @@
 /* Mermaid */
 .feishu-mermaid {
   margin: 1.5em 0;
-  padding: 24px;
+  padding: 56px 24px 24px;
   background-color: var(--feishu-bg-content);
   border: 1px solid var(--feishu-border-lighter);
   border-radius: var(--feishu-radius);
@@ -285,6 +525,12 @@
   max-width: 100%;
   height: auto;
   overflow: visible;
+}
+
+.feishu-mermaid svg foreignObject p,
+.mermaid-preview-zoom svg foreignObject p {
+  margin: 0;
+  line-height: 1.2;
 }
 
 .feishu-mermaid--loading {

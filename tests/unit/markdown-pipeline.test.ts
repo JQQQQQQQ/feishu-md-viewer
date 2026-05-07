@@ -51,6 +51,38 @@ describe('markdown-pipeline', () => {
       const result = parseMarkdown('~~deleted~~');
       expect(result).toBeDefined();
     });
+
+    it('renders GitHub-style callout blockquotes', () => {
+      const result = parseMarkdown(`> [!WARNING]
+> Check this before publishing.`);
+      const { container } = render(result);
+      const callout = container.querySelector('.feishu-callout--warning');
+
+      expect(callout).not.toBeNull();
+      expect(callout?.textContent).toContain('Warning');
+      expect(callout?.textContent).toContain('Check this before publishing.');
+      expect(callout?.textContent).not.toContain('[!WARNING]');
+    });
+
+    it('supports all callout variants', () => {
+      const result = parseMarkdown(`> [!NOTE]
+> Note text
+
+> [!TIP]
+> Tip text
+
+> [!IMPORTANT]
+> Important text
+
+> [!CAUTION]
+> Caution text`);
+      const { container } = render(result);
+
+      expect(container.querySelector('.feishu-callout--note')).not.toBeNull();
+      expect(container.querySelector('.feishu-callout--tip')).not.toBeNull();
+      expect(container.querySelector('.feishu-callout--important')).not.toBeNull();
+      expect(container.querySelector('.feishu-callout--caution')).not.toBeNull();
+    });
   });
 
   describe('extractMermaidBlocks', () => {

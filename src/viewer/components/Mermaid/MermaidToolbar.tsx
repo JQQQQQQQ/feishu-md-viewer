@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, type ReactNode } from 'react';
 import { MermaidEditor } from './MermaidEditor';
+import { MermaidPreviewModal } from './MermaidPreviewModal';
 import { useViewerStore } from '../../store';
 
 interface MermaidToolbarProps {
@@ -20,6 +21,8 @@ function downloadBlob(blob: Blob, filename: string): void {
 export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarProps) {
   const mode = useViewerStore((s) => s.mode);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewSvg, setPreviewSvg] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleEdit = useCallback(() => {
@@ -32,25 +35,40 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
 
   const getSvgElement = useCallback((): SVGElement | null => {
     if (!containerRef.current) return null;
-    return containerRef.current.querySelector('svg');
+    return containerRef.current.querySelector('.feishu-mermaid svg');
+  }, []);
+
+  const getSerializedSvg = useCallback((): string | null => {
+    const svgEl = getSvgElement();
+    if (!svgEl) return null;
+
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(svgEl);
+  }, [getSvgElement]);
+
+  const handleOpenPreview = useCallback(() => {
+    const svgString = getSerializedSvg();
+    if (!svgString) return;
+
+    setPreviewSvg(svgString);
+    setIsPreviewOpen(true);
+  }, [getSerializedSvg]);
+
+  const handleClosePreview = useCallback(() => {
+    setIsPreviewOpen(false);
   }, []);
 
   const handleExportSvg = useCallback(() => {
-    const svgEl = getSvgElement();
-    if (!svgEl) return;
+    const svgString = getSerializedSvg();
+    if (!svgString) return;
 
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svgEl);
     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
     downloadBlob(blob, `mermaid-diagram-${blockIndex}.svg`);
-  }, [getSvgElement, blockIndex]);
+  }, [getSerializedSvg, blockIndex]);
 
   const handleExportPng = useCallback(() => {
-    const svgEl = getSvgElement();
-    if (!svgEl) return;
-
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svgEl);
+    const svgString = getSerializedSvg();
+    if (!svgString) return;
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -76,12 +94,24 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
     };
 
     img.src = url;
-  }, [getSvgElement, blockIndex]);
+  }, [getSerializedSvg, blockIndex]);
 
   // Show export buttons always (read or edit mode), edit button only in edit mode
   return (
     <div className="mermaid-toolbar-wrapper" ref={containerRef}>
       <div className="mermaid-toolbar">
+        <button
+          className="mermaid-toolbar__preview-btn"
+          onClick={handleOpenPreview}
+          type="button"
+          aria-label="Preview Mermaid diagram"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M1.75 7s1.9-3.5 5.25-3.5S12.25 7 12.25 7 10.35 10.5 7 10.5 1.75 7 1.75 7Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="7" cy="7" r="1.45" stroke="currentColor" strokeWidth="1.2" />
+          </svg>
+          预览
+        </button>
         {mode === 'edit' && (
           <button
             className="mermaid-toolbar__edit-btn"
@@ -139,6 +169,9 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
           blockIndex={blockIndex}
           onClose={handleCloseEditor}
         />
+      )}
+      {isPreviewOpen && previewSvg && (
+        <MermaidPreviewModal svg={previewSvg} onClose={handleClosePreview} />
       )}
     </div>
   );

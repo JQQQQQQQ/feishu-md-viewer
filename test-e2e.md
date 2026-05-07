@@ -44,7 +44,24 @@ hello("Feishu");
 > This is a blockquote that should have a blue left border
 > and a light blue background in Feishu style.
 
-## Section 5: Mermaid Diagram Types
+## Section 5: Callouts
+
+> [!NOTE]
+> Note callouts are for neutral context, extra reading notes, and background information.
+
+> [!TIP]
+> Tip callouts should feel useful and lightweight, like a quick shortcut inside a Feishu document.
+
+> [!WARNING]
+> Warning callouts highlight things that need attention before continuing.
+
+> [!IMPORTANT]
+> Important callouts should stand out without overpowering the rest of the document.
+
+> [!CAUTION]
+> Caution callouts are for destructive or risky operations.
+
+## Section 6: Mermaid Diagram Types
 
 ### Flowchart
 
@@ -278,19 +295,21 @@ architecture-beta
     mermaid:R -- L:preview
 ```
 
-## Section 6: Links and Images
+## Section 7: Links and Images
 
 [Visit GitHub](https://github.com)
 
+![Feishu MD Viewer image preview sample](https://placehold.co/1200x680/edf4ff/245bdb/png?text=Feishu+MD+Viewer+Image+Preview)
+
 ---
 
-## Section 7: XSS Test
+## Section 8: XSS Test
 
 <script>alert('xss')</script>
 
 The script tag above should NOT execute.
 
-## Section 8: Invalid Mermaid
+## Section 9: Invalid Mermaid
 
 ```mermaid
 this is not valid mermaid syntax !!!

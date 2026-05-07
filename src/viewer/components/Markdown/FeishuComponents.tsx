@@ -1,55 +1,115 @@
-import { useState, useCallback, useRef, type ComponentType, type HTMLAttributes, type ReactNode } from 'react';
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useCallback,
+  useState,
+  type ComponentType,
+  type HTMLAttributes,
+  type ImgHTMLAttributes,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
+import { CircleAlert, Info, Lightbulb, Sparkles, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { MermaidBlock } from './MermaidBlock';
+import { FeishuHeading } from './Heading';
+import { FeishuImage } from './ImagePreview';
 import { MermaidToolbar } from '../Mermaid/MermaidToolbar';
 
 type ComponentMap = Record<string, ComponentType<HTMLAttributes<HTMLElement> & { children?: ReactNode }>>;
+type CalloutType = 'note' | 'tip' | 'warning' | 'important' | 'caution';
+
+interface CalloutMeta {
+  title: string;
+  icon: LucideIcon;
+}
+
+const CALLOUT_META: Record<CalloutType, CalloutMeta> = {
+  note: { title: 'Note', icon: Info },
+  tip: { title: 'Tip', icon: Lightbulb },
+  warning: { title: 'Warning', icon: TriangleAlert },
+  important: { title: 'Important', icon: Sparkles },
+  caution: { title: 'Caution', icon: CircleAlert },
+};
 
 let mermaidIndex = 0;
 
-function FeishuHeading({ level, children, ...props }: { level: 1 | 2 | 3 | 4 | 5 | 6; children?: ReactNode } & HTMLAttributes<HTMLHeadingElement>) {
-  const Tag = `h${level}` as const;
-  const id = typeof children === 'string'
-    ? children.toLowerCase().replace(/[^a-z0-9一-龥]+/g, '-').replace(/(^-|-$)/g, '')
-    : undefined;
-  const [collapsed, setCollapsed] = useState(false);
-  const headingRef = useRef<HTMLHeadingElement>(null);
+function getStringChildren(children: ReactNode): string | null {
+  const childArray = Children.toArray(children);
+  if (childArray.length === 0) return '';
+  if (childArray.every((child) => typeof child === 'string')) {
+    return childArray.join('');
+  }
+  return null;
+}
 
-  const isCollapsible = level === 2 || level === 3;
+function getCalloutType(text: string): CalloutType | null {
+  const match = text.match(/^\s*\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]/i);
+  return match?.[1]?.toLowerCase() as CalloutType | null;
+}
 
-  const handleToggle = useCallback(() => {
-    if (!headingRef.current) return;
-    const next = !collapsed;
-    setCollapsed(next);
+function stripCalloutMarker(text: string): string {
+  return text.replace(/^\s*\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\][ \t]*(?:\n)?/i, '');
+}
 
-    let sibling = headingRef.current.nextElementSibling;
-    while (sibling) {
-      const tagName = sibling.tagName.toLowerCase();
-      if (/^h[1-6]$/.test(tagName)) {
-        const siblingLevel = parseInt(tagName.charAt(1), 10);
-        if (siblingLevel <= level) break;
-      }
-      (sibling as HTMLElement).style.display = next ? 'none' : '';
-      sibling = sibling.nextElementSibling;
-    }
-  }, [collapsed, level]);
+function getCalloutContent(children: ReactNode): { type: CalloutType; children: ReactNode[] } | null {
+  const childArray = Children.toArray(children);
+  const firstContentIndex = childArray.findIndex((child) => (
+    typeof child !== 'string' || child.trim() !== ''
+  ));
+  if (firstContentIndex < 0) return null;
+
+  const firstChild = childArray[firstContentIndex];
+  if (!isValidElement(firstChild)) return null;
+
+  const firstChildProps = firstChild.props as { children?: ReactNode };
+  const firstText = getStringChildren(firstChildProps.children);
+  if (firstText === null) return null;
+
+  const type = getCalloutType(firstText);
+  if (!type) return null;
+
+  const strippedText = stripCalloutMarker(firstText);
+  const nextChildren = strippedText.trim()
+    ? [
+        ...childArray.slice(0, firstContentIndex),
+        cloneElement(
+          firstChild as ReactElement<{ children?: ReactNode }>,
+          undefined,
+          strippedText
+        ),
+        ...childArray.slice(firstContentIndex + 1),
+      ]
+    : [
+        ...childArray.slice(0, firstContentIndex),
+        ...childArray.slice(firstContentIndex + 1),
+      ];
+
+  return { type, children: nextChildren };
+}
+
+function FeishuBlockquote({ children, ...props }: HTMLAttributes<HTMLElement> & { children?: ReactNode }) {
+  const callout = getCalloutContent(children);
+  if (!callout) {
+    return <blockquote className="feishu-blockquote" {...props}>{children}</blockquote>;
+  }
+
+  const meta = CALLOUT_META[callout.type];
+  const Icon = meta.icon;
 
   return (
-    <Tag ref={headingRef} id={id} className={`feishu-heading feishu-h${level}`} {...props}>
-      {isCollapsible && (
-        <button
-          type="button"
-          className={`feishu-heading__toggle${collapsed ? '' : ' feishu-heading__toggle--expanded'}`}
-          onClick={handleToggle}
-          aria-label={collapsed ? '展开' : '折叠'}
-          aria-expanded={!collapsed}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M5 3L11 8L5 13Z"/>
-          </svg>
-        </button>
-      )}
-      {children}
-    </Tag>
+    <blockquote
+      className={`feishu-blockquote feishu-callout feishu-callout--${callout.type}`}
+      {...props}
+    >
+      <div className="feishu-callout__header">
+        <span className="feishu-callout__icon" aria-hidden="true">
+          <Icon size={16} strokeWidth={2.2} />
+        </span>
+        <span className="feishu-callout__title">{meta.title}</span>
+      </div>
+      <div className="feishu-callout__content">{callout.children}</div>
+    </blockquote>
   );
 }
 
@@ -169,9 +229,7 @@ export const feishuComponents: ComponentMap = {
   td: ({ children, ...props }) => (
     <td className="feishu-table__cell" {...props}>{children}</td>
   ),
-  blockquote: ({ children, ...props }) => (
-    <blockquote className="feishu-blockquote" {...props}>{children}</blockquote>
-  ),
+  blockquote: FeishuBlockquote,
   a: ({ children, ...props }) => {
     const href = (props as { href?: string }).href;
     return (
@@ -180,8 +238,6 @@ export const feishuComponents: ComponentMap = {
       </a>
     );
   },
-  img: (props) => (
-    <img className="feishu-image" loading="lazy" alt="" {...props} />
-  ),
+  img: FeishuImage as ComponentType<ImgHTMLAttributes<HTMLImageElement>>,
   hr: () => <hr className="feishu-divider" />,
 };

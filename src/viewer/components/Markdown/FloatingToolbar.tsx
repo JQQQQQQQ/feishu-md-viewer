@@ -27,6 +27,13 @@ export function FloatingToolbar() {
       try {
         editor.action((ctx) => {
           const view = ctx.get(editorViewCtx);
+          const editorRoot = view.dom.closest('.feishu-wysiwyg__editor');
+          if (editorRoot?.querySelector('.feishu-table-handle-toolbar')) {
+            setVisible(false);
+            lastSelectionRef.current = { from: 0, to: 0 };
+            return;
+          }
+
           const { state } = view;
           const { from, to } = state.selection;
 

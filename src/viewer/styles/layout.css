@@ -55,6 +55,27 @@
   margin-left: 0;
 }
 
+/* ===== Reading Progress ===== */
+.feishu-reading-progress {
+  position: fixed;
+  top: var(--feishu-topbar-height);
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 110;
+  pointer-events: none;
+  background: transparent;
+}
+
+.feishu-reading-progress__bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #3370ff 0%, #5b8cff 54%, #8fb5ff 100%);
+  box-shadow: 0 0 12px rgba(51, 112, 255, 0.36);
+  transform-origin: left center;
+  transition: transform 90ms linear;
+}
+
 /* ===== Top Bar ===== */
 .feishu-topbar {
   position: fixed;
@@ -184,49 +205,6 @@
 }
 
 .feishu-topbar__theme-btn:focus-visible {
-  outline: 2px solid var(--feishu-brand-primary);
-  outline-offset: 1px;
-}
-
-/* ===== Mermaid Toolbar ===== */
-.mermaid-toolbar-wrapper {
-  position: relative;
-}
-
-.mermaid-toolbar {
-  display: flex;
-  gap: 6px;
-  padding: 6px 8px;
-  background-color: var(--feishu-table-header-bg);
-  border: 1px solid var(--feishu-border-lighter);
-  border-bottom: none;
-  border-radius: var(--feishu-radius) var(--feishu-radius) 0 0;
-}
-
-.mermaid-toolbar__edit-btn,
-.mermaid-toolbar__export-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid var(--feishu-border-light);
-  border-radius: var(--feishu-radius-sm);
-  background: var(--feishu-bg-content);
-  color: var(--feishu-text-secondary);
-  font-size: 12px;
-  font-family: var(--feishu-font-family);
-  cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease;
-}
-
-.mermaid-toolbar__edit-btn:hover,
-.mermaid-toolbar__export-btn:hover {
-  background-color: var(--feishu-bg-page);
-  color: var(--feishu-text-primary);
-}
-
-.mermaid-toolbar__edit-btn:focus-visible,
-.mermaid-toolbar__export-btn:focus-visible {
   outline: 2px solid var(--feishu-brand-primary);
   outline-offset: 1px;
 }

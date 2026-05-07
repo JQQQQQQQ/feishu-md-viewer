@@ -1,0 +1,34 @@
+.feishu-viewer,
+.feishu-viewer * {
+  scrollbar-color: var(--feishu-scrollbar-thumb) var(--feishu-scrollbar-track);
+  scrollbar-width: thin;
+}
+
+.feishu-viewer::-webkit-scrollbar,
+.feishu-viewer *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.feishu-viewer::-webkit-scrollbar-track,
+.feishu-viewer *::-webkit-scrollbar-track {
+  background: var(--feishu-scrollbar-track);
+}
+
+.feishu-viewer::-webkit-scrollbar-thumb,
+.feishu-viewer *::-webkit-scrollbar-thumb {
+  background: var(--feishu-scrollbar-thumb);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+.feishu-viewer::-webkit-scrollbar-thumb:hover,
+.feishu-viewer *::-webkit-scrollbar-thumb:hover {
+  background: var(--feishu-scrollbar-thumb-hover);
+}
+
+.feishu-viewer::-webkit-scrollbar-corner,
+.feishu-viewer *::-webkit-scrollbar-corner {
+  background: var(--feishu-scrollbar-track);
+}

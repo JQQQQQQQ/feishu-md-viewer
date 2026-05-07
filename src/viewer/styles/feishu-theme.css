@@ -24,10 +24,15 @@
   --feishu-radius-sm: 4px;
   --feishu-code-bg: #f7f8fa;
   --feishu-code-text: #d63384;
+  --feishu-inline-code-bg: #edf4ff;
+  --feishu-inline-code-text: #245bdb;
   --feishu-blockquote-bg: #f0f5ff;
   --feishu-blockquote-border: #3370ff;
   --feishu-table-header-bg: #f5f6f7;
   --feishu-table-stripe-bg: #fafbfc;
+  --feishu-scrollbar-track: transparent;
+  --feishu-scrollbar-thumb: #d8dbe1;
+  --feishu-scrollbar-thumb-hover: #bfc3cc;
   --feishu-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
   --feishu-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
 

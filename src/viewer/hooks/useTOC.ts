@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { createHeadingId } from '../utils/heading-slug';
 
 export interface TOCItem {
   id: string;
@@ -19,7 +20,7 @@ export function extractHeadings(markdown: string): TOCItem[] {
   while ((match = headingRegex.exec(markdown)) !== null) {
     const level = match[1]?.length ?? 1;
     const text = (match[2] ?? '').trim();
-    const id = text.toLowerCase().replace(/[^a-z0-9一-龥]+/g, '-').replace(/(^-|-$)/g, '');
+    const id = createHeadingId(text);
     flat.push({ id, text, level });
   }
 

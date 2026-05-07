@@ -8,8 +8,8 @@ import { insert } from '@milkdown/utils';
 import { useViewerStore } from '../../store';
 import { BlockInsertMenu } from './BlockInsertMenu';
 import { FloatingToolbar } from './FloatingToolbar';
-import { TableOperations } from './TableOperations';
-import { TableResize } from './TableResize';
+import { TableOperations } from './TableControls/TableOperations';
+import { TableResize } from './TableControls/TableResize';
 import { TableHandles } from './TableHandles';
 import { CodeLanguageSelector } from './CodeLanguageSelector';
 

@@ -112,8 +112,8 @@
 .feishu-wysiwyg__editor code {
   font-family: var(--feishu-font-mono);
   font-size: 0.9em;
-  color: var(--feishu-code-text);
-  background-color: var(--feishu-code-bg);
+  color: var(--feishu-inline-code-text, var(--feishu-code-text));
+  background-color: var(--feishu-inline-code-bg, var(--feishu-code-bg));
   padding: 2px 6px;
   border-radius: var(--feishu-radius-sm);
 }

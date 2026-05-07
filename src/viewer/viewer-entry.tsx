@@ -9,11 +9,13 @@ import { App } from './App';
 import { LoadingState } from './components/Common/LoadingState';
 import { ErrorState } from './components/Common/ErrorState';
 import './styles/feishu-theme.css';
+import './styles/tailwind-output.css';
 import './styles/markdown.css';
 import './styles/layout.css';
+import './styles/scrollbar.css';
+import './styles/mermaid.css';
 import './styles/editor.css';
 import './styles/save-status.css';
-import './styles/tailwind-output.css';
 import './styles/dark-theme.css';
 import './styles/print.css';
 
