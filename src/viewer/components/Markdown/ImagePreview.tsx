@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useMemo, useState, type ImgHTMLAttributes } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ImgHTMLAttributes } from 'react';
 import { createPortal } from 'react-dom';
 import { ExternalLink, X } from 'lucide-react';
 
 type ImageProps = ImgHTMLAttributes<HTMLImageElement>;
 
-function getViewerHost(): Element {
-  return document.querySelector('.feishu-viewer') ?? document.body;
+function getPortalHost(element: HTMLElement | null): Element | DocumentFragment {
+  const root = element?.getRootNode();
+  if (root instanceof ShadowRoot) {
+    return root;
+  }
+  return document.body;
 }
 
 export function FeishuImage({ alt = '', src, ...props }: ImageProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const imageUrl = typeof src === 'string' ? src : '';
   const caption = useMemo(() => alt.trim(), [alt]);
 
@@ -58,12 +63,13 @@ export function FeishuImage({ alt = '', src, ...props }: ImageProps) {
         <img className="feishu-image-preview__image" src={imageUrl} alt={alt} />
       </div>
     </div>,
-    getViewerHost()
+    getPortalHost(triggerRef.current)
   ) : null;
 
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         className="feishu-image-trigger"
         onClick={() => setOpen(true)}
