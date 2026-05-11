@@ -2,14 +2,15 @@ import { useEffect, useMemo, useCallback } from 'react';
 import { type PageSource } from '../content/detector';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { type SaveStatusState } from './components/Common/SaveStatus';
-import { MarkdownRenderer } from './components/Markdown/MarkdownRenderer';
 import { WysiwygEditor } from './components/Markdown/WysiwygEditor';
+import { SourceModeEditor } from './components/Markdown/Editor/SourceModeEditor';
 import { AppShell } from './components/Layout/AppShell';
 import { ReadingProgress } from './components/Layout/ReadingProgress';
 import { useTOC } from './hooks/useTOC';
 import { useFileAccess } from './hooks/useFileAccess';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useBeforeUnload } from './hooks/useBeforeUnload';
+import { useModeScrollRestore } from './hooks/useModeScrollRestore';
 import { useViewerStore } from './store';
 
 const HANDLE_STORAGE_KEY = 'current-document-handle';
@@ -107,12 +108,13 @@ export function App({ markdown, source }: AppProps) {
   const autoSave = useAutoSave({
     content: content || '',
     fileHandle,
-    enabled: mode === 'edit' && isDirty && fileHandle !== null,
+    enabled: mode !== 'read' && isDirty && fileHandle !== null,
     onSave: saveToHandle,
   });
 
   // Guard against accidental tab close with unsaved changes
   useBeforeUnload(isDirty);
+  useModeScrollRestore(mode);
 
   // Keyboard shortcut: Ctrl+S / Cmd+S
   useEffect(() => {
@@ -145,7 +147,15 @@ export function App({ markdown, source }: AppProps) {
   const saveErrorMessage = autoSave.error || fileError;
 
   const themeClass = getThemeClass(theme);
-  const viewerClasses = ['feishu-viewer', themeClass].filter(Boolean).join(' ');
+  const viewerClasses = [
+    'feishu-viewer',
+    mode === 'edit' ? 'feishu-viewer--editing' : '',
+    mode === 'source' ? 'feishu-viewer--source' : '',
+    mode === 'read' ? 'feishu-viewer--reading' : '',
+    themeClass,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <ErrorBoundary>
@@ -154,9 +164,10 @@ export function App({ markdown, source }: AppProps) {
         role="article"
         aria-label="Rendered markdown document"
         data-source={source}
+        data-mode={mode}
         style={{ '--feishu-font-size-body': `${fontSize}px` } as React.CSSProperties}
       >
-        {mode !== 'edit' && <ReadingProgress />}
+        <ReadingProgress />
         <AppShell
           title={title}
           tocItems={tocItems}
@@ -164,21 +175,17 @@ export function App({ markdown, source }: AppProps) {
           saveStatus={saveStatus}
           saveError={saveErrorMessage}
           lastSaved={autoSave.lastSaved}
-          showSaveControls={mode === 'edit'}
+          showSaveControls={mode !== 'read'}
         >
-          {mode === 'edit' ? (
-            <div className="feishu-viewer__page">
-              <div className="feishu-viewer__content">
-                <WysiwygEditor />
-              </div>
+          <div className="feishu-viewer__page" data-mode={mode}>
+            <div className="feishu-viewer__content" data-mode={mode}>
+              {mode === 'source' ? (
+                <SourceModeEditor content={displayContent} />
+              ) : (
+                <WysiwygEditor content={displayContent} editable={mode === 'edit'} />
+              )}
             </div>
-          ) : (
-            <div className="feishu-viewer__page">
-              <div className="feishu-viewer__content">
-                <MarkdownRenderer content={displayContent} />
-              </div>
-            </div>
-          )}
+          </div>
         </AppShell>
       </div>
     </ErrorBoundary>

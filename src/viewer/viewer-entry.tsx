@@ -15,6 +15,7 @@ import './styles/layout.css';
 import './styles/scrollbar.css';
 import './styles/mermaid.css';
 import './styles/editor.css';
+import './styles/editor-mermaid.css';
 import './styles/save-status.css';
 import './styles/dark-theme.css';
 import './styles/print.css';

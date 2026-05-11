@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { renderMermaid } from '../../../lib/mermaid-init';
-import { expandMermaidSvgBounds } from '../../utils/mermaid-svg';
+import { sanitizeMermaidSvg } from '../../utils/sanitize-svg';
 
 interface MermaidBlockProps {
   code: string;
@@ -20,7 +20,7 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
         const id = `mermaid-diagram-${index}-${Date.now()}`;
         const result = await renderMermaid(code, id);
         if (!cancelled) {
-          setSvg(expandMermaidSvgBounds(result));
+          setSvg(sanitizeMermaidSvg(result));
           setError(null);
         }
       } catch (err) {

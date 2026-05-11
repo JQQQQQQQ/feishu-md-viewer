@@ -106,4 +106,11 @@ describe('CopyButton clipboard functionality', () => {
     // Button should still be in "Copy" state since the write failed
     expect(copyBtn.textContent).toContain('复制');
   });
+
+  it('renders highlighted tokens for JavaScript code blocks', () => {
+    const { container } = renderCodeBlock('const greeting = "hello";');
+
+    expect(container.querySelector('.feishu-code-token--keyword')?.textContent).toBe('const');
+    expect(container.querySelector('.feishu-code-token--string')?.textContent).toBe('"hello"');
+  });
 });

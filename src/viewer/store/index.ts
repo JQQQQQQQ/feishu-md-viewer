@@ -5,7 +5,8 @@ const FONT_SIZE_MIN = 12;
 const FONT_SIZE_MAX = 24;
 const FONT_SIZE_DEFAULT = 15;
 
-type EditorMode = 'read' | 'edit';
+type EditorMode = 'read' | 'edit' | 'source';
+export type { EditorMode };
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface DocumentSlice {

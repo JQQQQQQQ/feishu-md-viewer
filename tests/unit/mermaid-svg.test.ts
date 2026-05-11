@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expandMermaidSvgBounds } from '@/viewer/utils/mermaid-svg';
+import { sanitizeMermaidSvg } from '@/viewer/utils/sanitize-svg';
 
 describe('expandMermaidSvgBounds', () => {
   it('expands the root SVG viewport and numeric dimensions', () => {
@@ -39,5 +40,18 @@ describe('expandMermaidSvgBounds', () => {
     const input = '<div>not svg</div>';
 
     expect(expandMermaidSvgBounds(input)).toBe(input);
+  });
+});
+
+describe('sanitizeMermaidSvg', () => {
+  it('removes executable SVG content after expanding bounds', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg width="100" height="50" viewBox="0 0 100 50" onload="alert(1)"><script>alert(1)</script><text>Start</text></svg>',
+    );
+
+    expect(result).toContain('<svg');
+    expect(result).toContain('viewBox="-30 -12 160 74"');
+    expect(result).not.toContain('<script');
+    expect(result).not.toContain('onload');
   });
 });

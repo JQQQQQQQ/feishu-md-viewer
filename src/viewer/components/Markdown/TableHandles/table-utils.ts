@@ -1,7 +1,6 @@
 import type { Node as ProseNode, ResolvedPos } from '@milkdown/prose/model';
 import type { HandleInfo, NodePosition } from './types';
 
-export const BG_COLORS = ['', '#fffde7', '#e3f2fd', '#e8f5e9', '#fce4ec', '#f3e5f5'];
 export const TOOLBAR_HEIGHT = 34;
 export const TOOLBAR_WIDTH = 220;
 export const TOOLBAR_GAP = 4;
@@ -103,4 +102,3 @@ export function getActiveHandleZone(
     bottom: Math.max(handleRect.bottom, toolbarRect.bottom) + HOVER_BRIDGE_PADDING,
   };
 }
-

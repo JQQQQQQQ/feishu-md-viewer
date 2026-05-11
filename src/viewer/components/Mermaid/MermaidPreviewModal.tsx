@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { sanitizeMermaidSvg } from '../../utils/sanitize-svg';
 
 interface MermaidPreviewModalProps {
   svg: string;
@@ -70,7 +71,8 @@ function getFitZoom(canvas: HTMLDivElement, size: SvgSize): number {
 export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) {
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
-  const previewSize = useMemo(() => getSvgPreviewSize(svg), [svg]);
+  const safeSvg = useMemo(() => sanitizeMermaidSvg(svg), [svg]);
+  const previewSize = useMemo(() => getSvgPreviewSize(safeSvg), [safeSvg]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef<DragState | null>(null);
 
@@ -202,7 +204,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [fitToCanvas, svg]);
+  }, [fitToCanvas, safeSvg]);
 
   return (
     <div
@@ -288,7 +290,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
                 height: `${previewSize.height}px`,
                 transform: `scale(${zoom})`,
               }}
-              dangerouslySetInnerHTML={{ __html: svg }}
+              dangerouslySetInnerHTML={{ __html: safeSvg }}
             />
           </div>
         </div>

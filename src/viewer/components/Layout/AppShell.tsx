@@ -4,6 +4,11 @@ import type { SaveStatusState } from '../Common/SaveStatus';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 
+const SIDEBAR_WIDTH_STORAGE_KEY = 'feishu-md-viewer-sidebar-width';
+const DEFAULT_SIDEBAR_WIDTH = 260;
+const MIN_SIDEBAR_WIDTH = 220;
+const MAX_SIDEBAR_WIDTH = 520;
+
 interface AppShellProps {
   title: string;
   tocItems: TOCItem[];
@@ -35,6 +40,19 @@ function useIsDrawerMode(): boolean {
   return isDrawer;
 }
 
+function getStoredSidebarWidth(): number {
+  if (typeof window === 'undefined') return DEFAULT_SIDEBAR_WIDTH;
+
+  let stored = Number.NaN;
+  try {
+    stored = Number(window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY));
+  } catch {
+    return DEFAULT_SIDEBAR_WIDTH;
+  }
+  if (!Number.isFinite(stored)) return DEFAULT_SIDEBAR_WIDTH;
+  return Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, stored));
+}
+
 export function AppShell({
   title,
   tocItems,
@@ -46,6 +64,7 @@ export function AppShell({
   showSaveControls,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(getStoredSidebarWidth);
   const contentRef = useRef<HTMLElement | null>(null);
   const isDrawerMode = useIsDrawerMode();
 
@@ -55,6 +74,16 @@ export function AppShell({
 
   const handleCloseSidebar = useCallback(() => {
     setSidebarOpen(false);
+  }, []);
+
+  const handleSidebarWidthChange = useCallback((width: number) => {
+    const nextWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
+    setSidebarWidth(nextWidth);
+    try {
+      window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(Math.round(nextWidth)));
+    } catch {
+      // Storage can be unavailable in restricted browser contexts.
+    }
   }, []);
 
   useEffect(() => {
@@ -73,7 +102,10 @@ export function AppShell({
     .join(' ');
 
   return (
-    <div className="feishu-app-shell">
+    <div
+      className="feishu-app-shell"
+      style={{ '--feishu-sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
+    >
       <a href="#main-content" className="feishu-skip-link">
         Skip to content
       </a>
@@ -94,6 +126,7 @@ export function AppShell({
           containerRef={contentRef}
           isDrawerMode={isDrawerMode}
           onClose={handleCloseSidebar}
+          onWidthChange={handleSidebarWidthChange}
         />
         <main
           id="main-content"

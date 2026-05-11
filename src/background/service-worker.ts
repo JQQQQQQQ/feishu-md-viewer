@@ -109,6 +109,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return true; // Keep message channel open for async response
     }
 
+    case 'DEV_RELOAD_EXTENSION': {
+      sendResponse({ success: true });
+      setTimeout(() => chrome.runtime.reload(), 100);
+      break;
+    }
+
     default:
       sendResponse({ error: 'Unknown message type' });
   }

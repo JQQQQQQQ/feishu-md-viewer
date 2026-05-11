@@ -5,6 +5,7 @@ import type { HandleInfo } from './types';
 import { computeTableHandles, getActiveHandleZone } from './table-utils';
 
 type GetEditor = () => Editor | undefined;
+const TOOL_HIDE_DELAY = 900;
 
 export function useTableHandleVisibility(loading: boolean, getEditor: GetEditor) {
   const [handles, setHandles] = useState<HandleInfo[]>([]);
@@ -27,7 +28,7 @@ export function useTableHandleVisibility(loading: boolean, getEditor: GetEditor)
       setActiveHandle(null);
       tableElRef.current = null;
       hideTimeoutRef.current = null;
-    }, 300);
+    }, TOOL_HIDE_DELAY);
   }, []);
 
   const resetTableTools = useCallback(() => {
@@ -82,7 +83,17 @@ export function useTableHandleVisibility(loading: boolean, getEditor: GetEditor)
 
     const handleMouseMove = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (target.closest('.feishu-table-handle') || target.closest('.feishu-table-handle-toolbar')) {
+      const handleTarget = target.closest('.feishu-table-handle') as HTMLElement | null;
+      if (handleTarget) {
+        cancelScheduledHide();
+        const type = handleTarget.dataset.handleType;
+        const index = Number(handleTarget.dataset.handleIndex);
+        const nextHandle = handles.find((handle) => handle.type === type && handle.index === index);
+        if (nextHandle) setActiveHandle(nextHandle);
+        return;
+      }
+
+      if (target.closest('.feishu-table-handle-toolbar')) {
         cancelScheduledHide();
         return;
       }
@@ -149,4 +160,3 @@ export function useTableHandleVisibility(loading: boolean, getEditor: GetEditor)
     resetTableTools,
   };
 }
-

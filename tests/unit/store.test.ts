@@ -123,11 +123,14 @@ describe('Zustand ViewerStore', () => {
   });
 
   describe('setMode', () => {
-    it('switches between read and edit', () => {
+    it('switches between read, edit, and source', () => {
       const { setMode } = useViewerStore.getState();
 
       setMode('edit');
       expect(useViewerStore.getState().mode).toBe('edit');
+
+      setMode('source');
+      expect(useViewerStore.getState().mode).toBe('source');
 
       setMode('read');
       expect(useViewerStore.getState().mode).toBe('read');

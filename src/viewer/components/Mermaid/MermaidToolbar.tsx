@@ -66,6 +66,14 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
     downloadBlob(blob, `mermaid-diagram-${blockIndex}.svg`);
   }, [getSerializedSvg, blockIndex]);
 
+  const handleCopySource = useCallback(async () => {
+    try {
+      await navigator.clipboard?.writeText(code);
+    } catch {
+      // Clipboard API may be unavailable in restricted extension contexts.
+    }
+  }, [code]);
+
   const handleExportPng = useCallback(() => {
     const svgString = getSerializedSvg();
     if (!svgString) return;
@@ -137,6 +145,17 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
             编辑
           </button>
         )}
+        <button
+          className="mermaid-toolbar__export-btn"
+          onClick={() => { void handleCopySource(); }}
+          type="button"
+          aria-label="Copy Mermaid source"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M4.5 4.5h6v6h-6zM3.5 9.5h-1v-7h7v1" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+          </svg>
+          源码
+        </button>
         <button
           className="mermaid-toolbar__export-btn"
           onClick={handleExportSvg}

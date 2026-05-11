@@ -23,7 +23,13 @@
   --feishu-radius: 8px;
   --feishu-radius-sm: 4px;
   --feishu-code-bg: #f7f8fa;
-  --feishu-code-text: #d63384;
+  --feishu-code-text: #1f2329;
+  --feishu-code-comment: #86909c;
+  --feishu-code-string: #0e7a3b;
+  --feishu-code-keyword: #7a3fd1;
+  --feishu-code-number: #b85c00;
+  --feishu-code-function: #1f66d1;
+  --feishu-code-punctuation: #4e5969;
   --feishu-inline-code-bg: #edf4ff;
   --feishu-inline-code-text: #245bdb;
   --feishu-blockquote-bg: #f0f5ff;

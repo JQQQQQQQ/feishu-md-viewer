@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render } from '@testing-library/react';
 import { parseMarkdown, extractMermaidBlocks } from '@/lib/markdown-pipeline';
 
 describe('markdown-pipeline', () => {
@@ -44,12 +44,139 @@ describe('markdown-pipeline', () => {
 | --- | --- |
 | 1 | 2 |`;
       const result = parseMarkdown(md);
-      expect(result).toBeDefined();
+      const { container } = render(result);
+
+      expect(container.querySelector('.feishu-table')).not.toBeNull();
+      expect(container.querySelector('.feishu-table__cell')).not.toBeNull();
+    });
+
+    it('copies a selected table column as tabular text', () => {
+      const md = `| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |`;
+      const result = parseMarkdown(md);
+      const { container } = render(result);
+      const cells = container.querySelectorAll<HTMLTableCellElement>('td');
+      const setData = vi.fn();
+      const copyEvent = new Event('copy', { bubbles: true, cancelable: true });
+
+      Object.defineProperty(copyEvent, 'clipboardData', {
+        value: { setData },
+      });
+
+      fireEvent.mouseDown(cells[0] as HTMLTableCellElement);
+      fireEvent.mouseOver(cells[2] as HTMLTableCellElement);
+      fireEvent.mouseUp(document);
+      document.dispatchEvent(copyEvent);
+
+      expect(setData).toHaveBeenCalledWith('text/plain', 'A\n1\n3');
+      expect(setData).toHaveBeenCalledWith('text/html', '<table><tbody><tr><th>A</th></tr><tr><td>1</td></tr><tr><td>3</td></tr></tbody></table>');
+    });
+
+    it('keeps table selection when shadow DOM retargets document mousedown', () => {
+      const md = `| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |`;
+      const result = parseMarkdown(md);
+      const { container } = render(result);
+      const cells = container.querySelectorAll<HTMLTableCellElement>('td');
+      const wrapper = container.querySelector('.feishu-table-wrapper');
+      const setData = vi.fn();
+      const shadowMouseDown = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      const copyEvent = new Event('copy', { bubbles: true, cancelable: true });
+
+      Object.defineProperty(shadowMouseDown, 'composedPath', {
+        value: () => [cells[0], wrapper, document],
+      });
+      Object.defineProperty(copyEvent, 'clipboardData', {
+        value: { setData },
+      });
+
+      fireEvent.mouseDown(cells[0] as HTMLTableCellElement);
+      document.dispatchEvent(shadowMouseDown);
+      document.dispatchEvent(copyEvent);
+
+      expect(setData).toHaveBeenCalledWith('text/plain', '1');
+    });
+
+    it('copies a selected table column with keyboard shortcut fallback', () => {
+      const md = `| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |`;
+      const result = parseMarkdown(md);
+      const { container } = render(result);
+      const cells = container.querySelectorAll<HTMLTableCellElement>('td');
+      const writeText = vi.fn();
+
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      });
+
+      fireEvent.mouseDown(cells[0] as HTMLTableCellElement);
+      fireEvent.mouseOver(cells[2] as HTMLTableCellElement);
+      fireEvent.mouseUp(document);
+      fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
+
+      expect(writeText).toHaveBeenCalledWith('A\n1\n3');
+    });
+
+    it('selects the whole focused table with keyboard shortcut fallback', () => {
+      const md = `| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |`;
+      const result = parseMarkdown(md);
+      const { container } = render(result);
+      const firstCell = container.querySelector<HTMLTableCellElement>('td');
+      const writeText = vi.fn();
+
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      });
+
+      fireEvent.mouseDown(firstCell as HTMLTableCellElement);
+      fireEvent.keyDown(document, { key: 'a', ctrlKey: true });
+      fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
+
+      expect(writeText).toHaveBeenCalledWith('A\tB\n1\t2\n3\t4');
     });
 
     it('handles GFM strikethrough', () => {
       const result = parseMarkdown('~~deleted~~');
       expect(result).toBeDefined();
+    });
+
+    it('wraps heading content in hierarchy sections', () => {
+      const result = parseMarkdown(`# Title
+
+Intro
+
+## Parent
+
+Parent body
+
+### Child
+
+Child body
+
+## Next
+
+Next body`);
+      const { container } = render(result);
+      const level2Sections = container.querySelectorAll('.feishu-section--level-2');
+      const level3Sections = container.querySelectorAll('.feishu-section--level-3');
+
+      expect(level2Sections).toHaveLength(2);
+      expect(level3Sections).toHaveLength(1);
+      expect(level2Sections[0]?.textContent).toContain('Parent body');
+      expect(level2Sections[0]?.textContent).toContain('Child');
+      expect(level2Sections[0]?.textContent).not.toContain('Next body');
+      expect(level3Sections[0]?.textContent).toContain('Child body');
     });
 
     it('renders GitHub-style callout blockquotes', () => {

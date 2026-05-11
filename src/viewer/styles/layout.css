@@ -76,6 +76,11 @@
   transition: transform 90ms linear;
 }
 
+.feishu-viewer--editing .feishu-reading-progress__bar {
+  opacity: 0.58;
+  box-shadow: none;
+}
+
 /* ===== Top Bar ===== */
 .feishu-topbar {
   position: fixed;
@@ -142,12 +147,20 @@
   flex-shrink: 0;
 }
 
+/* ===== Top Bar Actions ===== */
+.feishu-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 /* ===== Font Size Controls ===== */
 .feishu-topbar__font-controls {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-left: auto;
   flex-shrink: 0;
 }
 
@@ -231,6 +244,33 @@
 
 .feishu-sidebar__content {
   padding: 16px 0;
+}
+
+.feishu-sidebar__resize-handle {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  bottom: 0;
+  width: 10px;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.feishu-sidebar__resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 4px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.feishu-sidebar__resize-handle:hover::before {
+  background: color-mix(in srgb, var(--feishu-brand-primary) 72%, var(--feishu-border-light));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--feishu-brand-primary) 12%, transparent);
 }
 
 /* ===== Drawer Mode (narrow screens) ===== */

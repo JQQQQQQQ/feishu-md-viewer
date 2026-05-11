@@ -18,6 +18,115 @@
   overflow-wrap: break-word;
 }
 
+.feishu-search,
+.feishu-search__launcher {
+  position: fixed;
+  top: calc(var(--feishu-topbar-height, 56px) + 14px);
+  right: 24px;
+  z-index: 40;
+}
+
+.feishu-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(420px, calc(100vw - 48px));
+  min-height: 42px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--feishu-brand-primary) 32%, var(--feishu-border-light));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--feishu-bg-content) 96%, #ffffff), var(--feishu-bg-content));
+  box-shadow: 0 12px 34px rgba(31, 35, 41, 0.14), 0 2px 8px rgba(31, 35, 41, 0.08);
+}
+
+.feishu-search__launcher {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: 999px;
+  background: var(--feishu-bg-content);
+  color: var(--feishu-text-secondary);
+  box-shadow: 0 8px 24px rgba(31, 35, 41, 0.1);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.feishu-search__launcher:hover {
+  color: var(--feishu-brand-primary);
+  border-color: color-mix(in srgb, var(--feishu-brand-primary) 42%, var(--feishu-border-light));
+  box-shadow: 0 12px 28px rgba(51, 112, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.feishu-search__icon {
+  flex: 0 0 auto;
+  color: var(--feishu-brand-primary);
+}
+
+.feishu-search__input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--feishu-text-primary);
+  font: inherit;
+  font-size: var(--feishu-font-size-small);
+}
+
+.feishu-search__input::placeholder {
+  color: var(--feishu-text-placeholder);
+}
+
+.feishu-search__count {
+  flex: 0 0 auto;
+  min-width: 44px;
+  color: var(--feishu-text-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.feishu-search__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--feishu-radius-sm);
+  background: transparent;
+  color: var(--feishu-text-secondary);
+  cursor: pointer;
+}
+
+.feishu-search__button:hover:not(:disabled) {
+  color: var(--feishu-brand-primary);
+  background: var(--feishu-inline-code-bg, var(--feishu-code-bg));
+}
+
+.feishu-search__button:disabled {
+  color: var(--feishu-text-placeholder);
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.feishu-search-mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: color-mix(in srgb, #ffe58f 72%, transparent);
+  color: inherit;
+}
+
+.feishu-search-mark--active {
+  background: color-mix(in srgb, var(--feishu-brand-primary) 88%, #ffffff);
+  color: #ffffff;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--feishu-brand-primary) 18%, transparent);
+}
+
 /* Headings */
 .feishu-heading {
   position: relative;
@@ -34,6 +143,44 @@
 
 .feishu-heading__text {
   min-width: 0;
+}
+
+.feishu-section {
+  --feishu-section-indent: 0px;
+  --feishu-section-line: transparent;
+
+  position: relative;
+}
+
+.feishu-section--level-2,
+.feishu-section--level-3,
+.feishu-section--level-4,
+.feishu-section--level-5,
+.feishu-section--level-6 {
+  margin-left: var(--feishu-section-indent);
+  padding-left: 16px;
+}
+
+.feishu-section--level-2 {
+  --feishu-section-indent: 34px;
+}
+
+.feishu-section--level-3 {
+  --feishu-section-indent: 28px;
+}
+
+.feishu-section--level-4,
+.feishu-section--level-5,
+.feishu-section--level-6 {
+  --feishu-section-indent: 22px;
+}
+
+.feishu-section > :first-child {
+  margin-top: 0;
+}
+
+.feishu-section > :last-child {
+  margin-bottom: 0;
 }
 
 .feishu-h1 {
@@ -159,10 +306,17 @@
   overflow: hidden;
 }
 
-.feishu-code-block__lang {
+.feishu-code-block__tools {
   position: absolute;
   top: 8px;
   right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+}
+
+.feishu-code-block__lang {
   font-size: 12px;
   color: var(--feishu-text-placeholder);
   font-family: var(--feishu-font-mono);
@@ -170,10 +324,6 @@
 }
 
 .feishu-code-block__copy-btn {
-  position: absolute;
-  top: 8px;
-  right: auto;
-  left: 12px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -187,7 +337,6 @@
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s, background-color 0.15s;
-  z-index: 1;
 }
 
 .feishu-code-block:hover .feishu-code-block__copy-btn {
@@ -207,12 +356,48 @@
 
 .feishu-code-block__pre {
   margin: 0;
-  padding: 16px 20px;
+  padding: 18px 20px;
+  padding-right: 118px;
   overflow-x: auto;
   font-family: var(--feishu-font-mono);
   font-size: 13px;
   line-height: 1.6;
   color: var(--feishu-text-primary);
+}
+
+.feishu-code-block__code {
+  color: var(--feishu-code-text);
+}
+
+.feishu-code-line {
+  min-height: 1.6em;
+}
+
+.feishu-code-token--comment {
+  color: var(--feishu-code-comment, #86909c);
+  font-style: italic;
+}
+
+.feishu-code-token--string {
+  color: var(--feishu-code-string, #0e7a3b);
+}
+
+.feishu-code-token--keyword {
+  color: var(--feishu-code-keyword, #7a3fd1);
+  font-weight: 600;
+}
+
+.feishu-code-token--number {
+  color: var(--feishu-code-number, #b85c00);
+}
+
+.feishu-code-token--function {
+  color: var(--feishu-code-function, #1f66d1);
+}
+
+.feishu-code-token--operator,
+.feishu-code-token--punctuation {
+  color: var(--feishu-code-punctuation, #4e5969);
 }
 
 /* Inline Code */
@@ -227,16 +412,63 @@
 
 /* Tables */
 .feishu-table-wrapper {
+  width: 100%;
+  max-width: 100%;
   margin: 1em 0;
   overflow-x: auto;
+  overflow-y: hidden;
   border-radius: var(--feishu-radius);
   border: 1px solid var(--feishu-border-light);
+  outline: none;
+  scrollbar-color: color-mix(in srgb, var(--feishu-brand-primary) 34%, var(--feishu-border-light)) transparent;
+  scrollbar-width: thin;
+}
+
+.feishu-table-wrapper--wide-right,
+.feishu-table-wrapper--wide-balanced {
+  width: var(--feishu-table-wide-width, 100%);
+  max-width: none;
+}
+
+.feishu-table-wrapper--wide-right {
+  margin-left: 0;
+}
+
+.feishu-table-wrapper--wide-balanced {
+  margin-left: var(--feishu-table-wide-offset, 0);
+}
+
+.feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-right,
+.feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-balanced {
+  width: var(--feishu-table-wide-width, 100%);
+  max-width: none;
+}
+
+.feishu-table-wrapper::-webkit-scrollbar {
+  height: 10px;
+}
+
+.feishu-table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.feishu-table-wrapper::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--feishu-brand-primary) 34%, var(--feishu-border-light));
+  background-clip: content-box;
+}
+
+.feishu-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--feishu-brand-primary) 52%, var(--feishu-border-light));
+  background-clip: content-box;
 }
 
 .feishu-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
   font-size: var(--feishu-font-size-small);
 }
 
@@ -245,20 +477,89 @@
 }
 
 .feishu-table__header {
-  padding: 8px 16px;
+  padding: 8px 12px;
   text-align: left;
   font-weight: 600;
   color: var(--feishu-text-primary);
+  border-right: 1px solid var(--feishu-border-light);
   border-bottom: 1px solid var(--feishu-border-light);
   line-height: 1.4;
+  min-width: 92px;
+  max-width: 240px;
+  width: max-content;
+  user-select: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .feishu-table__cell {
-  padding: 8px 16px;
+  padding: 8px 12px;
+  border-right: 1px solid var(--feishu-border-lighter);
   border-bottom: 1px solid var(--feishu-border-lighter);
   line-height: 1.4;
   height: 40px;
   vertical-align: middle;
+  min-width: 92px;
+  max-width: 280px;
+  width: max-content;
+  user-select: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.feishu-table-wrapper--wide-right .feishu-table__header,
+.feishu-table-wrapper--wide-balanced .feishu-table__header {
+  max-width: 360px;
+}
+
+.feishu-table-wrapper--wide-right .feishu-table__cell {
+  max-width: 460px;
+}
+
+.feishu-table-wrapper--wide-balanced .feishu-table__cell {
+  max-width: 560px;
+}
+
+.feishu-table__header code,
+.feishu-table__cell code,
+.feishu-table__header .feishu-inline-code,
+.feishu-table__cell .feishu-inline-code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.feishu-table-wrapper--wide-right .feishu-table__header code,
+.feishu-table-wrapper--wide-right .feishu-table__cell code,
+.feishu-table-wrapper--wide-right .feishu-table__header .feishu-inline-code,
+.feishu-table-wrapper--wide-right .feishu-table__cell .feishu-inline-code,
+.feishu-table-wrapper--wide-balanced .feishu-table__header code,
+.feishu-table-wrapper--wide-balanced .feishu-table__cell code,
+.feishu-table-wrapper--wide-balanced .feishu-table__header .feishu-inline-code,
+.feishu-table-wrapper--wide-balanced .feishu-table__cell .feishu-inline-code {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.feishu-table__header:last-child,
+.feishu-table__cell:last-child {
+  border-right: none;
+}
+
+.feishu-table__header--selected,
+.feishu-table__cell--selected {
+  background:
+    linear-gradient(0deg, rgba(51, 112, 255, 0.13), rgba(51, 112, 255, 0.13)),
+    var(--feishu-bg-content);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--feishu-brand-primary) 46%, transparent);
+}
+
+.feishu-table__head .feishu-table__header--selected {
+  background:
+    linear-gradient(0deg, rgba(51, 112, 255, 0.16), rgba(51, 112, 255, 0.16)),
+    var(--feishu-table-header-bg);
 }
 
 .feishu-table__row:nth-child(even) {
@@ -594,4 +895,35 @@
   font-family: var(--feishu-font-mono);
   font-size: 12px;
   overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .feishu-search,
+  .feishu-search__launcher {
+    right: 12px;
+  }
+
+  .feishu-search {
+    width: calc(100vw - 24px);
+  }
+
+  .feishu-table-wrapper,
+  .feishu-table-wrapper--wide-right,
+  .feishu-table-wrapper--wide-balanced,
+  .feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-right,
+  .feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-balanced {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
+
+  .feishu-section--level-2,
+  .feishu-section--level-3,
+  .feishu-section--level-4,
+  .feishu-section--level-5,
+  .feishu-section--level-6 {
+    margin-left: 14px;
+    padding-left: 12px;
+  }
 }

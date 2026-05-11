@@ -1,4 +1,5 @@
 import { useViewerStore, type ThemeMode } from '../../store';
+import { notifyModeChangeStart } from '../../hooks/useModeScrollRestore';
 import { SaveStatus, type SaveStatusState } from '../Common/SaveStatus';
 
 interface TopBarProps {
@@ -44,7 +45,13 @@ export function TopBar({
   const decreaseFontSize = useViewerStore((s) => s.decreaseFontSize);
 
   const handleToggleMode = () => {
-    setMode(mode === 'read' ? 'edit' : 'read');
+    notifyModeChangeStart();
+    setMode(mode === 'edit' ? 'read' : 'edit');
+  };
+
+  const handleToggleSource = () => {
+    notifyModeChangeStart();
+    setMode(mode === 'source' ? 'read' : 'source');
   };
 
   const handleCycleTheme = () => {
@@ -54,6 +61,13 @@ export function TopBar({
   const modeToggleClass = [
     'feishu-topbar__mode-toggle',
     mode === 'edit' ? 'feishu-topbar__mode-toggle--active' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const sourceToggleClass = [
+    'feishu-topbar__mode-toggle',
+    mode === 'source' ? 'feishu-topbar__mode-toggle--active' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -83,8 +97,16 @@ export function TopBar({
         </>
       )}
 
-      {showSaveControls && (
-        <div className="feishu-topbar__save-section">
+      <div className="feishu-topbar__actions">
+        <div
+          className={[
+            'feishu-topbar__save-section',
+            !showSaveControls ? 'feishu-topbar__save-section--reserved' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          aria-hidden={!showSaveControls}
+        >
           <SaveStatus
             status={saveStatus}
             errorMessage={saveError ?? undefined}
@@ -96,7 +118,8 @@ export function TopBar({
             type="button"
             aria-label="保存"
             title="保存 (Ctrl+S)"
-            disabled={!isDirty && saveStatus === 'saved'}
+            disabled={!showSaveControls || (!isDirty && saveStatus === 'saved')}
+            tabIndex={showSaveControls ? 0 : -1}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
@@ -123,95 +146,113 @@ export function TopBar({
             </svg>
           </button>
         </div>
-      )}
 
-      {/* Font size controls */}
-      <div className="feishu-topbar__font-controls" role="group" aria-label="Font size controls">
+        {/* Font size controls */}
+        <div className="feishu-topbar__font-controls" role="group" aria-label="Font size controls">
+          <button
+            className="feishu-topbar__font-btn"
+            onClick={decreaseFontSize}
+            type="button"
+            aria-label="Decrease font size"
+            title={`Decrease font size (${fontSize}px)`}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M3 7h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+          <span className="feishu-topbar__font-size" aria-live="polite" aria-atomic="true">
+            {fontSize}
+          </span>
+          <button
+            className="feishu-topbar__font-btn"
+            onClick={increaseFontSize}
+            type="button"
+            aria-label="Increase font size"
+            title={`Increase font size (${fontSize}px)`}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 3v8M3 7h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Theme toggle */}
         <button
-          className="feishu-topbar__font-btn"
-          onClick={decreaseFontSize}
+          className="feishu-topbar__theme-btn"
+          onClick={handleCycleTheme}
           type="button"
-          aria-label="Decrease font size"
-          title={`Decrease font size (${fontSize}px)`}
+          aria-label={`Theme: ${theme}. Click to switch.`}
+          title={`Theme: ${THEME_ICONS[theme]}`}
+        >
+          {theme === 'light' && (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M3.4 12.6l.7-.7M11.9 4.1l.7-.7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+          )}
+          {theme === 'dark' && (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M13.5 9.5a5.5 5.5 0 0 1-7-7 5.5 5.5 0 1 0 7 7Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+          {theme === 'system' && (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="2" y="3" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M5 14h6M8 11v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+          )}
+        </button>
+
+        <button
+          className={modeToggleClass}
+          onClick={handleToggleMode}
+          type="button"
+          aria-pressed={mode === 'edit'}
+          aria-label={mode === 'edit' ? 'Switch to read mode' : 'Switch to edit mode'}
+        >
+          {mode === 'edit' ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path
+                d="M1 7.5L5 11.5L13 3.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path
+                d="M10.5 1.75L12.25 3.5M1.75 12.25L2.333 9.917L10.083 2.167L11.833 3.917L4.083 11.667L1.75 12.25Z"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+          {mode === 'edit' ? '阅读' : '编辑'}
+          {isDirty && <span className="feishu-topbar__dirty-indicator" aria-label="Unsaved changes" />}
+        </button>
+        <button
+          className={sourceToggleClass}
+          onClick={handleToggleSource}
+          type="button"
+          aria-pressed={mode === 'source'}
+          aria-label={mode === 'source' ? 'Switch to read mode' : 'Switch to source mode'}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M3 7h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
-        <span className="feishu-topbar__font-size" aria-live="polite" aria-atomic="true">
-          {fontSize}
-        </span>
-        <button
-          className="feishu-topbar__font-btn"
-          onClick={increaseFontSize}
-          type="button"
-          aria-label="Increase font size"
-          title={`Increase font size (${fontSize}px)`}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M7 3v8M3 7h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Theme toggle */}
-      <button
-        className="feishu-topbar__theme-btn"
-        onClick={handleCycleTheme}
-        type="button"
-        aria-label={`Theme: ${theme}. Click to switch.`}
-        title={`Theme: ${THEME_ICONS[theme]}`}
-      >
-        {theme === 'light' && (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3" />
-            <path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M3.4 12.6l.7-.7M11.9 4.1l.7-.7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-          </svg>
-        )}
-        {theme === 'dark' && (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M13.5 9.5a5.5 5.5 0 0 1-7-7 5.5 5.5 0 1 0 7 7Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-        {theme === 'system' && (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <rect x="2" y="3" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="1.3" />
-            <path d="M5 14h6M8 11v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-          </svg>
-        )}
-      </button>
-
-      <button
-        className={modeToggleClass}
-        onClick={handleToggleMode}
-        type="button"
-        aria-pressed={mode === 'edit'}
-        aria-label={mode === 'edit' ? 'Switch to read mode' : 'Switch to edit mode'}
-      >
-        {mode === 'edit' ? (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path
-              d="M1 7.5L5 11.5L13 3.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        ) : (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path
-              d="M10.5 1.75L12.25 3.5M1.75 12.25L2.333 9.917L10.083 2.167L11.833 3.917L4.083 11.667L1.75 12.25Z"
+              d="M5 3L2 7l3 4M9 3l3 4-3 4"
               stroke="currentColor"
               strokeWidth="1.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </svg>
-        )}
-        {mode === 'edit' ? '阅读' : '编辑'}
-        {isDirty && <span className="feishu-topbar__dirty-indicator" aria-label="Unsaved changes" />}
-      </button>
+          {mode === 'source' ? '阅读' : '源码'}
+        </button>
+      </div>
     </header>
   );
 }

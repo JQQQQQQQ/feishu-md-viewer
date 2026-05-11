@@ -19,11 +19,10 @@ export function TableHandles() {
     resetTableTools,
   } = useTableHandleVisibility(loading, getEditor);
   const {
-    bgColorIndex,
     handleDelete,
     handleFormat,
+    handleCopySelection,
     handleClearContent,
-    handleBgColor,
   } = useTableHandleActions({
     activeHandle,
     tableEl,
@@ -36,15 +35,13 @@ export function TableHandles() {
     <TableHandleOverlay
       handles={handles}
       activeHandle={activeHandle}
-      bgColorIndex={bgColorIndex}
       setActiveHandle={setActiveHandle}
       cancelScheduledHide={cancelScheduledHide}
       scheduleHide={scheduleHide}
       onFormat={handleFormat}
-      onBgColor={handleBgColor}
+      onCopy={handleCopySelection}
       onClearContent={handleClearContent}
       onDelete={handleDelete}
     />
   );
 }
-

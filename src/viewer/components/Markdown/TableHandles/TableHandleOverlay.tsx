@@ -1,16 +1,15 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { HandleInfo, TableFormat } from './types';
-import { BG_COLORS, TOOLBAR_HEIGHT, TOOLBAR_WIDTH } from './table-utils';
+import { TOOLBAR_HEIGHT, TOOLBAR_WIDTH } from './table-utils';
 
 interface TableHandleOverlayProps {
   handles: HandleInfo[];
   activeHandle: HandleInfo | null;
-  bgColorIndex: number;
   setActiveHandle: Dispatch<SetStateAction<HandleInfo | null>>;
   cancelScheduledHide: () => void;
   scheduleHide: () => void;
   onFormat: (format: TableFormat) => void;
-  onBgColor: () => void;
+  onCopy: () => void;
   onClearContent: () => void;
   onDelete: () => void;
 }
@@ -18,12 +17,11 @@ interface TableHandleOverlayProps {
 export function TableHandleOverlay({
   handles,
   activeHandle,
-  bgColorIndex,
   setActiveHandle,
   cancelScheduledHide,
   scheduleHide,
   onFormat,
-  onBgColor,
+  onCopy,
   onClearContent,
   onDelete,
 }: TableHandleOverlayProps) {
@@ -35,10 +33,20 @@ export function TableHandleOverlay({
         <div
           key={`${handle.type}-${handle.index}`}
           className={`feishu-table-handle feishu-table-handle--${handle.type}${activeHandle?.type === handle.type && activeHandle?.index === handle.index ? ' feishu-table-handle--active' : ''}`}
+          data-handle-type={handle.type}
+          data-handle-index={handle.index}
           style={{ left: handle.x, top: handle.y, width: handle.width, height: handle.height }}
           role="button"
           tabIndex={-1}
           onMouseEnter={() => {
+            cancelScheduledHide();
+            setActiveHandle(handle);
+          }}
+          onMouseMove={() => {
+            cancelScheduledHide();
+            setActiveHandle(handle);
+          }}
+          onPointerEnter={() => {
             cancelScheduledHide();
             setActiveHandle(handle);
           }}
@@ -77,21 +85,13 @@ export function TableHandleOverlay({
           </button>
           <div className="feishu-table-handle-toolbar__divider" />
           <button
-            onClick={onBgColor}
-            title="单元格背景色"
-            className="feishu-table-handle-toolbar__bgcolor"
+            onClick={onCopy}
+            title={activeHandle.type === 'col' ? '复制列' : '复制行'}
+            className="feishu-table-handle-toolbar__copy"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <rect
-                x="3"
-                y="3"
-                width="18"
-                height="18"
-                rx="2"
-                fill={BG_COLORS[bgColorIndex] || '#f5f5f5'}
-                stroke="currentColor"
-                strokeWidth="2"
-              />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="9" y="9" width="11" height="11" rx="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
             </svg>
           </button>
           <button
@@ -118,4 +118,3 @@ export function TableHandleOverlay({
     </>
   );
 }
-

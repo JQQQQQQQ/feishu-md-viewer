@@ -12,7 +12,13 @@
   --feishu-border-light: #3a3a3a;
   --feishu-border-lighter: #333333;
   --feishu-code-bg: #2d2d2d;
-  --feishu-code-text: #f0a0c0;
+  --feishu-code-text: #d8dee9;
+  --feishu-code-comment: #7f8b99;
+  --feishu-code-string: #9ece6a;
+  --feishu-code-keyword: #bb9af7;
+  --feishu-code-number: #ff9e64;
+  --feishu-code-function: #7aa2f7;
+  --feishu-code-punctuation: #c0caf5;
   --feishu-inline-code-bg: #1f2f4d;
   --feishu-inline-code-text: #8fb5ff;
   --feishu-blockquote-bg: #1e2a3d;
@@ -45,7 +51,6 @@
 }
 
 .feishu-viewer--dark .feishu-code-block__lang {
-  background-color: #383838;
   color: var(--feishu-text-secondary);
 }
 
@@ -187,7 +192,13 @@
     --feishu-border-light: #3a3a3a;
     --feishu-border-lighter: #333333;
     --feishu-code-bg: #2d2d2d;
-    --feishu-code-text: #f0a0c0;
+    --feishu-code-text: #d8dee9;
+    --feishu-code-comment: #7f8b99;
+    --feishu-code-string: #9ece6a;
+    --feishu-code-keyword: #bb9af7;
+    --feishu-code-number: #ff9e64;
+    --feishu-code-function: #7aa2f7;
+    --feishu-code-punctuation: #c0caf5;
     --feishu-inline-code-bg: #1f2f4d;
     --feishu-inline-code-text: #8fb5ff;
     --feishu-blockquote-bg: #1e2a3d;
@@ -217,7 +228,6 @@
   }
 
   .feishu-viewer--system .feishu-code-block__lang {
-    background-color: #383838;
     color: var(--feishu-text-secondary);
   }
 

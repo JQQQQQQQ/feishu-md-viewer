@@ -2,8 +2,6 @@ import {
   Children,
   cloneElement,
   isValidElement,
-  useCallback,
-  useState,
   type ComponentType,
   type HTMLAttributes,
   type ImgHTMLAttributes,
@@ -11,10 +9,10 @@ import {
   type ReactNode,
 } from 'react';
 import { CircleAlert, Info, Lightbulb, Sparkles, TriangleAlert, type LucideIcon } from 'lucide-react';
-import { MermaidBlock } from './MermaidBlock';
 import { FeishuHeading } from './Heading';
 import { FeishuImage } from './ImagePreview';
-import { MermaidToolbar } from '../Mermaid/MermaidToolbar';
+import { FeishuTable } from './FeishuTable';
+import { FeishuCodeBlock } from './CodeBlock/CodeBlock';
 
 type ComponentMap = Record<string, ComponentType<HTMLAttributes<HTMLElement> & { children?: ReactNode }>>;
 type CalloutType = 'note' | 'tip' | 'warning' | 'important' | 'caution';
@@ -32,7 +30,9 @@ const CALLOUT_META: Record<CalloutType, CalloutMeta> = {
   caution: { title: 'Caution', icon: CircleAlert },
 };
 
-let mermaidIndex = 0;
+function mergeClassName(base: string, className?: string): string {
+  return className ? `${base} ${className}` : base;
+}
 
 function getStringChildren(children: ReactNode): string | null {
   const childArray = Children.toArray(children);
@@ -113,76 +113,6 @@ function FeishuBlockquote({ children, ...props }: HTMLAttributes<HTMLElement> & 
   );
 }
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => {
-        setCopied(false);
-      }, 2000);
-    } catch {
-      // Clipboard API may not be available in some contexts
-    }
-  }, [text]);
-
-  return (
-    <button
-      className="feishu-code-block__copy-btn"
-      onClick={() => void handleCopy()}
-      type="button"
-      aria-label={copied ? '已复制' : '复制代码'}
-    >
-      {copied ? (
-        <>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M2 7.5L5 10.5L12 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          已复制
-        </>
-      ) : (
-        <>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <rect x="4.5" y="4.5" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M9.5 4.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h1.5" stroke="currentColor" strokeWidth="1.2" />
-          </svg>
-          复制
-        </>
-      )}
-    </button>
-  );
-}
-
-function FeishuCodeBlock({ children, className, ...props }: HTMLAttributes<HTMLPreElement> & { children?: ReactNode }) {
-  // Check if this is a mermaid block
-  const childElement = children as { props?: { className?: string; children?: string } } | undefined;
-  const lang = childElement?.props?.className?.replace('language-', '') ?? '';
-  const code = childElement?.props?.children ?? '';
-
-  if (lang === 'mermaid' && typeof code === 'string') {
-    const idx = mermaidIndex++;
-    return (
-      <MermaidToolbar code={code} blockIndex={idx}>
-        <MermaidBlock code={code} index={idx} />
-      </MermaidToolbar>
-    );
-  }
-
-  const codeText = typeof code === 'string' ? code : '';
-
-  return (
-    <div className="feishu-code-block">
-      {lang && <span className="feishu-code-block__lang">{lang}</span>}
-      {codeText && <CopyButton text={codeText} />}
-      <pre className={`feishu-code-block__pre ${className ?? ''}`} {...props}>
-        {children}
-      </pre>
-    </div>
-  );
-}
-
 export const feishuComponents: ComponentMap = {
   h1: (props) => <FeishuHeading level={1} {...props} />,
   h2: (props) => <FeishuHeading level={2} {...props} />,
@@ -190,17 +120,17 @@ export const feishuComponents: ComponentMap = {
   h4: (props) => <FeishuHeading level={4} {...props} />,
   h5: (props) => <FeishuHeading level={5} {...props} />,
   h6: (props) => <FeishuHeading level={6} {...props} />,
-  p: ({ children, ...props }) => (
-    <p className="feishu-paragraph" {...props}>{children}</p>
+  p: ({ children, className, ...props }) => (
+    <p {...props} className={mergeClassName('feishu-paragraph', className)}>{children}</p>
   ),
-  ul: ({ children, ...props }) => (
-    <ul className="feishu-list feishu-list--unordered" {...props}>{children}</ul>
+  ul: ({ children, className, ...props }) => (
+    <ul {...props} className={mergeClassName('feishu-list feishu-list--unordered', className)}>{children}</ul>
   ),
-  ol: ({ children, ...props }) => (
-    <ol className="feishu-list feishu-list--ordered" {...props}>{children}</ol>
+  ol: ({ children, className, ...props }) => (
+    <ol {...props} className={mergeClassName('feishu-list feishu-list--ordered', className)}>{children}</ol>
   ),
-  li: ({ children, ...props }) => (
-    <li className="feishu-list__item" {...props}>{children}</li>
+  li: ({ children, className, ...props }) => (
+    <li {...props} className={mergeClassName('feishu-list__item', className)}>{children}</li>
   ),
   pre: FeishuCodeBlock as ComponentType<HTMLAttributes<HTMLElement>>,
   code: ({ children, className, ...props }) => {
@@ -209,25 +139,21 @@ export const feishuComponents: ComponentMap = {
     }
     return <code className="feishu-inline-code" {...props}>{children}</code>;
   },
-  table: ({ children, ...props }) => (
-    <div className="feishu-table-wrapper">
-      <table className="feishu-table" {...props}>{children}</table>
-    </div>
+  table: FeishuTable as ComponentType<HTMLAttributes<HTMLElement>>,
+  thead: ({ children, className, ...props }) => (
+    <thead {...props} className={mergeClassName('feishu-table__head', className)}>{children}</thead>
   ),
-  thead: ({ children, ...props }) => (
-    <thead className="feishu-table__head" {...props}>{children}</thead>
+  tbody: ({ children, className, ...props }) => (
+    <tbody {...props} className={mergeClassName('feishu-table__body', className)}>{children}</tbody>
   ),
-  tbody: ({ children, ...props }) => (
-    <tbody className="feishu-table__body" {...props}>{children}</tbody>
+  tr: ({ children, className, ...props }) => (
+    <tr {...props} className={mergeClassName('feishu-table__row', className)}>{children}</tr>
   ),
-  tr: ({ children, ...props }) => (
-    <tr className="feishu-table__row" {...props}>{children}</tr>
+  th: ({ children, className, ...props }) => (
+    <th {...props} className={mergeClassName('feishu-table__header', className)}>{children}</th>
   ),
-  th: ({ children, ...props }) => (
-    <th className="feishu-table__header" {...props}>{children}</th>
-  ),
-  td: ({ children, ...props }) => (
-    <td className="feishu-table__cell" {...props}>{children}</td>
+  td: ({ children, className, ...props }) => (
+    <td {...props} className={mergeClassName('feishu-table__cell', className)}>{children}</td>
   ),
   blockquote: FeishuBlockquote,
   a: ({ children, ...props }) => {

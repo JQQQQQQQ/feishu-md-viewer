@@ -3,7 +3,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
+  min-width: 128px;
+  justify-content: flex-end;
+}
+
+.feishu-topbar__save-section--reserved {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .feishu-topbar__save-btn {

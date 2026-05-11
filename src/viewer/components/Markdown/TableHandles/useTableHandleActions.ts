@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { editorViewCtx } from '@milkdown/core';
 import { callCommand } from '@milkdown/utils';
 import { TextSelection } from '@milkdown/prose/state';
 import { toggleStrongCommand, toggleEmphasisCommand } from '@milkdown/preset-commonmark';
 import {
+  deleteSelectedCellsCommand,
   selectColCommand,
   selectRowCommand,
   toggleStrikethroughCommand,
@@ -11,11 +12,7 @@ import {
 import type { Editor } from '@milkdown/core';
 import type { Node as ProseNode } from '@milkdown/prose/model';
 import type { HandleInfo, SelectionSnapshot, TableFormat } from './types';
-import {
-  BG_COLORS,
-  createHeaderRowFromDataRow,
-  findAncestorNode,
-} from './table-utils';
+import { createHeaderRowFromDataRow, findAncestorNode } from './table-utils';
 
 interface ActionOptions {
   activeHandle: HandleInfo | null;
@@ -32,8 +29,6 @@ export function useTableHandleActions({
   cancelScheduledHide,
   resetTableTools,
 }: ActionOptions) {
-  const [bgColorIndex, setBgColorIndex] = useState(0);
-
   const getSelectionSnapshot = useCallback((): SelectionSnapshot | null => {
     const editor = getEditor();
     if (!editor) return null;
@@ -115,57 +110,55 @@ export function useTableHandleActions({
     const editor = getEditor();
     if (!editor) return;
 
+    if (activeHandle.type === 'col') {
+      const previousSelection = getSelectionSnapshot();
+      if (!focusCellAt(0, activeHandle.index)) return;
+      setTimeout(() => {
+        editor.action(callCommand(selectColCommand.key, { index: activeHandle.index }));
+        setTimeout(() => {
+          editor.action(callCommand(deleteSelectedCellsCommand.key));
+          restoreSelection(previousSelection);
+          resetTableTools();
+          blurEditor();
+        }, 10);
+      }, 10);
+      return;
+    }
+
     editor.action((ctx) => {
       const view = ctx.get(editorViewCtx);
       const { state } = view;
       let tr = state.tr;
 
-      if (activeHandle.type === 'row') {
-        const rowEl = tableEl.querySelectorAll('tr')[activeHandle.index];
-        const cell = rowEl?.querySelector('th, td');
-        if (!cell) return;
+      const rowEl = tableEl.querySelectorAll('tr')[activeHandle.index];
+      const cell = rowEl?.querySelector('th, td');
+      if (!cell) return;
 
-        const pos = view.posAtDOM(cell, 0);
-        const $pos = state.doc.resolve(pos);
-        const tableNode = findAncestorNode($pos, 'table');
-        if (!tableNode) return;
+      const pos = view.posAtDOM(cell, 0);
+      const $pos = state.doc.resolve(pos);
+      const tableNode = findAncestorNode($pos, 'table');
+      if (!tableNode) return;
 
-        if (activeHandle.index === 0 && tableNode.node.childCount > 1) {
-          const firstDataRow = tableNode.node.child(1);
-          const promotedHeaderRow = createHeaderRowFromDataRow(state.doc, firstDataRow);
-          if (!promotedHeaderRow) return;
+      if (activeHandle.index === 0 && tableNode.node.childCount > 1) {
+        const firstDataRow = tableNode.node.child(1);
+        const promotedHeaderRow = createHeaderRowFromDataRow(state.doc, firstDataRow);
+        if (!promotedHeaderRow) return;
 
-          const remainingRows: ProseNode[] = [];
-          for (let i = 2; i < tableNode.node.childCount; i += 1) {
-            remainingRows.push(tableNode.node.child(i));
-          }
-          if (remainingRows.length === 0) return;
-
-          const newTable = tableNode.node.type.create(tableNode.node.attrs, [
-            promotedHeaderRow,
-            ...remainingRows,
-          ]);
-          tr = tr.replaceWith(tableNode.pos, tableNode.pos + tableNode.node.nodeSize, newTable);
-        } else {
-          const rowNode = findAncestorNode($pos, 'table_row');
-          if (!rowNode) return;
-          tr = tr.delete(rowNode.pos, rowNode.pos + rowNode.node.nodeSize);
+        const remainingRows: ProseNode[] = [];
+        for (let i = 2; i < tableNode.node.childCount; i += 1) {
+          remainingRows.push(tableNode.node.child(i));
         }
-      } else {
-        const cellNodes = Array.from(tableEl.querySelectorAll('tr'))
-          .map((rowEl) => rowEl.cells[activeHandle.index])
-          .filter((cell): cell is HTMLTableCellElement => Boolean(cell))
-          .map((cell) => {
-            const pos = view.posAtDOM(cell, 0);
-            const $pos = state.doc.resolve(pos);
-            return findAncestorNode($pos, 'table_cell') ?? findAncestorNode($pos, 'table_header');
-          })
-          .filter((cellNode): cellNode is NonNullable<typeof cellNode> => Boolean(cellNode))
-          .sort((a, b) => b.pos - a.pos);
+        if (remainingRows.length === 0) return;
 
-        cellNodes.forEach(({ node, pos }) => {
-          tr = tr.delete(pos, pos + node.nodeSize);
-        });
+        const newTable = tableNode.node.type.create(tableNode.node.attrs, [
+          promotedHeaderRow,
+          ...remainingRows,
+        ]);
+        tr = tr.replaceWith(tableNode.pos, tableNode.pos + tableNode.node.nodeSize, newTable);
+      } else {
+        const rowNode = findAncestorNode($pos, 'table_row');
+        if (!rowNode) return;
+        tr = tr.delete(rowNode.pos, rowNode.pos + rowNode.node.nodeSize);
       }
 
       if (tr.docChanged) view.dispatch(tr);
@@ -232,19 +225,26 @@ export function useTableHandleActions({
           : Array.from(rows)
             .map((row) => row.cells[activeHandle.index])
             .filter((cell): cell is HTMLTableCellElement => Boolean(cell));
-        const positions: { from: number; to: number }[] = [];
+        const cellsToReplace: { node: ProseNode; pos: number }[] = [];
 
         targetCells.forEach((cell) => {
           const pos = view.posAtDOM(cell, 0);
-          const cellNode = state.doc.resolve(pos).parent;
-          if (cellNode.content.size > 0) {
-            positions.push({ from: pos, to: pos + cellNode.content.size });
-          }
+          const $pos = state.doc.resolve(pos);
+          const cellNode = findAncestorNode($pos, 'table_cell') ?? findAncestorNode($pos, 'table_header');
+          if (cellNode) cellsToReplace.push(cellNode);
         });
 
-        positions.sort((a, b) => b.from - a.from);
-        positions.forEach(({ from, to }) => {
-          tr = tr.delete(from, to);
+        cellsToReplace.sort((a, b) => b.pos - a.pos);
+        cellsToReplace.forEach(({ node, pos }) => {
+          const paragraphType = state.schema.nodes.paragraph;
+          if (!paragraphType) return;
+
+          const replacement = node.type.create(
+            node.attrs,
+            paragraphType.create(null, state.schema.text(' ')),
+            node.marks,
+          );
+          tr = tr.replaceWith(pos, pos + node.nodeSize, replacement);
         });
 
         if (tr.docChanged) view.dispatch(tr);
@@ -256,34 +256,45 @@ export function useTableHandleActions({
     blurEditor();
   }, [activeHandle, tableEl, getEditor, cancelScheduledHide, blurEditor]);
 
-  const handleBgColor = useCallback(() => {
+  const handleCopySelection = useCallback(() => {
     if (!activeHandle || !tableEl) return;
     cancelScheduledHide();
 
-    const nextIndex = (bgColorIndex + 1) % BG_COLORS.length;
-    const color = BG_COLORS[nextIndex] ?? '';
-    setBgColorIndex(nextIndex);
+    const rows = Array.from(tableEl.querySelectorAll('tr'));
+    const targetRows = activeHandle.type === 'row'
+      ? rows.slice(activeHandle.index, activeHandle.index + 1)
+      : rows;
+    const targetCells = targetRows.map((row) => (
+      activeHandle.type === 'row'
+        ? Array.from(row.cells)
+        : [row.cells[activeHandle.index]].filter((cell): cell is HTMLTableCellElement => Boolean(cell))
+    ));
 
-    const rows = tableEl.querySelectorAll('tr');
-    if (activeHandle.type === 'row') {
-      const row = rows[activeHandle.index];
-      row?.querySelectorAll('td, th').forEach((cell) => {
-        (cell as HTMLElement).style.backgroundColor = color;
+    const text = targetCells
+      .map((cells) => cells.map((cell) => cell.textContent?.trim() ?? '').join('\t'))
+      .join('\n');
+    const htmlRows = targetCells
+      .map((cells) => `<tr>${cells.map((cell) => `<${cell.tagName.toLowerCase()}>${cell.innerHTML}</${cell.tagName.toLowerCase()}>`).join('')}</tr>`)
+      .join('');
+    const html = `<table>${htmlRows}</table>`;
+
+    if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+      const item = new ClipboardItem({
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+        'text/html': new Blob([html], { type: 'text/html' }),
       });
+      void navigator.clipboard.write([item]).catch(() => navigator.clipboard.writeText(text));
     } else {
-      rows.forEach((row) => {
-        const cell = row.cells[activeHandle.index];
-        if (cell) cell.style.backgroundColor = color;
-      });
+      void navigator.clipboard?.writeText(text);
     }
+
     blurEditor();
-  }, [activeHandle, tableEl, bgColorIndex, cancelScheduledHide, blurEditor]);
+  }, [activeHandle, tableEl, cancelScheduledHide, blurEditor]);
 
   return {
-    bgColorIndex,
     handleDelete,
     handleFormat,
+    handleCopySelection,
     handleClearContent,
-    handleBgColor,
   };
 }

@@ -1,32 +1,66 @@
-import { useCallback, useRef } from 'react';
-import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import { Editor, rootCtx, defaultValueCtx, editorViewCtx, editorViewOptionsCtx } from '@milkdown/core';
+import { Selection } from '@milkdown/prose/state';
 import { commonmark } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { useEditor, Milkdown, MilkdownProvider } from '@milkdown/react';
 import { insert } from '@milkdown/utils';
 import { useViewerStore } from '../../store';
+import { notifyModeChangeStart } from '../../hooks/useModeScrollRestore';
 import { BlockInsertMenu } from './BlockInsertMenu';
 import { FloatingToolbar } from './FloatingToolbar';
 import { TableOperations } from './TableControls/TableOperations';
-import { TableResize } from './TableControls/TableResize';
 import { TableHandles } from './TableHandles';
 import { CodeLanguageSelector } from './CodeLanguageSelector';
+import { CalloutTypeSelector } from './CalloutTypeSelector';
+import { MermaidPreviewModal } from '../Mermaid/MermaidPreviewModal';
+import { editorCodeHighlightPlugin } from './Editor/editorCodeHighlightPlugin';
+import { MERMAID_PREVIEW_EVENT } from './Editor/editorMermaidWidget';
+import { useEditorDocumentPresentation } from './Editor/useEditorDocumentPresentation';
+import { useEditorSectionDepthStyles } from './Editor/useEditorSectionDepthStyles';
+import { useEditorTableLayoutStyles } from './Editor/useEditorTableLayoutStyles';
+import { useEditorTableSelection } from './Editor/useEditorTableSelection';
 
 const DEBOUNCE_DELAY = 300;
 
-function MilkdownEditor() {
-  const content = useViewerStore((s) => s.content) || '';
+interface MilkdownEditorProps {
+  content: string;
+  editable: boolean;
+}
+
+function shouldActivateFromTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return true;
+  return !target.closest('button, input, textarea, select, a, table, [role="button"], .feishu-block-menu, .feishu-floating-toolbar');
+}
+
+function MilkdownEditor({ content, editable }: MilkdownEditorProps) {
   const setContent = useViewerStore((s) => s.setContent);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const setMode = useViewerStore((s) => s.setMode);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const [editorContainer, setEditorContainer] = useState<HTMLDivElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorInstanceRef = useRef<Editor | undefined>(undefined);
+  const editableRef = useRef(editable);
+  const [previewSvg, setPreviewSvg] = useState<string | null>(null);
+  useEditorDocumentPresentation(editorContainer);
+  useEditorSectionDepthStyles(editorContainer);
+  useEditorTableLayoutStyles(editorContainer);
+  useEditorTableSelection(editorContainer, !editable);
+
+  const handleEditorContainerRef = useCallback((node: HTMLDivElement | null) => {
+    editorContainerRef.current = node;
+    setEditorContainer(node);
+  }, []);
 
   const { get, loading } = useEditor((root) => {
     const editorInstance = Editor.make()
       .config((ctx) => {
         ctx.set(rootCtx, root);
         ctx.set(defaultValueCtx, content);
+        ctx.set(editorViewOptionsCtx, {
+          editable: () => editableRef.current,
+        });
         ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
           if (debounceRef.current) {
             clearTimeout(debounceRef.current);
@@ -38,6 +72,7 @@ function MilkdownEditor() {
       })
       .use(commonmark)
       .use(gfm)
+      .use(editorCodeHighlightPlugin)
       .use(listener);
 
     return editorInstance;
@@ -50,6 +85,73 @@ function MilkdownEditor() {
       editorInstanceRef.current = instance;
     }
   }
+
+  useEffect(() => {
+    editableRef.current = editable;
+    const editor = editorInstanceRef.current;
+    if (!editor) return;
+
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      view.setProps({ editable: () => editableRef.current });
+    });
+  }, [editable]);
+
+  useEffect(() => {
+    const handleOpenPreview = (event: Event) => {
+      const svg = (event as CustomEvent<{ svg?: string }>).detail?.svg;
+      if (svg) setPreviewSvg(svg);
+    };
+
+    window.addEventListener(MERMAID_PREVIEW_EVENT, handleOpenPreview);
+    return () => window.removeEventListener(MERMAID_PREVIEW_EVENT, handleOpenPreview);
+  }, []);
+
+  const activateEditorAt = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (editable || event.button !== 0 || !shouldActivateFromTarget(event.target)) return;
+
+    const editor = editorInstanceRef.current;
+    if (!editor) return;
+
+    event.preventDefault();
+    notifyModeChangeStart();
+    editableRef.current = true;
+
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      view.setProps({ editable: () => true });
+      const position = view.posAtCoords({ left: event.clientX, top: event.clientY });
+      if (position) {
+        view.dispatch(view.state.tr.setSelection(Selection.near(view.state.doc.resolve(position.pos))));
+      }
+      view.focus();
+    });
+    setMode('edit');
+  }, [editable, setMode]);
+
+  const activateEditorOnDoubleClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (editable || event.button !== 0) return;
+    if (!(event.target instanceof Element) || !event.target.closest('table')) return;
+    if (event.target.closest('button, input, textarea, select, a, [role="button"]')) return;
+
+    const editor = editorInstanceRef.current;
+    if (!editor) return;
+
+    event.preventDefault();
+    notifyModeChangeStart();
+    editableRef.current = true;
+
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      view.setProps({ editable: () => true });
+      const position = view.posAtCoords({ left: event.clientX, top: event.clientY });
+      if (position) {
+        view.dispatch(view.state.tr.setSelection(Selection.near(view.state.doc.resolve(position.pos))));
+      }
+      view.focus();
+    });
+    setMode('edit');
+  }, [editable, setMode]);
 
   const handleInsert = useCallback(
     (markdownSnippet: string) => {
@@ -80,27 +182,45 @@ function MilkdownEditor() {
   );
 
   return (
-    <div className="feishu-wysiwyg" ref={editorContainerRef}>
+    <div
+      className="feishu-wysiwyg"
+      data-editable={editable ? 'true' : 'false'}
+      ref={handleEditorContainerRef}
+      onMouseDownCapture={activateEditorAt}
+      onDoubleClickCapture={activateEditorOnDoubleClick}
+    >
       <div className="feishu-wysiwyg__editor" style={{ position: 'relative' }}>
         <Milkdown />
-        <FloatingToolbar />
-        <TableOperations />
-        <TableResize />
-        <TableHandles />
-        <CodeLanguageSelector />
+        {editable && (
+          <>
+            <FloatingToolbar />
+            <TableOperations />
+            <TableHandles />
+            <CodeLanguageSelector />
+            <CalloutTypeSelector />
+          </>
+        )}
       </div>
-      <BlockInsertMenu
-        editorContainerRef={editorContainerRef}
-        onInsert={handleInsert}
-      />
+      {editable && (
+        <BlockInsertMenu
+          editorContainerRef={editorContainerRef}
+          onInsert={handleInsert}
+        />
+      )}
+      {previewSvg && (
+        <MermaidPreviewModal
+          svg={previewSvg}
+          onClose={() => setPreviewSvg(null)}
+        />
+      )}
     </div>
   );
 }
 
-export function WysiwygEditor() {
+export function WysiwygEditor({ content, editable }: MilkdownEditorProps) {
   return (
     <MilkdownProvider>
-      <MilkdownEditor />
+      <MilkdownEditor content={content} editable={editable} />
     </MilkdownProvider>
   );
 }
