@@ -37,6 +37,7 @@ export function TopBar({
 }: TopBarProps) {
   const mode = useViewerStore((s) => s.mode);
   const setMode = useViewerStore((s) => s.setMode);
+  const previewLockEnabled = useViewerStore((s) => s.previewLockEnabled);
   const isDirty = useViewerStore((s) => s.isDirty);
   const theme = useViewerStore((s) => s.theme);
   const setTheme = useViewerStore((s) => s.setTheme);
@@ -45,11 +46,13 @@ export function TopBar({
   const decreaseFontSize = useViewerStore((s) => s.decreaseFontSize);
 
   const handleToggleMode = () => {
+    if (previewLockEnabled) return;
     notifyModeChangeStart();
     setMode(mode === 'edit' ? 'read' : 'edit');
   };
 
   const handleToggleSource = () => {
+    if (previewLockEnabled) return;
     notifyModeChangeStart();
     setMode(mode === 'source' ? 'read' : 'source');
   };
@@ -71,6 +74,7 @@ export function TopBar({
   ]
     .filter(Boolean)
     .join(' ');
+  const isModeSwitchDisabled = previewLockEnabled && mode === 'read';
 
   return (
     <header className="feishu-topbar">
@@ -208,7 +212,9 @@ export function TopBar({
           onClick={handleToggleMode}
           type="button"
           aria-pressed={mode === 'edit'}
-          aria-label={mode === 'edit' ? 'Switch to read mode' : 'Switch to edit mode'}
+          aria-label={isModeSwitchDisabled ? 'Preview mode is locked' : (mode === 'edit' ? 'Switch to read mode' : 'Switch to edit mode')}
+          title={isModeSwitchDisabled ? '已锁定为始终预览，可在设置中改为允许编辑' : undefined}
+          disabled={isModeSwitchDisabled}
         >
           {mode === 'edit' ? (
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -239,7 +245,9 @@ export function TopBar({
           onClick={handleToggleSource}
           type="button"
           aria-pressed={mode === 'source'}
-          aria-label={mode === 'source' ? 'Switch to read mode' : 'Switch to source mode'}
+          aria-label={isModeSwitchDisabled ? 'Preview mode is locked' : (mode === 'source' ? 'Switch to read mode' : 'Switch to source mode')}
+          title={isModeSwitchDisabled ? '已锁定为始终预览，可在设置中改为允许编辑' : undefined}
+          disabled={isModeSwitchDisabled}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path

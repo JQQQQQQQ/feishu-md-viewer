@@ -6,12 +6,16 @@ interface Settings {
   theme: ThemeMode;
   fontSize: number;
   autoSaveEnabled: boolean;
+  previewLockEnabled: boolean;
+  tocSmoothScrollEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   fontSize: 15,
   autoSaveEnabled: true,
+  previewLockEnabled: false,
+  tocSmoothScrollEnabled: true,
 };
 
 const FONT_SIZE_MIN = 12;
@@ -35,6 +39,8 @@ export function Options() {
             theme: stored.theme ?? DEFAULT_SETTINGS.theme,
             fontSize: stored.fontSize ?? DEFAULT_SETTINGS.fontSize,
             autoSaveEnabled: stored.autoSaveEnabled ?? DEFAULT_SETTINGS.autoSaveEnabled,
+            previewLockEnabled: stored.previewLockEnabled ?? DEFAULT_SETTINGS.previewLockEnabled,
+            tocSmoothScrollEnabled: stored.tocSmoothScrollEnabled ?? DEFAULT_SETTINGS.tocSmoothScrollEnabled,
           });
         }
       }
@@ -70,6 +76,18 @@ export function Options() {
 
   const handleAutoSaveChange = useCallback((autoSaveEnabled: boolean) => {
     const newSettings = { ...settings, autoSaveEnabled };
+    setSettings(newSettings);
+    void saveSettings(newSettings);
+  }, [settings, saveSettings]);
+
+  const handlePreviewLockChange = useCallback((previewLockEnabled: boolean) => {
+    const newSettings = { ...settings, previewLockEnabled };
+    setSettings(newSettings);
+    void saveSettings(newSettings);
+  }, [settings, saveSettings]);
+
+  const handleTocSmoothScrollChange = useCallback((tocSmoothScrollEnabled: boolean) => {
+    const newSettings = { ...settings, tocSmoothScrollEnabled };
     setSettings(newSettings);
     void saveSettings(newSettings);
   }, [settings, saveSettings]);
@@ -166,6 +184,66 @@ export function Options() {
               {settings.autoSaveEnabled ? 'Auto-save enabled' : 'Auto-save disabled'}
             </span>
           </label>
+        </section>
+
+        {/* Interaction mode */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>Interaction Mode</h2>
+          <p style={styles.description}>
+            Choose whether this viewer stays in preview mode or allows editing/source mode.
+          </p>
+          <div style={styles.radioGroup} role="radiogroup" aria-label="Interaction mode selection">
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="interaction-mode"
+                checked={settings.previewLockEnabled}
+                onChange={() => handlePreviewLockChange(true)}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>Always preview (lock editing)</span>
+            </label>
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="interaction-mode"
+                checked={!settings.previewLockEnabled}
+                onChange={() => handlePreviewLockChange(false)}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>Allow editing</span>
+            </label>
+          </div>
+        </section>
+
+        {/* TOC scroll behavior */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>TOC Scroll Behavior</h2>
+          <p style={styles.description}>
+            Choose whether clicking the table of contents uses smooth scrolling.
+          </p>
+          <div style={styles.radioGroup} role="radiogroup" aria-label="TOC scroll behavior selection">
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="toc-scroll-behavior"
+                checked={settings.tocSmoothScrollEnabled}
+                onChange={() => handleTocSmoothScrollChange(true)}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>Smooth scroll</span>
+            </label>
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="toc-scroll-behavior"
+                checked={!settings.tocSmoothScrollEnabled}
+                onChange={() => handleTocSmoothScrollChange(false)}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>Instant jump</span>
+            </label>
+          </div>
         </section>
 
         <footer style={styles.footer}>

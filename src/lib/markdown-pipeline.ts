@@ -5,6 +5,7 @@ import remarkRehype from 'remark-rehype';
 import rehypeReact from 'rehype-react';
 import * as prod from 'react/jsx-runtime';
 import { feishuComponents } from '../viewer/components/Markdown/FeishuComponents';
+import { resetMermaidRenderCounter } from '../viewer/components/Markdown/CodeBlock/CodeBlock';
 import type { ReactElement } from 'react';
 
 const production = { Fragment: prod.Fragment, jsx: prod.jsx, jsxs: prod.jsxs };
@@ -104,6 +105,8 @@ const processor = unified()
   });
 
 export function parseMarkdown(content: string): ReactElement {
+  // Keep Mermaid block indices stable for each parse round.
+  resetMermaidRenderCounter();
   const file = processor.processSync(content);
   return file.result as ReactElement;
 }

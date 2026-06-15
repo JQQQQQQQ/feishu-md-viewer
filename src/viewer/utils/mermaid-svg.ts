@@ -1,6 +1,6 @@
-const EXTRA_X = 30;
-const EXTRA_Y = 12;
-const FOREIGN_OBJECT_X = 16;
+const EXTRA_X = 42;
+const EXTRA_Y = 14;
+const FOREIGN_OBJECT_X = 22;
 const FOREIGN_OBJECT_Y = 8;
 
 function parseNumbers(value: string): number[] {

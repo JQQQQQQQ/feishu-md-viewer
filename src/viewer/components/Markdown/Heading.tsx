@@ -1,6 +1,7 @@
 import {
   isValidElement,
   useCallback,
+  useEffect,
   useRef,
   useState,
   type HTMLAttributes,
@@ -31,6 +32,50 @@ function getHeadingUrl(id: string): string {
   return url.toString();
 }
 
+const HIDDEN_MARKER_ATTR = 'data-feishu-heading-hidden-by';
+
+function getHeadingLevelFromTagName(tagName: string): number | null {
+  const match = /^H([1-6])$/.exec(tagName.toUpperCase());
+  return match?.[1] ? Number(match[1]) : null;
+}
+
+function collectSectionElements(heading: HTMLElement): HTMLElement[] {
+  const level = getHeadingLevelFromTagName(heading.tagName);
+  if (level === null) return [];
+
+  const elements: HTMLElement[] = [];
+  let sibling = heading.nextElementSibling;
+
+  while (sibling) {
+    if (sibling instanceof HTMLElement) {
+      const siblingLevel = getHeadingLevelFromTagName(sibling.tagName);
+      if (siblingLevel !== null && siblingLevel <= level) break;
+      elements.push(sibling);
+    }
+    sibling = sibling.nextElementSibling;
+  }
+
+  return elements;
+}
+
+function updateHiddenMarker(element: HTMLElement, marker: string, hidden: boolean): void {
+  const current = element.getAttribute(HIDDEN_MARKER_ATTR) ?? '';
+  const markers = new Set(current.split(',').map((item) => item.trim()).filter(Boolean));
+
+  if (hidden) {
+    markers.add(marker);
+  } else {
+    markers.delete(marker);
+  }
+
+  if (markers.size === 0) {
+    element.removeAttribute(HIDDEN_MARKER_ATTR);
+    return;
+  }
+
+  element.setAttribute(HIDDEN_MARKER_ATTR, Array.from(markers).join(','));
+}
+
 interface FeishuHeadingProps extends HTMLAttributes<HTMLHeadingElement> {
   level: 1 | 2 | 3 | 4 | 5 | 6;
   children?: ReactNode;
@@ -42,25 +87,33 @@ export function FeishuHeading({ level, children, ...props }: FeishuHeadingProps)
   const [collapsed, setCollapsed] = useState(false);
   const [copied, setCopied] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const collapseMarkerRef = useRef(`h-${Math.random().toString(36).slice(2, 10)}`);
 
   const isCollapsible = level === 2 || level === 3;
 
-  const handleToggle = useCallback(() => {
+  const syncSiblingVisibility = useCallback((hidden: boolean) => {
     if (!headingRef.current) return;
+    const marker = collapseMarkerRef.current;
+    const sectionElements = collectSectionElements(headingRef.current);
+    sectionElements.forEach((element) => {
+      updateHiddenMarker(element, marker, hidden);
+    });
+  }, []);
+
+  useEffect(() => {
+    syncSiblingVisibility(collapsed);
+  }, [collapsed, syncSiblingVisibility]);
+
+  useEffect(() => {
+    return () => {
+      syncSiblingVisibility(false);
+    };
+  }, [syncSiblingVisibility]);
+
+  const handleToggle = useCallback(() => {
     const next = !collapsed;
     setCollapsed(next);
-
-    let sibling = headingRef.current.nextElementSibling;
-    while (sibling) {
-      const tagName = sibling.tagName.toLowerCase();
-      if (/^h[1-6]$/.test(tagName)) {
-        const siblingLevel = parseInt(tagName.charAt(1), 10);
-        if (siblingLevel <= level) break;
-      }
-      (sibling as HTMLElement).style.display = next ? 'none' : '';
-      sibling = sibling.nextElementSibling;
-    }
-  }, [collapsed, level]);
+  }, [collapsed]);
 
   const handleCopyLink = useCallback(async () => {
     if (!id) return;

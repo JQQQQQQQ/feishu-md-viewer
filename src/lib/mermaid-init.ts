@@ -7,6 +7,52 @@ type MermaidAPI = {
 let mermaidInstance: MermaidAPI | null = null;
 let loadingPromise: Promise<MermaidAPI> | null = null;
 let renderQueue: Promise<void> = Promise.resolve();
+const MERMAID_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+const MERMAID_FONT_SIZE = 14;
+const MERMAID_CACHE_MAX_BYTES = 2 * 1024 * 1024;
+const mermaidSvgCache = new Map<string, { svg: string; bytes: number }>();
+let mermaidCacheBytes = 0;
+
+function getStringByteLength(text: string): number {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(text).length;
+  }
+  return text.length * 2;
+}
+
+function getCachedMermaidSvg(code: string): string | null {
+  const cached = mermaidSvgCache.get(code);
+  if (!cached) {
+    return null;
+  }
+
+  mermaidSvgCache.delete(code);
+  mermaidSvgCache.set(code, cached);
+  return cached.svg;
+}
+
+function setCachedMermaidSvg(code: string, svg: string): void {
+  const existing = mermaidSvgCache.get(code);
+  if (existing) {
+    mermaidCacheBytes -= existing.bytes;
+    mermaidSvgCache.delete(code);
+  }
+
+  const entry = { svg, bytes: getStringByteLength(code) + getStringByteLength(svg) };
+  mermaidSvgCache.set(code, entry);
+  mermaidCacheBytes += entry.bytes;
+
+  while (mermaidCacheBytes > MERMAID_CACHE_MAX_BYTES && mermaidSvgCache.size > 0) {
+    const oldestKey = mermaidSvgCache.keys().next().value;
+    if (typeof oldestKey !== 'string') break;
+
+    const oldestEntry = mermaidSvgCache.get(oldestKey);
+    if (oldestEntry) {
+      mermaidCacheBytes -= oldestEntry.bytes;
+    }
+    mermaidSvgCache.delete(oldestKey);
+  }
+}
 
 async function loadMermaid(): Promise<MermaidAPI> {
   if (mermaidInstance) return mermaidInstance;
@@ -17,6 +63,9 @@ async function loadMermaid(): Promise<MermaidAPI> {
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'strict',
+      fontFamily: MERMAID_FONT_FAMILY,
+      fontSize: MERMAID_FONT_SIZE,
+      htmlLabels: true,
       theme: 'base',
       themeVariables: {
         primaryColor: '#f5f0e6',
@@ -25,12 +74,11 @@ async function loadMermaid(): Promise<MermaidAPI> {
         secondaryColor: '#fdf6e3',
         tertiaryColor: '#fff8e6',
         lineColor: '#333',
-        fontSize: '14px',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: `${MERMAID_FONT_SIZE}px`,
+        fontFamily: MERMAID_FONT_FAMILY,
       },
       flowchart: {
         useMaxWidth: true,
-        htmlLabels: false,
         curve: 'basis',
         padding: 40,
         nodeSpacing: 50,
@@ -51,6 +99,11 @@ async function loadMermaid(): Promise<MermaidAPI> {
 }
 
 export async function renderMermaid(code: string, id: string): Promise<string> {
+  const cached = getCachedMermaidSvg(code);
+  if (cached) {
+    return cached;
+  }
+
   const renderTask = renderQueue.then(
     () => renderMermaidNow(code, id),
     () => renderMermaidNow(code, id)
@@ -65,6 +118,11 @@ export async function renderMermaid(code: string, id: string): Promise<string> {
 }
 
 async function renderMermaidNow(code: string, id: string): Promise<string> {
+  const cached = getCachedMermaidSvg(code);
+  if (cached) {
+    return cached;
+  }
+
   const mermaid = await loadMermaid();
 
   // Validate syntax first — parse() gives clean error messages
@@ -81,10 +139,13 @@ async function renderMermaidNow(code: string, id: string): Promise<string> {
   container.style.left = '-9999px';
   container.style.top = '-9999px';
   container.style.width = '100%';
+  container.style.fontFamily = MERMAID_FONT_FAMILY;
+  container.style.fontSize = `${MERMAID_FONT_SIZE}px`;
   document.body.appendChild(container);
 
   try {
     const { svg } = await mermaid.render(id, code);
+    setCachedMermaidSvg(code, svg);
     return svg;
   } catch (renderError) {
     const msg = renderError instanceof Error ? renderError.message : String(renderError);

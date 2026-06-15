@@ -1,6 +1,7 @@
 /* ===== Layout Variables ===== */
 .feishu-viewer {
   --feishu-sidebar-width: 260px;
+  --feishu-main-offset: 260px;
   --feishu-topbar-height: 56px;
   --feishu-sidebar-bg: #ffffff;
   --feishu-topbar-bg: #ffffff;
@@ -46,7 +47,7 @@
 
 .feishu-app-shell__main {
   flex: 1;
-  margin-left: var(--feishu-sidebar-width);
+  margin-left: var(--feishu-main-offset);
   transition: margin-left var(--feishu-transition-duration) ease;
   min-width: 0;
 }

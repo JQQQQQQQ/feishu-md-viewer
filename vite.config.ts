@@ -22,6 +22,22 @@ export default defineConfig({
         viewer: resolve(__dirname, 'src/viewer/viewer.html'),
         options: resolve(__dirname, 'src/options/options.html'),
       },
+      output: {
+        manualChunks(id) {
+          const normalizedId = id.replace(/\\/g, '/');
+          if (!normalizedId.includes('/node_modules/')) return;
+
+          if (
+            /\/node_modules\/(?:unified|remark|rehype|micromark|mdast-util|hast-util|unist-util|vfile)\//.test(normalizedId)
+          ) {
+            return 'markdown-vendor';
+          }
+
+          if (/\/node_modules\/(?:react|react-dom|scheduler)\//.test(normalizedId)) {
+            return 'react-vendor';
+          }
+        },
+      },
     },
   },
 });

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-const MAX_HISTORY = 50;
+const MAX_HISTORY = 20;
+const HISTORY_COALESCE_MS = 1200;
 const FONT_SIZE_MIN = 12;
 const FONT_SIZE_MAX = 24;
 const FONT_SIZE_DEFAULT = 15;
@@ -19,6 +20,7 @@ interface EditorSlice {
   mode: EditorMode;
   history: string[];
   historyIndex: number;
+  lastHistoryCommitAt: number;
 }
 
 interface UISlice {
@@ -29,6 +31,8 @@ interface SettingsSlice {
   theme: ThemeMode;
   fontSize: number;
   autoSaveEnabled: boolean;
+  previewLockEnabled: boolean;
+  tocSmoothScrollEnabled: boolean;
 }
 
 interface Actions {
@@ -45,6 +49,8 @@ interface Actions {
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
   setAutoSaveEnabled: (enabled: boolean) => void;
+  setPreviewLockEnabled: (enabled: boolean) => void;
+  setTocSmoothScrollEnabled: (enabled: boolean) => void;
   loadSettings: () => Promise<void>;
 }
 
@@ -74,6 +80,7 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
   mode: 'read',
   history: [],
   historyIndex: -1,
+  lastHistoryCommitAt: 0,
 
   // UI slice
   sidebarOpen: true,
@@ -82,25 +89,44 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
   theme: 'system',
   fontSize: FONT_SIZE_DEFAULT,
   autoSaveEnabled: true,
+  previewLockEnabled: false,
+  tocSmoothScrollEnabled: true,
 
   // Actions
   initDocument: (content: string) => {
+    const now = Date.now();
     set({
       content,
       originalContent: content,
       isDirty: false,
       history: [content],
       historyIndex: 0,
+      lastHistoryCommitAt: now,
     });
   },
 
   setContent: (content: string) => {
     const state = get();
+    if (content === state.content) return;
+
+    const now = Date.now();
     const newHistory = state.history.slice(0, state.historyIndex + 1);
-    newHistory.push(content);
+    const isAtHistoryTail = state.historyIndex === newHistory.length - 1;
+    const shouldCoalesce = (
+      isAtHistoryTail
+      && now - state.lastHistoryCommitAt < HISTORY_COALESCE_MS
+      && newHistory.length > 0
+    );
+
+    if (shouldCoalesce) {
+      newHistory[newHistory.length - 1] = content;
+    } else if (newHistory[newHistory.length - 1] !== content) {
+      newHistory.push(content);
+    }
 
     if (newHistory.length > MAX_HISTORY) {
-      newHistory.shift();
+      const overflow = newHistory.length - MAX_HISTORY;
+      newHistory.splice(0, overflow);
     }
 
     set({
@@ -108,10 +134,14 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
       isDirty: content !== state.originalContent,
       history: newHistory,
       historyIndex: newHistory.length - 1,
+      lastHistoryCommitAt: now,
     });
   },
 
   setMode: (mode: EditorMode) => {
+    if (get().previewLockEnabled && mode !== 'read') {
+      return;
+    }
     set({ mode });
   },
 
@@ -127,6 +157,7 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
       content,
       historyIndex: newIndex,
       isDirty: content !== state.originalContent,
+      lastHistoryCommitAt: Date.now(),
     });
   },
 
@@ -142,6 +173,7 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
       content,
       historyIndex: newIndex,
       isDirty: content !== state.originalContent,
+      lastHistoryCommitAt: Date.now(),
     });
   },
 
@@ -152,6 +184,7 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
       isDirty: false,
       history: [state.originalContent],
       historyIndex: 0,
+      lastHistoryCommitAt: Date.now(),
     });
   },
 
@@ -165,32 +198,89 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
 
   setTheme: (theme: ThemeMode) => {
     set({ theme });
-    void persistSettings({ theme, fontSize: get().fontSize, autoSaveEnabled: get().autoSaveEnabled });
+    void persistSettings({
+      theme,
+      fontSize: get().fontSize,
+      autoSaveEnabled: get().autoSaveEnabled,
+      previewLockEnabled: get().previewLockEnabled,
+      tocSmoothScrollEnabled: get().tocSmoothScrollEnabled,
+    });
   },
 
   setFontSize: (size: number) => {
     const clamped = clampFontSize(size);
     set({ fontSize: clamped });
-    void persistSettings({ theme: get().theme, fontSize: clamped, autoSaveEnabled: get().autoSaveEnabled });
+    void persistSettings({
+      theme: get().theme,
+      fontSize: clamped,
+      autoSaveEnabled: get().autoSaveEnabled,
+      previewLockEnabled: get().previewLockEnabled,
+      tocSmoothScrollEnabled: get().tocSmoothScrollEnabled,
+    });
   },
 
   increaseFontSize: () => {
     const state = get();
     const newSize = clampFontSize(state.fontSize + 1);
     set({ fontSize: newSize });
-    void persistSettings({ theme: state.theme, fontSize: newSize, autoSaveEnabled: state.autoSaveEnabled });
+    void persistSettings({
+      theme: state.theme,
+      fontSize: newSize,
+      autoSaveEnabled: state.autoSaveEnabled,
+      previewLockEnabled: state.previewLockEnabled,
+      tocSmoothScrollEnabled: state.tocSmoothScrollEnabled,
+    });
   },
 
   decreaseFontSize: () => {
     const state = get();
     const newSize = clampFontSize(state.fontSize - 1);
     set({ fontSize: newSize });
-    void persistSettings({ theme: state.theme, fontSize: newSize, autoSaveEnabled: state.autoSaveEnabled });
+    void persistSettings({
+      theme: state.theme,
+      fontSize: newSize,
+      autoSaveEnabled: state.autoSaveEnabled,
+      previewLockEnabled: state.previewLockEnabled,
+      tocSmoothScrollEnabled: state.tocSmoothScrollEnabled,
+    });
   },
 
   setAutoSaveEnabled: (enabled: boolean) => {
     set({ autoSaveEnabled: enabled });
-    void persistSettings({ theme: get().theme, fontSize: get().fontSize, autoSaveEnabled: enabled });
+    void persistSettings({
+      theme: get().theme,
+      fontSize: get().fontSize,
+      autoSaveEnabled: enabled,
+      previewLockEnabled: get().previewLockEnabled,
+      tocSmoothScrollEnabled: get().tocSmoothScrollEnabled,
+    });
+  },
+
+  setPreviewLockEnabled: (enabled: boolean) => {
+    set((state) => ({
+      previewLockEnabled: enabled,
+      mode: enabled ? 'read' : state.mode,
+    }));
+    const state = get();
+    void persistSettings({
+      theme: state.theme,
+      fontSize: state.fontSize,
+      autoSaveEnabled: state.autoSaveEnabled,
+      previewLockEnabled: enabled,
+      tocSmoothScrollEnabled: state.tocSmoothScrollEnabled,
+    });
+  },
+
+  setTocSmoothScrollEnabled: (enabled: boolean) => {
+    set({ tocSmoothScrollEnabled: enabled });
+    const state = get();
+    void persistSettings({
+      theme: state.theme,
+      fontSize: state.fontSize,
+      autoSaveEnabled: state.autoSaveEnabled,
+      previewLockEnabled: state.previewLockEnabled,
+      tocSmoothScrollEnabled: enabled,
+    });
   },
 
   loadSettings: async () => {
@@ -199,10 +289,14 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
         const result = await chrome.storage.local.get('viewerSettings');
         const settings = result['viewerSettings'] as Partial<SettingsSlice> | undefined;
         if (settings) {
+          const previewLockEnabled = settings.previewLockEnabled ?? false;
           set({
             theme: settings.theme ?? 'system',
             fontSize: clampFontSize(settings.fontSize ?? FONT_SIZE_DEFAULT),
             autoSaveEnabled: settings.autoSaveEnabled ?? true,
+            previewLockEnabled,
+            tocSmoothScrollEnabled: settings.tocSmoothScrollEnabled ?? true,
+            mode: previewLockEnabled ? 'read' : get().mode,
           });
         }
       }

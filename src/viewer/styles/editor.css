@@ -124,6 +124,14 @@
   color: var(--feishu-primary, #3370ff);
 }
 
+.feishu-topbar__mode-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  border-color: var(--feishu-border, #dee0e3);
+  color: var(--feishu-text-tertiary, #8f959e);
+  background: var(--feishu-bg-secondary, #f5f6f7);
+}
+
 .feishu-topbar__mode-toggle--active {
   background: var(--feishu-primary-light, #e8f0ff);
   border-color: var(--feishu-primary, #3370ff);

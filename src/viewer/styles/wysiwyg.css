@@ -10,6 +10,10 @@
   outline: none;
 }
 
+.feishu-wysiwyg__editor [data-feishu-heading-hidden-by] {
+  display: none !important;
+}
+
 /* Override Milkdown / ProseMirror default styles to match Feishu */
 .feishu-wysiwyg__editor .milkdown {
   font-family: var(--feishu-font-family);
@@ -100,8 +104,8 @@
   scroll-margin-top: calc(var(--feishu-topbar-height, 56px) + 18px);
 }
 
-.feishu-wysiwyg__editor h2::before,
-.feishu-wysiwyg__editor h3::before,
+.feishu-wysiwyg__editor h2:not([data-feishu-collapsible='true'])::before,
+.feishu-wysiwyg__editor h3:not([data-feishu-collapsible='true'])::before,
 .feishu-wysiwyg__editor h4::before,
 .feishu-wysiwyg__editor h5::before,
 .feishu-wysiwyg__editor h6::before {
@@ -116,6 +120,43 @@
   border-left: 6px solid var(--feishu-text-secondary);
   transform: translateY(-50%) rotate(90deg);
   opacity: 0.86;
+}
+
+.feishu-wysiwyg__editor .feishu-editor-heading-toggle {
+  position: absolute;
+  left: -28px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--feishu-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transform: translateY(-50%);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.feishu-wysiwyg__editor .feishu-editor-heading-toggle svg {
+  transition: transform 120ms ease;
+}
+
+.feishu-wysiwyg__editor .feishu-editor-heading-toggle--expanded svg {
+  transform: rotate(90deg);
+}
+
+.feishu-wysiwyg__editor .feishu-editor-heading-toggle:hover {
+  color: var(--feishu-text-primary);
+  background-color: var(--feishu-code-bg);
+}
+
+.feishu-wysiwyg__editor .feishu-editor-heading-toggle:focus-visible {
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: 1px;
 }
 
 /* Paragraphs */
@@ -238,17 +279,20 @@
   margin: 1em 0;
   border: 1px solid var(--feishu-border-light);
   border-radius: var(--feishu-radius);
-  overflow: hidden;
   background: var(--feishu-bg-content);
   box-shadow: 0 0 0 1px var(--feishu-border-light);
-  clip-path: inset(0 round var(--feishu-radius));
 }
 
 .feishu-wysiwyg__editor thead {
   background-color: var(--feishu-table-header-bg) !important;
+  position: relative;
+  z-index: 4;
 }
 
 .feishu-wysiwyg__editor th {
+  position: sticky;
+  top: calc(var(--feishu-topbar-height, 56px) + 3px);
+  z-index: 5;
   background-color: var(--feishu-table-header-bg) !important;
   color: var(--feishu-text-primary) !important;
   font-weight: 600;
@@ -677,8 +721,7 @@
 }
 
 /* Resize cursor when hovering near table borders */
-.feishu-wysiwyg__editor table td,
-.feishu-wysiwyg__editor table th {
+.feishu-wysiwyg__editor table td {
   position: relative;
 }
 

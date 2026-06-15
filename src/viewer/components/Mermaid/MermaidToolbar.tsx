@@ -106,7 +106,7 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
 
   // Show export buttons always (read or edit mode), edit button only in edit mode
   return (
-    <div className="mermaid-toolbar-wrapper" ref={containerRef}>
+    <div className="mermaid-toolbar-wrapper" ref={containerRef} data-mermaid-block-index={blockIndex}>
       <div className="mermaid-toolbar">
         <button
           className="mermaid-toolbar__preview-btn"

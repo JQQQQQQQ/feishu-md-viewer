@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { createHeadingId } from '../utils/heading-slug';
+import { createUniqueHeadingIdFactory } from '../utils/heading-slug';
 
 export interface TOCItem {
   id: string;
@@ -16,11 +16,12 @@ export function extractHeadings(markdown: string): TOCItem[] {
   const headingRegex = /^(#{1,6})\s+(.+)$/gm;
   const flat: { id: string; text: string; level: number }[] = [];
   let match: RegExpExecArray | null;
+  const getUniqueId = createUniqueHeadingIdFactory();
 
   while ((match = headingRegex.exec(markdown)) !== null) {
     const level = match[1]?.length ?? 1;
     const text = (match[2] ?? '').trim();
-    const id = createHeadingId(text);
+    const id = getUniqueId(text);
     flat.push({ id, text, level });
   }
 

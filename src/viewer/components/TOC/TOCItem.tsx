@@ -1,13 +1,14 @@
-import { useState, useCallback, type KeyboardEvent } from 'react';
+import { useState, useCallback, type KeyboardEvent, type MouseEvent } from 'react';
 import type { TOCItem as TOCItemType } from '../../hooks/useTOC';
 
 interface TOCItemProps {
   item: TOCItemType;
   activeId: string;
   onNavigate: (id: string) => void;
+  tocPath: string;
 }
 
-export function TOCItem({ item, activeId, onNavigate }: TOCItemProps) {
+export function TOCItem({ item, activeId, onNavigate, tocPath }: TOCItemProps) {
   const [expanded, setExpanded] = useState(true);
   const isActive = activeId === item.id;
   const hasChildren = item.children.length > 0;
@@ -16,7 +17,8 @@ export function TOCItem({ item, activeId, onNavigate }: TOCItemProps) {
     onNavigate(item.id);
   }, [item.id, onNavigate]);
 
-  const handleToggle = useCallback((e: React.MouseEvent) => {
+  const handleToggle = useCallback((e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     e.stopPropagation();
     setExpanded((prev) => !prev);
   }, []);
@@ -47,8 +49,11 @@ export function TOCItem({ item, activeId, onNavigate }: TOCItemProps) {
       >
         {hasChildren && (
           <button
+            type="button"
             className={`feishu-toc__toggle ${expanded ? 'feishu-toc__toggle--expanded' : ''}`}
             onClick={handleToggle}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             aria-label={expanded ? 'Collapse section' : 'Expand section'}
             tabIndex={-1}
           >
@@ -61,8 +66,14 @@ export function TOCItem({ item, activeId, onNavigate }: TOCItemProps) {
       </div>
       {hasChildren && expanded && (
         <ul className="feishu-toc__children" role="group">
-          {item.children.map((child) => (
-            <TOCItem key={child.id} item={child} activeId={activeId} onNavigate={onNavigate} />
+          {item.children.map((child, childIndex) => (
+            <TOCItem
+              key={`${child.id}-${tocPath}-${childIndex}`}
+              item={child}
+              activeId={activeId}
+              onNavigate={onNavigate}
+              tocPath={`${tocPath}-${childIndex}`}
+            />
           ))}
         </ul>
       )}

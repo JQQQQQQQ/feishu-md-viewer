@@ -17,12 +17,16 @@ function shouldIncludeHeaderRow(selection: SelectionState): boolean {
   return bounds.startRow > 0 && selectedCellCount > 1;
 }
 
-function getCopyBounds(selection: SelectionState) {
+function getCopyRows(selection: SelectionState): number[] {
   const bounds = getBounds(selection);
-  return {
-    ...bounds,
-    startRow: shouldIncludeHeaderRow(selection) ? 0 : bounds.startRow,
-  };
+  const rows: number[] = [];
+
+  if (shouldIncludeHeaderRow(selection)) rows.push(0);
+  for (let rowIndex = bounds.startRow; rowIndex <= bounds.endRow; rowIndex += 1) {
+    rows.push(rowIndex);
+  }
+
+  return rows;
 }
 
 function escapeHtml(text: string): string {
@@ -32,6 +36,32 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+const TABLE_COPY_STYLE = [
+  'border-collapse:collapse',
+  'border-spacing:0',
+  'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
+  'font-size:12px',
+  'color:#1f2329',
+].join(';');
+
+const HEADER_CELL_COPY_STYLE = [
+  'padding:8px 12px',
+  'text-align:left',
+  'font-weight:600',
+  'background:#f5f6f7',
+  'border:1px solid #dee0e3',
+  'white-space:pre-wrap',
+].join(';');
+
+const BODY_CELL_COPY_STYLE = [
+  'padding:8px 12px',
+  'text-align:left',
+  'font-weight:400',
+  'background:#ffffff',
+  'border:1px solid #ebedf0',
+  'white-space:pre-wrap',
+].join(';');
 
 function getCellText(cell: HTMLTableCellElement): string {
   return (cell.innerText || cell.textContent || '').trim();
@@ -45,29 +75,41 @@ export function clearTableSelection(table: HTMLTableElement): void {
 }
 
 export function renderTableSelection(table: HTMLTableElement, selection: SelectionState): string {
-  const bounds = getCopyBounds(selection);
+  const visualBounds = getBounds(selection);
+  const copyRows = getCopyRows(selection);
   const rows = Array.from(table.rows);
   const selectedRows: string[] = [];
 
   clearTableSelection(table);
 
-  for (let rowIndex = bounds.startRow; rowIndex <= bounds.endRow; rowIndex += 1) {
+  for (let rowIndex = visualBounds.startRow; rowIndex <= visualBounds.endRow; rowIndex += 1) {
     const row = rows[rowIndex];
     if (!row) continue;
 
-    const selectedCells: string[] = [];
-    for (let colIndex = bounds.startCol; colIndex <= bounds.endCol; colIndex += 1) {
+    for (let colIndex = visualBounds.startCol; colIndex <= visualBounds.endCol; colIndex += 1) {
       const cell = row.cells[colIndex];
-      if (!cell) {
-        selectedCells.push('');
-        continue;
-      }
+      if (!cell) continue;
 
       cell.classList.add(
         cell.tagName.toLowerCase() === 'th'
           ? 'feishu-table__header--selected'
           : 'feishu-table__cell--selected'
       );
+    }
+  }
+
+  for (const rowIndex of copyRows) {
+    const row = rows[rowIndex];
+    if (!row) continue;
+
+    const selectedCells: string[] = [];
+    for (let colIndex = visualBounds.startCol; colIndex <= visualBounds.endCol; colIndex += 1) {
+      const cell = row.cells[colIndex];
+      if (!cell) {
+        selectedCells.push('');
+        continue;
+      }
+
       selectedCells.push(getCellText(cell));
     }
 
@@ -78,25 +120,42 @@ export function renderTableSelection(table: HTMLTableElement, selection: Selecti
 }
 
 export function renderTableSelectionHtml(table: HTMLTableElement, selection: SelectionState): string {
-  const bounds = getCopyBounds(selection);
+  const bounds = getBounds(selection);
+  const copyRows = getCopyRows(selection);
   const rows = Array.from(table.rows);
-  const selectedRows: string[] = [];
+  const headRows: string[] = [];
+  const bodyRows: string[] = [];
 
-  for (let rowIndex = bounds.startRow; rowIndex <= bounds.endRow; rowIndex += 1) {
+  for (const rowIndex of copyRows) {
     const row = rows[rowIndex];
     if (!row) continue;
 
     const selectedCells: string[] = [];
+    let headerCellCount = 0;
+    let renderedCellCount = 0;
     for (let colIndex = bounds.startCol; colIndex <= bounds.endCol; colIndex += 1) {
       const cell = row.cells[colIndex];
       const tag = cell?.tagName.toLowerCase() === 'th' ? 'th' : 'td';
-      selectedCells.push(`<${tag}>${escapeHtml(cell ? getCellText(cell) : '')}</${tag}>`);
+      const style = tag === 'th' ? HEADER_CELL_COPY_STYLE : BODY_CELL_COPY_STYLE;
+      selectedCells.push(`<${tag} style="${style}">${escapeHtml(cell ? getCellText(cell) : '')}</${tag}>`);
+      renderedCellCount += 1;
+      if (tag === 'th') headerCellCount += 1;
     }
 
-    selectedRows.push(`<tr>${selectedCells.join('')}</tr>`);
+    const rowHtml = `<tr>${selectedCells.join('')}</tr>`;
+    const isHeaderRow = renderedCellCount > 0 && headerCellCount === renderedCellCount;
+    if (isHeaderRow && headRows.length === 0) {
+      headRows.push(rowHtml);
+      continue;
+    }
+
+    bodyRows.push(rowHtml);
   }
 
-  return `<table><tbody>${selectedRows.join('')}</tbody></table>`;
+  const theadHtml = headRows.length > 0 ? `<thead>${headRows.join('')}</thead>` : '';
+  const tbodyHtml = bodyRows.length > 0 ? `<tbody>${bodyRows.join('')}</tbody>` : '';
+
+  return `<table style="${TABLE_COPY_STYLE}">${theadHtml}${tbodyHtml}</table>`;
 }
 
 export function getWholeTableSelection(table: HTMLTableElement): SelectionState | null {

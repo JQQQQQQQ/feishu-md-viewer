@@ -11,6 +11,10 @@ import { highlightCode } from './highlighter';
 
 let mermaidIndex = 0;
 
+export function resetMermaidRenderCounter() {
+  mermaidIndex = 0;
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 

@@ -21,6 +21,7 @@ import { useEditorDocumentPresentation } from './Editor/useEditorDocumentPresent
 import { useEditorSectionDepthStyles } from './Editor/useEditorSectionDepthStyles';
 import { useEditorTableLayoutStyles } from './Editor/useEditorTableLayoutStyles';
 import { useEditorTableSelection } from './Editor/useEditorTableSelection';
+import { useEditorHeadingCollapse } from './Editor/useEditorHeadingCollapse';
 
 const DEBOUNCE_DELAY = 300;
 
@@ -31,7 +32,7 @@ interface MilkdownEditorProps {
 
 function shouldActivateFromTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return true;
-  return !target.closest('button, input, textarea, select, a, table, [role="button"], .feishu-block-menu, .feishu-floating-toolbar');
+  return !target.closest('button, input, textarea, select, a, [role="button"], .feishu-block-menu, .feishu-floating-toolbar');
 }
 
 function MilkdownEditor({ content, editable }: MilkdownEditorProps) {
@@ -46,7 +47,8 @@ function MilkdownEditor({ content, editable }: MilkdownEditorProps) {
   useEditorDocumentPresentation(editorContainer);
   useEditorSectionDepthStyles(editorContainer);
   useEditorTableLayoutStyles(editorContainer);
-  useEditorTableSelection(editorContainer, !editable);
+  useEditorTableSelection(editorContainer, true);
+  useEditorHeadingCollapse(editorContainer, !editable);
 
   const handleEditorContainerRef = useCallback((node: HTMLDivElement | null) => {
     editorContainerRef.current = node;
@@ -107,32 +109,8 @@ function MilkdownEditor({ content, editable }: MilkdownEditorProps) {
     return () => window.removeEventListener(MERMAID_PREVIEW_EVENT, handleOpenPreview);
   }, []);
 
-  const activateEditorAt = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    if (editable || event.button !== 0 || !shouldActivateFromTarget(event.target)) return;
-
-    const editor = editorInstanceRef.current;
-    if (!editor) return;
-
-    event.preventDefault();
-    notifyModeChangeStart();
-    editableRef.current = true;
-
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx);
-      view.setProps({ editable: () => true });
-      const position = view.posAtCoords({ left: event.clientX, top: event.clientY });
-      if (position) {
-        view.dispatch(view.state.tr.setSelection(Selection.near(view.state.doc.resolve(position.pos))));
-      }
-      view.focus();
-    });
-    setMode('edit');
-  }, [editable, setMode]);
-
   const activateEditorOnDoubleClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    if (editable || event.button !== 0) return;
-    if (!(event.target instanceof Element) || !event.target.closest('table')) return;
-    if (event.target.closest('button, input, textarea, select, a, [role="button"]')) return;
+    if (editable || event.button !== 0 || !shouldActivateFromTarget(event.target)) return;
 
     const editor = editorInstanceRef.current;
     if (!editor) return;
@@ -186,7 +164,6 @@ function MilkdownEditor({ content, editable }: MilkdownEditorProps) {
       className="feishu-wysiwyg"
       data-editable={editable ? 'true' : 'false'}
       ref={handleEditorContainerRef}
-      onMouseDownCapture={activateEditorAt}
       onDoubleClickCapture={activateEditorOnDoubleClick}
     >
       <div className="feishu-wysiwyg__editor" style={{ position: 'relative' }}>

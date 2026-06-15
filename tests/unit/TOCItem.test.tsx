@@ -18,7 +18,7 @@ describe('TOCItem', () => {
     const item = createItem({ text: 'Introduction' });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="" onNavigate={vi.fn()} />
+        <TOCItem item={item} activeId="" onNavigate={vi.fn()} tocPath="root" />
       </ul>
     );
     expect(screen.getByText('Introduction')).toBeDefined();
@@ -28,7 +28,7 @@ describe('TOCItem', () => {
     const item = createItem({ id: 'my-heading' });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="my-heading" onNavigate={vi.fn()} />
+        <TOCItem item={item} activeId="my-heading" onNavigate={vi.fn()} tocPath="root" />
       </ul>
     );
     const link = screen.getByRole('link');
@@ -39,7 +39,7 @@ describe('TOCItem', () => {
     const item = createItem({ id: 'active-item' });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="active-item" onNavigate={vi.fn()} />
+        <TOCItem item={item} activeId="active-item" onNavigate={vi.fn()} tocPath="root" />
       </ul>
     );
     const treeitem = screen.getByRole('treeitem');
@@ -52,7 +52,7 @@ describe('TOCItem', () => {
     });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="" onNavigate={vi.fn()} />
+        <TOCItem item={item} activeId="" onNavigate={vi.fn()} tocPath="root" />
       </ul>
     );
     const treeitems = screen.getAllByRole('treeitem');
@@ -64,7 +64,7 @@ describe('TOCItem', () => {
     const item = createItem({ children: [] });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="" onNavigate={vi.fn()} />
+        <TOCItem item={item} activeId="" onNavigate={vi.fn()} tocPath="root" />
       </ul>
     );
     const treeitem = screen.getByRole('treeitem');
@@ -76,7 +76,7 @@ describe('TOCItem', () => {
     const item = createItem({ id: 'click-target' });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="" onNavigate={onNavigate} />
+        <TOCItem item={item} activeId="" onNavigate={onNavigate} tocPath="root" />
       </ul>
     );
     const link = screen.getByRole('link');
@@ -89,7 +89,7 @@ describe('TOCItem', () => {
     const item = createItem({ id: 'enter-target' });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="" onNavigate={onNavigate} />
+        <TOCItem item={item} activeId="" onNavigate={onNavigate} tocPath="root" />
       </ul>
     );
     const link = screen.getByRole('link');
@@ -103,7 +103,7 @@ describe('TOCItem', () => {
     });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="" onNavigate={vi.fn()} />
+        <TOCItem item={item} activeId="" onNavigate={vi.fn()} tocPath="root" />
       </ul>
     );
     const treeitems = screen.getAllByRole('treeitem');
@@ -132,11 +132,33 @@ describe('TOCItem', () => {
     });
     render(
       <ul role="tree">
-        <TOCItem item={item} activeId="" onNavigate={vi.fn()} />
+        <TOCItem item={item} activeId="" onNavigate={vi.fn()} tocPath="root" />
       </ul>
     );
     // Children should be rendered (expanded by default)
     expect(screen.getByText('Child A')).toBeDefined();
     expect(screen.getByText('Child B')).toBeDefined();
+  });
+
+  it('toggles children by triangle click without triggering navigation', () => {
+    const onNavigate = vi.fn();
+    const item = createItem({
+      id: 'parent',
+      children: [createItem({ id: 'child-1', text: 'Child 1', level: 3 })],
+    });
+
+    render(
+      <ul role="tree">
+        <TOCItem item={item} activeId="" onNavigate={onNavigate} tocPath="root" />
+      </ul>
+    );
+
+    expect(screen.getByText('Child 1')).toBeDefined();
+
+    const toggle = screen.getByLabelText('Collapse section');
+    fireEvent.click(toggle);
+
+    expect(screen.queryByText('Child 1')).toBeNull();
+    expect(onNavigate).not.toHaveBeenCalled();
   });
 });

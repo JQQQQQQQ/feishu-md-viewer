@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type MouseEvent, type ReactNode } from 'react';
-import { getTableLayoutMode, updateTableWideWidth, type TableLayoutMode } from './FeishuTableLayout';
+import {
+  getTableLayoutMode,
+  resolveTableLayoutMode,
+  updateTableWideWidth,
+  type TableLayoutMode,
+} from './FeishuTableLayout';
 import {
   clearTableSelection,
   getWholeTableSelection,
@@ -27,6 +32,29 @@ function getCellFromEvent(event: Event): HTMLTableCellElement | null {
   }
 
   return getCell(event.target);
+}
+
+function getCellFromPoint(clientX: number, clientY: number): HTMLTableCellElement | null {
+  if (typeof document.elementFromPoint !== 'function') return null;
+  return getCell(document.elementFromPoint(clientX, clientY));
+}
+
+function getStickyTopOffset(wrapper: HTMLElement): number {
+  const viewer = wrapper.closest('.feishu-viewer');
+  const rawTopbarHeight = viewer instanceof HTMLElement
+    ? getComputedStyle(viewer).getPropertyValue('--feishu-topbar-height')
+    : '';
+  const topbarHeight = Number.parseFloat(rawTopbarHeight);
+  return (Number.isFinite(topbarHeight) ? topbarHeight : 56) + 3;
+}
+
+function focusWithoutScroll(node: HTMLElement | null): void {
+  if (!node) return;
+  try {
+    node.focus({ preventScroll: true });
+  } catch {
+    node.focus();
+  }
 }
 
 function eventPathContains(event: Event, node: Node): boolean { return event.composedPath().includes(node) }
@@ -70,9 +98,13 @@ function applyColumnWidth(table: HTMLTableElement, colIndex: number, width: numb
 export function FeishuTable({ children, className, ...props }: FeishuTableProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const stickyHeaderTableRef = useRef<HTMLTableElement>(null);
   const selectionRef = useRef<SelectionState | null>(null);
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
+  const dragStartYRef = useRef<number | null>(null);
+  const anchorRowHeightRef = useRef<number | null>(null);
   const copiedRef = useRef({ text: '', html: '' });
   const [layoutMode, setLayoutMode] = useState<TableLayoutMode>('normal');
 
@@ -87,12 +119,25 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     };
   }, []);
 
-  const extendSelectionToCell = useCallback((cell: HTMLTableCellElement) => {
+  const extendSelectionToCell = useCallback((cell: HTMLTableCellElement, clientY: number) => {
     if (!selectionRef.current) return;
+    const selection = selectionRef.current;
+    const nextFocus = getCellPoint(cell);
+    if (
+      dragStartYRef.current !== null
+      && anchorRowHeightRef.current !== null
+      && nextFocus.row !== selection.anchor.row
+    ) {
+      const movedY = Math.abs(clientY - dragStartYRef.current);
+      const lockThreshold = Math.max(6, anchorRowHeightRef.current * 0.45);
+      if (movedY < lockThreshold) {
+        nextFocus.row = selection.anchor.row;
+      }
+    }
 
     applySelection({
-      anchor: selectionRef.current.anchor,
-      focus: getCellPoint(cell),
+      anchor: selection.anchor,
+      focus: nextFocus,
     });
   }, [applySelection]);
 
@@ -101,6 +146,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     if (table) clearTableSelection(table);
     selectionRef.current = null;
     copiedRef.current = { text: '', html: '' };
+    dragStartYRef.current = null;
+    anchorRowHeightRef.current = null;
   }, []);
 
   const handleMouseDown = useCallback((event: MouseEvent<HTMLTableElement>) => {
@@ -116,6 +163,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       event.stopPropagation();
       isResizingRef.current = true;
       isDraggingRef.current = false;
+      dragStartYRef.current = null;
+      anchorRowHeightRef.current = null;
 
       const referenceCell = Array.from(table.rows)
         .map((row) => row.cells[resizableColIndex])
@@ -147,10 +196,13 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
     event.preventDefault();
     window.getSelection()?.removeAllRanges();
-    wrapperRef.current?.focus();
+    focusWithoutScroll(wrapperRef.current);
 
     const point = getCellPoint(cell);
     isDraggingRef.current = true;
+    dragStartYRef.current = event.clientY;
+    const anchorRowHeight = cell.getBoundingClientRect().height;
+    anchorRowHeightRef.current = Number.isFinite(anchorRowHeight) ? anchorRowHeight : null;
     applySelection({ anchor: point, focus: point });
   }, [applySelection]);
 
@@ -160,7 +212,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     const cell = getCell(event.target);
     if (!cell) return;
 
-    extendSelectionToCell(cell);
+    extendSelectionToCell(cell, event.clientY);
   }, [extendSelectionToCell]);
 
   useEffect(() => {
@@ -169,7 +221,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     if (!wrapper || !table) return undefined;
 
     const updateWideLayout = () => {
-      const nextMode = getTableLayoutMode(table);
+      const preferredMode = getTableLayoutMode(table);
+      const nextMode = resolveTableLayoutMode(wrapper, table, preferredMode);
       updateTableWideWidth(wrapper, nextMode);
       setLayoutMode(nextMode);
     };
@@ -197,7 +250,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       if (!isDraggingRef.current) {
         const wrapper = wrapperRef.current;
         const table = tableRef.current;
-        const cell = getCellFromEvent(event) ?? getCell(document.elementFromPoint(event.clientX, event.clientY));
+        const cell = getCellFromEvent(event) ?? getCellFromPoint(event.clientX, event.clientY);
         if (!wrapper || !table || !cell || !table.contains(cell)) {
           if (wrapper) wrapper.style.cursor = '';
           return;
@@ -207,13 +260,17 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
         return;
       }
 
-      const cell = getCellFromEvent(event) ?? getCell(document.elementFromPoint(event.clientX, event.clientY));
+      const cell = getCellFromEvent(event) ?? getCellFromPoint(event.clientX, event.clientY);
       if (!cell || !tableRef.current?.contains(cell)) return;
 
-      extendSelectionToCell(cell);
+      extendSelectionToCell(cell, event.clientY);
     };
 
-    const handleMouseUp = () => { isDraggingRef.current = false };
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      dragStartYRef.current = null;
+      anchorRowHeightRef.current = null;
+    };
 
     const handleCopy = (event: ClipboardEvent) => {
       if (!copiedRef.current.text) return;
@@ -267,6 +324,118 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     };
   }, [applySelection, extendSelectionToCell, resetSelection]);
 
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const table = tableRef.current;
+    const stickyHeader = stickyHeaderRef.current;
+    const stickyTable = stickyHeaderTableRef.current;
+    if (!wrapper || !table || !stickyHeader || !stickyTable) return undefined;
+
+    let frame = 0;
+
+    const hideStickyHeader = () => {
+      stickyHeader.style.display = 'none';
+    };
+
+    const syncCloneHeader = () => {
+      const head = table.tHead;
+      stickyTable.replaceChildren();
+      if (!head) return;
+
+      const clonedHead = head.cloneNode(true);
+      stickyTable.appendChild(clonedHead);
+      stickyTable.className = `${table.className} feishu-table--sticky-clone`;
+      stickyTable.removeAttribute('id');
+    };
+
+    const syncCloneColumnWidths = () => {
+      const sourceRow = table.tHead?.rows[0];
+      const clonedRow = stickyTable.tHead?.rows[0];
+      if (!sourceRow || !clonedRow) return;
+
+      const sourceCells = Array.from(sourceRow.cells);
+      const cloneCells = Array.from(clonedRow.cells);
+      sourceCells.forEach((cell, index) => {
+        const cloneCell = cloneCells[index];
+        if (!(cloneCell instanceof HTMLElement)) return;
+
+        const width = Math.round(cell.getBoundingClientRect().width);
+        cloneCell.style.width = `${width}px`;
+        cloneCell.style.minWidth = `${width}px`;
+        cloneCell.style.maxWidth = `${width}px`;
+      });
+    };
+
+    const updateStickyHeader = () => {
+      frame = 0;
+      const sourceRow = table.tHead?.rows[0];
+      if (!sourceRow || stickyTable.tHead?.rows[0] == null) {
+        hideStickyHeader();
+        return;
+      }
+
+      const topOffset = getStickyTopOffset(wrapper);
+      const tableRect = table.getBoundingClientRect();
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const headerHeight = Math.round(sourceRow.getBoundingClientRect().height);
+
+      const shouldShow = tableRect.top < topOffset && tableRect.bottom > topOffset + headerHeight;
+      if (!shouldShow) {
+        hideStickyHeader();
+        return;
+      }
+
+      syncCloneColumnWidths();
+
+      stickyHeader.style.display = 'block';
+      stickyHeader.style.top = `${Math.round(topOffset)}px`;
+      stickyHeader.style.left = `${Math.round(wrapperRect.left)}px`;
+      stickyHeader.style.width = `${Math.round(wrapperRect.width)}px`;
+      stickyHeader.style.height = `${headerHeight}px`;
+
+      stickyTable.style.width = `${Math.round(table.getBoundingClientRect().width)}px`;
+      stickyTable.style.transform = `translateX(${-Math.round(wrapper.scrollLeft)}px)`;
+    };
+
+    const scheduleUpdate = () => {
+      if (frame !== 0) return;
+      frame = window.requestAnimationFrame(updateStickyHeader);
+    };
+
+    syncCloneHeader();
+    scheduleUpdate();
+
+    document.addEventListener('scroll', scheduleUpdate, true);
+    window.addEventListener('resize', scheduleUpdate);
+    wrapper.addEventListener('scroll', scheduleUpdate, { passive: true });
+
+    const observer = new MutationObserver(() => {
+      syncCloneHeader();
+      scheduleUpdate();
+    });
+    observer.observe(table, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => scheduleUpdate());
+    resizeObserver?.observe(wrapper);
+    resizeObserver?.observe(table);
+
+    return () => {
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+      hideStickyHeader();
+      observer.disconnect();
+      resizeObserver?.disconnect();
+      wrapper.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+      document.removeEventListener('scroll', scheduleUpdate, true);
+    };
+  }, [children]);
+
   return (
     <div
       ref={wrapperRef}
@@ -280,6 +449,9 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
         if (event.key === 'Escape') resetSelection();
       }}
     >
+      <div ref={stickyHeaderRef} className="feishu-table__sticky-head" aria-hidden="true">
+        <table ref={stickyHeaderTableRef} className="feishu-table feishu-table--sticky-clone" />
+      </div>
       <table
         ref={tableRef}
         {...props}

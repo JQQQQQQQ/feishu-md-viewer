@@ -65,13 +65,24 @@ describe('markdown-pipeline', () => {
         value: { setData },
       });
 
-      fireEvent.mouseDown(cells[0] as HTMLTableCellElement);
-      fireEvent.mouseOver(cells[2] as HTMLTableCellElement);
-      fireEvent.mouseUp(document);
+      fireEvent.mouseDown(cells[0] as HTMLTableCellElement, { clientX: 100, clientY: 100 });
+      fireEvent.mouseMove(document, { clientX: 108, clientY: 140 });
+      fireEvent.mouseOver(cells[2] as HTMLTableCellElement, { clientX: 108, clientY: 140 });
+      fireEvent.mouseUp(document, { clientX: 108, clientY: 140 });
       document.dispatchEvent(copyEvent);
 
       expect(setData).toHaveBeenCalledWith('text/plain', 'A\n1\n3');
-      expect(setData).toHaveBeenCalledWith('text/html', '<table><tbody><tr><th>A</th></tr><tr><td>1</td></tr><tr><td>3</td></tr></tbody></table>');
+      const htmlCall = setData.mock.calls.find((call) => call[0] === 'text/html');
+      expect(htmlCall).toBeDefined();
+      const html = String(htmlCall?.[1] ?? '');
+      expect(html).toContain('<table style="');
+      expect(html).toContain('<thead>');
+      expect(html).toContain('<th style="');
+      expect(html).toContain('font-weight:600');
+      expect(html).toContain('background:#f5f6f7');
+      expect(html).toContain('<tbody>');
+      expect(html).toContain('<td style="');
+      expect(html).toContain('font-weight:400');
     });
 
     it('keeps table selection when shadow DOM retargets document mousedown', () => {
@@ -116,9 +127,10 @@ describe('markdown-pipeline', () => {
         value: { writeText },
       });
 
-      fireEvent.mouseDown(cells[0] as HTMLTableCellElement);
-      fireEvent.mouseOver(cells[2] as HTMLTableCellElement);
-      fireEvent.mouseUp(document);
+      fireEvent.mouseDown(cells[0] as HTMLTableCellElement, { clientX: 100, clientY: 100 });
+      fireEvent.mouseMove(document, { clientX: 108, clientY: 140 });
+      fireEvent.mouseOver(cells[2] as HTMLTableCellElement, { clientX: 108, clientY: 140 });
+      fireEvent.mouseUp(document, { clientX: 108, clientY: 140 });
       fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
 
       expect(writeText).toHaveBeenCalledWith('A\n1\n3');
@@ -177,6 +189,36 @@ Next body`);
       expect(level2Sections[0]?.textContent).toContain('Child');
       expect(level2Sections[0]?.textContent).not.toContain('Next body');
       expect(level3Sections[0]?.textContent).toContain('Child body');
+    });
+
+    it('toggles only the linked section when clicking heading triangle', () => {
+      const result = parseMarkdown(`## Parent
+
+Parent body
+
+### Child
+
+Child body
+
+## Next
+
+Next body`);
+      const { container } = render(result);
+      const toggle = container.querySelector<HTMLButtonElement>('.feishu-h2 .feishu-heading__toggle');
+      const sections = container.querySelectorAll<HTMLElement>('.feishu-section--level-2');
+      const parentSection = sections[0];
+      const nextSection = sections[1];
+
+      expect(toggle).not.toBeNull();
+      expect(parentSection?.hidden).toBe(false);
+      expect(nextSection?.hidden).toBe(false);
+
+      fireEvent.click(toggle as HTMLButtonElement);
+      expect(parentSection?.hidden).toBe(true);
+      expect(nextSection?.hidden).toBe(false);
+
+      fireEvent.click(toggle as HTMLButtonElement);
+      expect(parentSection?.hidden).toBe(false);
     });
 
     it('renders GitHub-style callout blockquotes', () => {
@@ -244,5 +286,20 @@ sequenceDiagram
       expect(blocks).toHaveLength(1);
       expect(blocks[0]?.code).toBe('');
     });
+  });
+
+  it('resets rendered mermaid block indices on each parse', () => {
+    const singleMermaid = parseMarkdown('```mermaid\ngraph TD\nA-->B\n```');
+    const first = render(singleMermaid);
+    const firstIndex = first.container.querySelector('.mermaid-toolbar-wrapper')?.getAttribute('data-mermaid-block-index');
+    first.unmount();
+
+    const secondMermaid = parseMarkdown('```mermaid\ngraph TD\nA-->B\n```');
+    const second = render(secondMermaid);
+    const secondIndex = second.container.querySelector('.mermaid-toolbar-wrapper')?.getAttribute('data-mermaid-block-index');
+    second.unmount();
+
+    expect(firstIndex).toBe('0');
+    expect(secondIndex).toBe('0');
   });
 });

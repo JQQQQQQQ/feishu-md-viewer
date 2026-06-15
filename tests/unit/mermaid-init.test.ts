@@ -31,6 +31,9 @@ describe('mermaid-init', () => {
       expect.objectContaining({
         securityLevel: 'strict',
         startOnLoad: false,
+        htmlLabels: true,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: 14,
       }),
     );
   });
@@ -41,5 +44,36 @@ describe('mermaid-init', () => {
     const result = await renderMermaid('graph TD\n  A-->B', 'test-id');
 
     expect(result).toBe('<svg>mock</svg>');
+  });
+
+  it('reuses cached svg for same code and skips repeated parse/render', async () => {
+    const { renderMermaid } = await import('@/lib/mermaid-init');
+    const code = 'graph TD\n  A-->B';
+
+    const first = await renderMermaid(code, 'cache-id-1');
+    const second = await renderMermaid(code, 'cache-id-2');
+
+    expect(first).toBe('<svg>mock</svg>');
+    expect(second).toBe('<svg>mock</svg>');
+    expect(mockParse).toHaveBeenCalledTimes(1);
+    expect(mockRender).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps recently used entry and evicts true LRU entry when cache is full', async () => {
+    const { renderMermaid } = await import('@/lib/mermaid-init');
+    const warmCode = 'graph TD\n  WARM-->NODE';
+
+    await renderMermaid(warmCode, 'warm-1');
+    for (let i = 0; i < 23; i += 1) {
+      await renderMermaid(`graph TD\n  N${i}-->N${i + 1}`, `fill-${i}`);
+    }
+
+    await renderMermaid(warmCode, 'warm-2');
+    expect(mockRender).toHaveBeenCalledTimes(24);
+
+    await renderMermaid('graph TD\n  EVICT-->NEW', 'evict-new');
+    await renderMermaid(warmCode, 'warm-3');
+
+    expect(mockRender).toHaveBeenCalledTimes(25);
   });
 });

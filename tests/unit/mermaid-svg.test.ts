@@ -8,9 +8,9 @@ describe('expandMermaidSvgBounds', () => {
       '<svg width="100" height="50" viewBox="0 0 100 50"><g><text>Start</text></g></svg>',
     );
 
-    expect(result).toContain('width="160"');
-    expect(result).toContain('height="74"');
-    expect(result).toContain('viewBox="-30 -12 160 74"');
+    expect(result).toContain('width="184"');
+    expect(result).toContain('height="78"');
+    expect(result).toContain('viewBox="-42 -14 184 78"');
   });
 
   it('removes clipping and text length constraints that can crop labels', () => {
@@ -29,8 +29,8 @@ describe('expandMermaidSvgBounds', () => {
       '<svg viewBox="0 0 100 50"><foreignObject x="10" y="12" width="40" height="20"><div><p>Is it working?</p></div></foreignObject></svg>',
     );
 
-    expect(result).toContain('x="-6"');
-    expect(result).toContain('width="72"');
+    expect(result).toContain('x="-12"');
+    expect(result).toContain('width="84"');
     expect(result).toContain('y="4"');
     expect(result).toContain('height="36"');
     expect(result).toContain('margin: 0; line-height: 1.2');
@@ -50,8 +50,36 @@ describe('sanitizeMermaidSvg', () => {
     );
 
     expect(result).toContain('<svg');
-    expect(result).toContain('viewBox="-30 -12 160 74"');
+    expect(result).toContain('viewBox="-42 -14 184 78"');
     expect(result).not.toContain('<script');
     expect(result).not.toContain('onload');
+  });
+
+  it('preserves foreignObject label text content', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 120 60"><foreignObject x="10" y="10" width="100" height="40"><div xmlns="http://www.w3.org/1999/xhtml"><p>中文标签</p></div></foreignObject></svg>',
+    );
+
+    expect(result).toContain('foreignObject');
+    expect(result).toContain('中文标签');
+  });
+
+  it('preserves nested div/span node labels in foreignObject', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 140 60"><foreignObject x="10" y="10" width="120" height="40"><div xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel">Start</span></div></foreignObject></svg>',
+    );
+
+    expect(result).toContain('foreignObject');
+    expect(result).toContain('nodeLabel');
+    expect(result).toContain('Start');
+  });
+
+  it('restores xhtml namespace for foreignObject html nodes', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 140 60"><foreignObject x="10" y="10" width="120" height="40"><div><span class="nodeLabel">Debug</span></div></foreignObject></svg>',
+    );
+
+    expect(result).toContain('xmlns="http://www.w3.org/1999/xhtml"');
+    expect(result).toContain('Debug');
   });
 });

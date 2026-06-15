@@ -1,4 +1,13 @@
 node_modules
 dist/
-node_modules/
 *.tsbuildinfo
+
+# AI 工具本地配置
+.claude/
+.codex
+AGENTS.md
+
+# 临时构建产物
+tmp/
+tmp_patch_windows_build.*
+el.hidden*

@@ -7,6 +7,8 @@ describe('Theme switching & settings', () => {
       theme: 'system',
       fontSize: 15,
       autoSaveEnabled: true,
+      previewLockEnabled: false,
+      tocSmoothScrollEnabled: true,
     });
   });
 

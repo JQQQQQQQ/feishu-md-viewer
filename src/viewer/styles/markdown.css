@@ -12,10 +12,23 @@
   background-color: var(--feishu-bg-content);
 }
 
+@media (min-width: 1024px) {
+  .feishu-viewer__content {
+    max-width: 980px;
+    margin-left: clamp(24px, 2.8vw, 72px);
+    margin-right: auto;
+  }
+}
+
 /* Markdown Body */
 .feishu-markdown-body {
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+/* Keep collapse state stable for React-managed blocks (for example table wrappers). */
+[data-feishu-heading-hidden-by] {
+  display: none !important;
 }
 
 .feishu-search,
@@ -422,6 +435,30 @@
   outline: none;
   scrollbar-color: color-mix(in srgb, var(--feishu-brand-primary) 34%, var(--feishu-border-light)) transparent;
   scrollbar-width: thin;
+  position: relative;
+}
+
+.feishu-table__sticky-head {
+  position: fixed;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 80;
+  background: var(--feishu-bg-content);
+  border-left: 1px solid var(--feishu-border-light);
+  border-right: 1px solid var(--feishu-border-light);
+  border-top: 1px solid var(--feishu-border-light);
+  box-shadow: 0 2px 8px rgba(31, 35, 41, 0.08);
+}
+
+.feishu-table__sticky-head .feishu-table--sticky-clone {
+  margin: 0;
+}
+
+.feishu-table__sticky-head .feishu-table__header {
+  position: static;
+  top: auto;
+  z-index: auto;
 }
 
 .feishu-table-wrapper--wide-right,
@@ -834,6 +871,15 @@
   line-height: 1.2;
 }
 
+.feishu-mermaid svg foreignObject div,
+.feishu-mermaid svg foreignObject span,
+.feishu-mermaid svg .nodeLabel,
+.mermaid-preview-zoom svg foreignObject div,
+.mermaid-preview-zoom svg foreignObject span,
+.mermaid-preview-zoom svg .nodeLabel {
+  color: #1f2329;
+}
+
 .feishu-mermaid--loading {
   color: var(--feishu-text-placeholder);
   font-size: var(--feishu-font-size-small);
@@ -898,6 +944,12 @@
 }
 
 @media (max-width: 768px) {
+  .feishu-viewer__content {
+    max-width: 100%;
+    margin: 0;
+    padding: 0 16px;
+  }
+
   .feishu-search,
   .feishu-search__launcher {
     right: 12px;

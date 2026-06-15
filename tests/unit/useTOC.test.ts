@@ -128,4 +128,24 @@ Another paragraph with **bold** text.
     expect(result[0].children[1].text).toBe('Back to H2');
     expect(result[0].children[1].level).toBe(2);
   });
+
+  it('generates unique IDs for duplicate headings', () => {
+    const md = `# Repeat
+## Repeat
+## Repeat
+### Repeat`;
+    const result = extractHeadings(md);
+
+    expect(result[0].id).toBe('repeat');
+    expect(result[0].children[0].id).toBe('repeat-2');
+    expect(result[0].children[1].id).toBe('repeat-3');
+    expect(result[0].children[1].children[0].id).toBe('repeat-4');
+  });
+
+  it('falls back to section prefix for symbol-only headings', () => {
+    const md = `## !!!`;
+    const result = extractHeadings(md);
+
+    expect(result[0].id).toBe('section');
+  });
 });

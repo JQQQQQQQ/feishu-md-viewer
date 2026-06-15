@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTableLayoutMode, updateTableWideWidth } from '@/viewer/components/Markdown/FeishuTableLayout';
+import { getTableLayoutMode, resolveTableLayoutMode, updateTableWideWidth } from '@/viewer/components/Markdown/FeishuTableLayout';
 
 function createTable(columnCount: number, cellTexts?: string[]): HTMLTableElement {
   const table = document.createElement('table');
@@ -63,6 +63,29 @@ function createWrapper(
   });
 
   return wrapper;
+}
+
+function mockHorizontalMetrics(
+  wrapper: HTMLElement,
+  table: HTMLTableElement,
+  metrics: {
+    clientWidth: number;
+    wrapperScrollWidth: number;
+    tableScrollWidth: number;
+  },
+): void {
+  Object.defineProperty(wrapper, 'clientWidth', {
+    configurable: true,
+    get: () => metrics.clientWidth,
+  });
+  Object.defineProperty(wrapper, 'scrollWidth', {
+    configurable: true,
+    get: () => metrics.wrapperScrollWidth,
+  });
+  Object.defineProperty(table, 'scrollWidth', {
+    configurable: true,
+    get: () => metrics.tableScrollWidth,
+  });
 }
 
 describe('FeishuTableLayout', () => {
@@ -141,5 +164,47 @@ describe('FeishuTableLayout', () => {
     updateTableWideWidth(wrapper, 'balanced');
     expect(wrapper.style.getPropertyValue('--feishu-table-wide-width')).toBe('1320px');
     expect(wrapper.style.getPropertyValue('--feishu-table-wide-offset')).toBe('-340px');
+  });
+
+  it('upgrades right expansion to balanced when right expansion still overflows', () => {
+    const wrapper = createWrapper(150, 900);
+    const table = createTable(6);
+    wrapper.appendChild(table);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1366,
+    });
+
+    mockHorizontalMetrics(wrapper, table, {
+      clientWidth: 1168,
+      wrapperScrollWidth: 1240,
+      tableScrollWidth: 1240,
+    });
+
+    expect(resolveTableLayoutMode(wrapper, table, 'right')).toBe('balanced');
+    expect(wrapper.classList.contains('feishu-table-wrapper--wide-right')).toBe(false);
+    expect(wrapper.classList.contains('feishu-table-wrapper--wide-balanced')).toBe(false);
+  });
+
+  it('keeps right expansion when right expansion can avoid horizontal overflow', () => {
+    const wrapper = createWrapper(150, 900);
+    const table = createTable(6);
+    wrapper.appendChild(table);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1366,
+    });
+
+    mockHorizontalMetrics(wrapper, table, {
+      clientWidth: 1168,
+      wrapperScrollWidth: 1168,
+      tableScrollWidth: 1168,
+    });
+
+    expect(resolveTableLayoutMode(wrapper, table, 'right')).toBe('right');
+    expect(wrapper.classList.contains('feishu-table-wrapper--wide-right')).toBe(false);
+    expect(wrapper.classList.contains('feishu-table-wrapper--wide-balanced')).toBe(false);
   });
 });

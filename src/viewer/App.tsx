@@ -1,19 +1,26 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useCallback, type MouseEvent } from 'react';
 import { type PageSource } from '../content/detector';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { type SaveStatusState } from './components/Common/SaveStatus';
-import { WysiwygEditor } from './components/Markdown/WysiwygEditor';
-import { SourceModeEditor } from './components/Markdown/Editor/SourceModeEditor';
+import { MarkdownReadView } from './components/Markdown/MarkdownReadView';
 import { AppShell } from './components/Layout/AppShell';
 import { ReadingProgress } from './components/Layout/ReadingProgress';
 import { useTOC } from './hooks/useTOC';
 import { useFileAccess } from './hooks/useFileAccess';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useBeforeUnload } from './hooks/useBeforeUnload';
-import { useModeScrollRestore } from './hooks/useModeScrollRestore';
+import { notifyModeChangeStart, useModeScrollRestore } from './hooks/useModeScrollRestore';
 import { useViewerStore } from './store';
 
 const HANDLE_STORAGE_KEY = 'current-document-handle';
+const LazyWysiwygEditor = lazy(async () => {
+  const module = await import('./components/Markdown/WysiwygEditor');
+  return { default: module.WysiwygEditor };
+});
+const LazySourceModeEditor = lazy(async () => {
+  const module = await import('./components/Markdown/Editor/SourceModeEditor');
+  return { default: module.SourceModeEditor };
+});
 
 interface AppProps {
   markdown: string;
@@ -40,6 +47,8 @@ export function App({ markdown, source }: AppProps) {
   const initDocument = useViewerStore((s) => s.initDocument);
   const content = useViewerStore((s) => s.content);
   const mode = useViewerStore((s) => s.mode);
+  const setMode = useViewerStore((s) => s.setMode);
+  const previewLockEnabled = useViewerStore((s) => s.previewLockEnabled);
   const isDirty = useViewerStore((s) => s.isDirty);
   const theme = useViewerStore((s) => s.theme);
   const fontSize = useViewerStore((s) => s.fontSize);
@@ -136,6 +145,16 @@ export function App({ markdown, source }: AppProps) {
 
   const displayContent = content || markdown;
 
+  const handleActivateEditFromRead = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (previewLockEnabled) return;
+    if (mode !== 'read' || event.button !== 0) return;
+    if (!(event.target instanceof Element)) return;
+    if (event.target.closest('button, a, input, textarea, select, [role="button"]')) return;
+
+    notifyModeChangeStart();
+    setMode('edit');
+  }, [mode, previewLockEnabled, setMode]);
+
   // Derive save status for the UI
   const saveStatus: SaveStatusState = (() => {
     if (autoSave.error || fileError) return 'error';
@@ -180,9 +199,17 @@ export function App({ markdown, source }: AppProps) {
           <div className="feishu-viewer__page" data-mode={mode}>
             <div className="feishu-viewer__content" data-mode={mode}>
               {mode === 'source' ? (
-                <SourceModeEditor content={displayContent} />
+                <Suspense fallback={<div className="feishu-markdown-body"><p className="feishu-paragraph">源码编辑器加载中...</p></div>}>
+                  <LazySourceModeEditor content={displayContent} />
+                </Suspense>
+              ) : mode === 'edit' ? (
+                <Suspense fallback={<div className="feishu-markdown-body"><p className="feishu-paragraph">编辑器加载中...</p></div>}>
+                  <LazyWysiwygEditor content={displayContent} editable />
+                </Suspense>
               ) : (
-                <WysiwygEditor content={displayContent} editable={mode === 'edit'} />
+                <div onDoubleClickCapture={handleActivateEditFromRead}>
+                  <MarkdownReadView content={displayContent} />
+                </div>
               )}
             </div>
           </div>

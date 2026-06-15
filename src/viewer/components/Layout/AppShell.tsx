@@ -8,6 +8,8 @@ const SIDEBAR_WIDTH_STORAGE_KEY = 'feishu-md-viewer-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 260;
 const MIN_SIDEBAR_WIDTH = 220;
 const MAX_SIDEBAR_WIDTH = 520;
+const MAIN_MIN_READABLE_WIDTH = 980;
+const MAIN_MAX_OFFSET = 400;
 
 interface AppShellProps {
   title: string;
@@ -53,6 +55,12 @@ function getStoredSidebarWidth(): number {
   return Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, stored));
 }
 
+export function computeMainOffset(sidebarWidth: number, viewportWidth: number): number {
+  if (!Number.isFinite(sidebarWidth) || !Number.isFinite(viewportWidth)) return 0;
+  const available = Math.max(0, viewportWidth - MAIN_MIN_READABLE_WIDTH);
+  return Math.max(0, Math.min(sidebarWidth, MAIN_MAX_OFFSET, available));
+}
+
 export function AppShell({
   title,
   tocItems,
@@ -67,6 +75,7 @@ export function AppShell({
   const [sidebarWidth, setSidebarWidth] = useState(getStoredSidebarWidth);
   const contentRef = useRef<HTMLElement | null>(null);
   const isDrawerMode = useIsDrawerMode();
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
 
   const handleToggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
@@ -94,6 +103,16 @@ export function AppShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDrawerMode]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   const mainClassName = [
     'feishu-app-shell__main',
     !sidebarOpen ? 'feishu-app-shell__main--collapsed' : '',
@@ -104,7 +123,10 @@ export function AppShell({
   return (
     <div
       className="feishu-app-shell"
-      style={{ '--feishu-sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
+      style={{
+        '--feishu-sidebar-width': `${sidebarWidth}px`,
+        '--feishu-main-offset': `${computeMainOffset(sidebarWidth, viewportWidth)}px`,
+      } as React.CSSProperties}
     >
       <a href="#main-content" className="feishu-skip-link">
         Skip to content

@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useViewerStore } from '@/viewer/store/index';
 
+function forceHistorySplit() {
+  useViewerStore.setState({ lastHistoryCommitAt: Date.now() - 5000 });
+}
+
 describe('Zustand ViewerStore', () => {
   beforeEach(() => {
     // Reset the store to a clean state before each test
@@ -12,6 +16,8 @@ describe('Zustand ViewerStore', () => {
       history: [],
       historyIndex: -1,
       sidebarOpen: true,
+      previewLockEnabled: false,
+      tocSmoothScrollEnabled: true,
     });
   });
 
@@ -43,6 +49,7 @@ describe('Zustand ViewerStore', () => {
     it('pushes to history', () => {
       const { initDocument } = useViewerStore.getState();
       initDocument('v1');
+      forceHistorySplit();
 
       const { setContent } = useViewerStore.getState();
       setContent('v2');
@@ -57,6 +64,7 @@ describe('Zustand ViewerStore', () => {
     it('reverts to previous content', () => {
       const { initDocument } = useViewerStore.getState();
       initDocument('v1');
+      forceHistorySplit();
 
       useViewerStore.getState().setContent('v2');
       useViewerStore.getState().undo();
@@ -82,6 +90,7 @@ describe('Zustand ViewerStore', () => {
     it('restores undone content', () => {
       const { initDocument } = useViewerStore.getState();
       initDocument('v1');
+      forceHistorySplit();
 
       useViewerStore.getState().setContent('v2');
       useViewerStore.getState().undo();
@@ -95,6 +104,7 @@ describe('Zustand ViewerStore', () => {
     it('at end of history does nothing', () => {
       const { initDocument } = useViewerStore.getState();
       initDocument('v1');
+      forceHistorySplit();
 
       useViewerStore.getState().setContent('v2');
       useViewerStore.getState().redo();
@@ -106,17 +116,18 @@ describe('Zustand ViewerStore', () => {
   });
 
   describe('history cap', () => {
-    it('is capped at 50 entries', () => {
+    it('is capped at 20 entries', () => {
       const { initDocument } = useViewerStore.getState();
       initDocument('v0');
 
       // Push 55 more entries (total would be 56 without cap)
       for (let i = 1; i <= 55; i++) {
+        forceHistorySplit();
         useViewerStore.getState().setContent(`v${i}`);
       }
 
       const state = useViewerStore.getState();
-      expect(state.history.length).toBe(50);
+      expect(state.history.length).toBe(20);
       // The latest content should still be accessible
       expect(state.content).toBe('v55');
     });

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createUniqueHeadingIdFactory } from '../../../utils/heading-slug';
 
 type CalloutType = 'note' | 'tip' | 'warning' | 'important' | 'caution';
 
@@ -156,6 +157,29 @@ function buildPresentationRules(editor: HTMLElement): string {
   return rules.join('\n');
 }
 
+function normalizeHeadings(editor: HTMLElement): void {
+  const getUniqueId = createUniqueHeadingIdFactory();
+  const headings = editor.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6');
+
+  headings.forEach((heading) => {
+    const text = heading.textContent?.trim() ?? '';
+    const id = getUniqueId(text);
+    const level = Number(heading.tagName.slice(1));
+
+    if (id) {
+      heading.id = id;
+    }
+
+    heading.classList.add('feishu-heading');
+    for (let idx = 1; idx <= 6; idx += 1) {
+      heading.classList.remove(`feishu-h${idx}`);
+    }
+    if (Number.isInteger(level) && level >= 1 && level <= 6) {
+      heading.classList.add(`feishu-h${level}`);
+    }
+  });
+}
+
 export function useEditorDocumentPresentation(container: HTMLElement | null) {
   useEffect(() => {
     if (!container) return;
@@ -168,7 +192,13 @@ export function useEditorDocumentPresentation(container: HTMLElement | null) {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
         const editor = container.querySelector('.ProseMirror') as HTMLElement | null;
-        style.textContent = editor ? buildPresentationRules(editor) : '';
+        if (!editor) {
+          style.textContent = '';
+          return;
+        }
+
+        normalizeHeadings(editor);
+        style.textContent = buildPresentationRules(editor);
       });
     };
 

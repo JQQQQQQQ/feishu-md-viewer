@@ -12,6 +12,7 @@ const LONG_UNBROKEN_TEXT_THRESHOLD = 24;
 const VERY_LONG_UNBROKEN_TEXT_THRESHOLD = 48;
 const TABLE_VIEWPORT_GUTTER = 48;
 const MAX_WIDE_TABLE_WIDTH = 1320;
+const HORIZONTAL_OVERFLOW_TOLERANCE_PX = 1;
 
 interface TableBaseBox {
   left: number;
@@ -92,6 +93,65 @@ export function getTableLayoutMode(table: HTMLTableElement): TableLayoutMode {
   if (columnCount >= RIGHT_WIDE_COLUMN_THRESHOLD) return 'right';
   if (columnCount >= CONTENT_AWARE_COLUMN_THRESHOLD && contentPressure !== 'low') return 'right';
   return 'normal';
+}
+
+function setModeClass(wrapper: HTMLElement, mode: TableLayoutMode): void {
+  wrapper.classList.toggle('feishu-table-wrapper--wide-right', mode === 'right');
+  wrapper.classList.toggle('feishu-table-wrapper--wide-balanced', mode === 'balanced');
+}
+
+function hasHorizontalOverflow(wrapper: HTMLElement, table: HTMLTableElement): boolean {
+  const wrapperOverflow = wrapper.scrollWidth - wrapper.clientWidth > HORIZONTAL_OVERFLOW_TOLERANCE_PX;
+  const tableOverflow = table.scrollWidth - wrapper.clientWidth > HORIZONTAL_OVERFLOW_TOLERANCE_PX;
+  return wrapperOverflow || tableOverflow;
+}
+
+function withTemporaryLayoutMode<T>(
+  wrapper: HTMLElement,
+  mode: TableLayoutMode,
+  run: () => T,
+): T {
+  const prevIsRight = wrapper.classList.contains('feishu-table-wrapper--wide-right');
+  const prevIsBalanced = wrapper.classList.contains('feishu-table-wrapper--wide-balanced');
+  const prevWideWidth = wrapper.style.getPropertyValue('--feishu-table-wide-width');
+  const prevWideOffset = wrapper.style.getPropertyValue('--feishu-table-wide-offset');
+
+  setModeClass(wrapper, mode);
+  updateTableWideWidth(wrapper, mode);
+
+  try {
+    return run();
+  } finally {
+    wrapper.classList.toggle('feishu-table-wrapper--wide-right', prevIsRight);
+    wrapper.classList.toggle('feishu-table-wrapper--wide-balanced', prevIsBalanced);
+    if (prevWideWidth) {
+      wrapper.style.setProperty('--feishu-table-wide-width', prevWideWidth);
+    } else {
+      wrapper.style.removeProperty('--feishu-table-wide-width');
+    }
+
+    if (prevWideOffset) {
+      wrapper.style.setProperty('--feishu-table-wide-offset', prevWideOffset);
+    } else {
+      wrapper.style.removeProperty('--feishu-table-wide-offset');
+    }
+  }
+}
+
+export function resolveTableLayoutMode(
+  wrapper: HTMLElement,
+  table: HTMLTableElement,
+  preferredMode: TableLayoutMode,
+): TableLayoutMode {
+  if (preferredMode !== 'right') {
+    return preferredMode;
+  }
+
+  const overflowAfterRightExpand = withTemporaryLayoutMode(wrapper, 'right', () =>
+    hasHorizontalOverflow(wrapper, table),
+  );
+
+  return overflowAfterRightExpand ? 'balanced' : 'right';
 }
 
 function getTableBaseBox(wrapper: HTMLElement): TableBaseBox {
