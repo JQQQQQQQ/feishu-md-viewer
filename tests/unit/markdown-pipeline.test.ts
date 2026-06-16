@@ -208,17 +208,18 @@ Next body`);
       const sections = container.querySelectorAll<HTMLElement>('.feishu-section--level-2');
       const parentSection = sections[0];
       const nextSection = sections[1];
+      const hiddenMarkerAttr = 'data-feishu-heading-hidden-by';
 
       expect(toggle).not.toBeNull();
-      expect(parentSection?.hidden).toBe(false);
-      expect(nextSection?.hidden).toBe(false);
+      expect(parentSection?.hasAttribute(hiddenMarkerAttr)).toBe(false);
+      expect(nextSection?.hasAttribute(hiddenMarkerAttr)).toBe(false);
 
       fireEvent.click(toggle as HTMLButtonElement);
-      expect(parentSection?.hidden).toBe(true);
-      expect(nextSection?.hidden).toBe(false);
+      expect(parentSection?.hasAttribute(hiddenMarkerAttr)).toBe(true);
+      expect(nextSection?.hasAttribute(hiddenMarkerAttr)).toBe(false);
 
       fireEvent.click(toggle as HTMLButtonElement);
-      expect(parentSection?.hidden).toBe(false);
+      expect(parentSection?.hasAttribute(hiddenMarkerAttr)).toBe(false);
     });
 
     it('renders GitHub-style callout blockquotes', () => {
