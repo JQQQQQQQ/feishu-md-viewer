@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Feishu MD Viewer",
-  "version": "0.1.0",
-  "description": "Render Markdown files with Feishu (Lark) document styling and Mermaid diagram support",
+  "short_name": "Feishu MD",
+  "version": "1.0.0",
+  "author": "JQQQQQQQ",
+  "homepage_url": "https://github.com/JQQQQQQQ/feishu-md-viewer",
+  "description": "Render Markdown and Mermaid diagrams with Feishu (Lark) document styling. Supports local .md files, GitHub, and GitLab.",
   "permissions": ["activeTab", "storage", "contextMenus"],
   "host_permissions": [
     "file:///*",
