@@ -65,7 +65,7 @@ describe('markdown-pipeline', () => {
         value: { setData },
       });
 
-      fireEvent.mouseDown(cells[0] as HTMLTableCellElement, { clientX: 100, clientY: 100 });
+      fireEvent.mouseDown(cells[0] as HTMLTableCellElement, { altKey: true, buttons: 1, clientX: 100, clientY: 100 });
       fireEvent.mouseMove(document, { clientX: 108, clientY: 140 });
       fireEvent.mouseOver(cells[2] as HTMLTableCellElement, { clientX: 108, clientY: 140 });
       fireEvent.mouseUp(document, { clientX: 108, clientY: 140 });
@@ -105,7 +105,7 @@ describe('markdown-pipeline', () => {
         value: { setData },
       });
 
-      fireEvent.mouseDown(cells[0] as HTMLTableCellElement);
+      fireEvent.mouseDown(cells[0] as HTMLTableCellElement, { altKey: true, buttons: 1 });
       document.dispatchEvent(shadowMouseDown);
       document.dispatchEvent(copyEvent);
 
@@ -127,7 +127,7 @@ describe('markdown-pipeline', () => {
         value: { writeText },
       });
 
-      fireEvent.mouseDown(cells[0] as HTMLTableCellElement, { clientX: 100, clientY: 100 });
+      fireEvent.mouseDown(cells[0] as HTMLTableCellElement, { altKey: true, buttons: 1, clientX: 100, clientY: 100 });
       fireEvent.mouseMove(document, { clientX: 108, clientY: 140 });
       fireEvent.mouseOver(cells[2] as HTMLTableCellElement, { clientX: 108, clientY: 140 });
       fireEvent.mouseUp(document, { clientX: 108, clientY: 140 });
@@ -151,7 +151,7 @@ describe('markdown-pipeline', () => {
         value: { writeText },
       });
 
-      fireEvent.mouseDown(firstCell as HTMLTableCellElement);
+      fireEvent.mouseDown(firstCell as HTMLTableCellElement, { altKey: true, buttons: 1 });
       fireEvent.keyDown(document, { key: 'a', ctrlKey: true });
       fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
 

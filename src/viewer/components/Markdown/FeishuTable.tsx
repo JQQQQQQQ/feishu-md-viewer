@@ -14,6 +14,8 @@ import {
   type SelectionState,
 } from './FeishuTableSelection';
 import { persistTableColumnWidths, restorePersistedTableColumnWidths } from './FeishuTableColumnWidths';
+import { hasNativeTextSelection } from './table-native-selection';
+import { resolveTablePointerIntent } from './table-pointer-intent';
 
 interface FeishuTableProps extends HTMLAttributes<HTMLTableElement> { children?: ReactNode }
 
@@ -194,6 +196,13 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       return;
     }
 
+    const pointerIntent = resolveTablePointerIntent(event.nativeEvent, wrapperRef.current!, cell);
+    if (pointerIntent === 'text') {
+      resetSelection();
+      return;
+    }
+    if (pointerIntent === 'interactive') return;
+
     event.preventDefault();
     window.getSelection()?.removeAllRanges();
     focusWithoutScroll(wrapperRef.current);
@@ -204,7 +213,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     const anchorRowHeight = cell.getBoundingClientRect().height;
     anchorRowHeightRef.current = Number.isFinite(anchorRowHeight) ? anchorRowHeight : null;
     applySelection({ anchor: point, focus: point });
-  }, [applySelection]);
+  }, [applySelection, resetSelection]);
 
   const handleMouseOver = useCallback((event: MouseEvent<HTMLTableElement>) => {
     if (isResizingRef.current || !isDraggingRef.current || !selectionRef.current) return;
@@ -273,6 +282,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     };
 
     const handleCopy = (event: ClipboardEvent) => {
+      const wrapper = wrapperRef.current;
+      if (wrapper && hasNativeTextSelection(wrapper)) return;
       if (!copiedRef.current.text) return;
 
       event.preventDefault();
@@ -286,6 +297,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       const table = tableRef.current;
       const activeElement = wrapper ? getActiveElement(wrapper) : null;
       const isTableActive = Boolean(wrapper && activeElement && wrapper.contains(activeElement));
+
+      if (event.key.toLowerCase() === 'c' && wrapper && hasNativeTextSelection(wrapper)) return;
 
       if (event.key.toLowerCase() === 'a' && isTableActive && table) {
         const nextSelection = getWholeTableSelection(table);

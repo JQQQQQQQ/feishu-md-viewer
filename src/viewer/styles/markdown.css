@@ -524,7 +524,7 @@
   min-width: 92px;
   max-width: 240px;
   width: max-content;
-  user-select: none;
+  user-select: text;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: normal;
@@ -540,7 +540,7 @@
   min-width: 92px;
   max-width: 280px;
   width: max-content;
-  user-select: none;
+  user-select: text;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: normal;

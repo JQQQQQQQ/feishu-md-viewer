@@ -13,12 +13,12 @@ function TableHarness() {
       </thead>
       <tbody>
         <tr>
-          <td>R1C1</td>
-          <td>R1C2</td>
+          <td />
+          <td />
         </tr>
         <tr>
-          <td>R2C1</td>
-          <td>R2C2</td>
+          <td />
+          <td />
         </tr>
       </tbody>
     </FeishuTable>
@@ -126,5 +126,46 @@ describe('FeishuTable selection', () => {
     fireEvent.mouseDown(firstDataCell, { button: 0, clientX: 100, clientY: 100 });
 
     expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+  });
+
+  it('does not hijack mousedown when the pointer is on selectable cell text', () => {
+    const preventDefault = vi.fn();
+    const { container } = render(<TableHarness />);
+    const table = getSourceTable(container);
+    const cell = table.rows[1]?.cells[0] as HTMLTableCellElement;
+    cell.textContent = 'R1C1';
+    const caretSpy = vi.fn(() => ({
+      commonAncestorContainer: cell.firstChild,
+    } as Range));
+    Object.defineProperty(document, 'caretRangeFromPoint', { configurable: true, value: caretSpy });
+
+    fireEvent.mouseDown(cell, { button: 0, buttons: 1, clientX: 100, clientY: 100, preventDefault });
+
+    expect(caretSpy).toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(readSelectedDataRows(table)).toHaveLength(0);
+  });
+
+  it('lets the browser copy a partial native text selection instead of table TSV', () => {
+    const { container } = render(<TableHarness />);
+    const table = getSourceTable(container);
+    const cell = table.rows[1]?.cells[0] as HTMLTableCellElement;
+    cell.textContent = 'R1C1';
+    const text = cell.firstChild;
+    if (!text) throw new Error('Cell text is missing.');
+
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 2);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    const preventDefault = vi.fn();
+    const setData = vi.fn();
+    fireEvent.copy(document, { preventDefault, clipboardData: { setData } });
+
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(setData).not.toHaveBeenCalled();
+    window.getSelection()?.removeAllRanges();
   });
 });
