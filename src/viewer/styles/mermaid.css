@@ -35,7 +35,6 @@
 }
 
 .mermaid-toolbar__preview-btn,
-.mermaid-toolbar__edit-btn,
 .mermaid-toolbar__export-btn {
   display: inline-flex;
   align-items: center;
@@ -52,14 +51,12 @@
 }
 
 .mermaid-toolbar__preview-btn:hover,
-.mermaid-toolbar__edit-btn:hover,
 .mermaid-toolbar__export-btn:hover {
   background-color: var(--feishu-bg-page);
   color: var(--feishu-text-primary);
 }
 
 .mermaid-toolbar__preview-btn:focus-visible,
-.mermaid-toolbar__edit-btn:focus-visible,
 .mermaid-toolbar__export-btn:focus-visible {
   outline: 2px solid var(--feishu-brand-primary);
   outline-offset: 1px;
@@ -232,4 +229,3 @@
     padding: 24px;
   }
 }
-

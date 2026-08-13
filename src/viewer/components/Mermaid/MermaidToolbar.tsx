@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef, type ReactNode } from 'react';
-import { MermaidEditor } from './MermaidEditor';
 import { MermaidPreviewModal } from './MermaidPreviewModal';
-import { useViewerStore } from '../../store';
 
 interface MermaidToolbarProps {
   code: string;
@@ -19,19 +17,9 @@ function downloadBlob(blob: Blob, filename: string): void {
 }
 
 export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarProps) {
-  const mode = useViewerStore((s) => s.mode);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSvg, setPreviewSvg] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleEdit = useCallback(() => {
-    setIsEditorOpen(true);
-  }, []);
-
-  const handleCloseEditor = useCallback(() => {
-    setIsEditorOpen(false);
-  }, []);
 
   const getSvgElement = useCallback((): SVGElement | null => {
     if (!containerRef.current) return null;
@@ -104,7 +92,7 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
     img.src = url;
   }, [getSerializedSvg, blockIndex]);
 
-  // Show export buttons always (read or edit mode), edit button only in edit mode
+  // 预览版保留图表查看、复制和导出操作，不提供源码编辑入口。
   return (
     <div className="mermaid-toolbar-wrapper" ref={containerRef} data-mermaid-block-index={blockIndex}>
       <div className="mermaid-toolbar">
@@ -120,31 +108,6 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
           </svg>
           预览
         </button>
-        {mode === 'edit' && (
-          <button
-            className="mermaid-toolbar__edit-btn"
-            onClick={handleEdit}
-            type="button"
-            aria-label="Edit Mermaid diagram"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M10.5 1.75L12.25 3.5M1.75 12.25L2.333 9.917L10.083 2.167L11.833 3.917L4.083 11.667L1.75 12.25Z"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            编辑
-          </button>
-        )}
         <button
           className="mermaid-toolbar__export-btn"
           onClick={() => { void handleCopySource(); }}
@@ -182,13 +145,6 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
         </button>
       </div>
       {children}
-      {isEditorOpen && (
-        <MermaidEditor
-          code={code}
-          blockIndex={blockIndex}
-          onClose={handleCloseEditor}
-        />
-      )}
       {isPreviewOpen && previewSvg && (
         <MermaidPreviewModal svg={previewSvg} onClose={handleClosePreview} />
       )}

@@ -1,15 +1,9 @@
 import { useViewerStore, type ThemeMode } from '../../store';
-import type { SaveStatusState } from '../Common/SaveStatus';
 
 interface TopBarProps {
   title: string;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
-  onSave?: () => void;
-  saveStatus?: SaveStatusState;
-  saveError?: string | null;
-  lastSaved?: Date | null;
-  showSaveControls?: boolean;
 }
 
 const THEME_ICONS: Record<ThemeMode, string> = {
