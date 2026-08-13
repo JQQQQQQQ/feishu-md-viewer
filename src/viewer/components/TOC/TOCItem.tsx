@@ -12,6 +12,7 @@ export function TOCItem({ item, activeId, onNavigate, tocPath }: TOCItemProps) {
   const [expanded, setExpanded] = useState(true);
   const isActive = activeId === item.id;
   const hasChildren = item.children.length > 0;
+  const isMajorHeading = item.level === 1 || item.level === 2;
 
   const handleClick = useCallback(() => {
     onNavigate(item.id);
@@ -39,7 +40,7 @@ export function TOCItem({ item, activeId, onNavigate, tocPath }: TOCItemProps) {
   return (
     <li className="feishu-toc__item" role="treeitem" aria-selected={isActive} aria-expanded={hasChildren ? expanded : undefined}>
       <div
-        className={`feishu-toc__link ${isActive ? 'feishu-toc__link--active' : ''}`}
+        className={`feishu-toc__link ${isMajorHeading ? 'feishu-toc__link--major' : ''} ${isActive ? 'feishu-toc__link--active' : ''}`}
         style={{ paddingLeft: `${(item.level - 1) * 12 + 12}px` }}
         onClick={handleClick}
         onKeyDown={handleKeyDown}

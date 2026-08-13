@@ -348,6 +348,10 @@
   transition: background-color 150ms ease, color 150ms ease;
 }
 
+.feishu-toc__link--major {
+  font-weight: 600;
+}
+
 .feishu-toc__link:hover {
   background-color: var(--feishu-code-bg);
 }
@@ -357,6 +361,10 @@
   background-color: var(--feishu-blockquote-bg, #f0f5ff);
   border-left: 3px solid var(--feishu-brand-primary);
   font-weight: 500;
+}
+
+.feishu-toc__link--active.feishu-toc__link--major {
+  font-weight: 600;
 }
 
 .feishu-toc__toggle {

@@ -14,6 +14,31 @@ function createItem(overrides: Partial<TOCItemType> = {}): TOCItemType {
 }
 
 describe('TOCItem', () => {
+  it('marks H1 and H2 items as major headings', () => {
+    const { rerender } = render(
+      <ul role="tree">
+        <TOCItem item={createItem({ level: 1 })} activeId="" onNavigate={vi.fn()} tocPath="root" />
+      </ul>
+    );
+    expect(screen.getByRole('link').classList.contains('feishu-toc__link--major')).toBe(true);
+
+    rerender(
+      <ul role="tree">
+        <TOCItem item={createItem({ level: 2 })} activeId="" onNavigate={vi.fn()} tocPath="root" />
+      </ul>
+    );
+    expect(screen.getByRole('link').classList.contains('feishu-toc__link--major')).toBe(true);
+  });
+
+  it('keeps H3 and deeper items at the normal hierarchy weight', () => {
+    render(
+      <ul role="tree">
+        <TOCItem item={createItem({ level: 3 })} activeId="" onNavigate={vi.fn()} tocPath="root" />
+      </ul>
+    );
+    expect(screen.getByRole('link').classList.contains('feishu-toc__link--major')).toBe(false);
+  });
+
   it('renders item text', () => {
     const item = createItem({ text: 'Introduction' });
     render(
