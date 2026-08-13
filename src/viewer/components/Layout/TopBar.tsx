@@ -1,6 +1,5 @@
 import { useViewerStore, type ThemeMode } from '../../store';
-import { notifyModeChangeStart } from '../../hooks/useModeScrollRestore';
-import { SaveStatus, type SaveStatusState } from '../Common/SaveStatus';
+import type { SaveStatusState } from '../Common/SaveStatus';
 
 interface TopBarProps {
   title: string;
@@ -29,52 +28,16 @@ export function TopBar({
   title,
   isSidebarOpen,
   onToggleSidebar,
-  onSave,
-  saveStatus = 'saved',
-  saveError,
-  lastSaved,
-  showSaveControls = false,
 }: TopBarProps) {
-  const mode = useViewerStore((s) => s.mode);
-  const setMode = useViewerStore((s) => s.setMode);
-  const previewLockEnabled = useViewerStore((s) => s.previewLockEnabled);
-  const isDirty = useViewerStore((s) => s.isDirty);
   const theme = useViewerStore((s) => s.theme);
   const setTheme = useViewerStore((s) => s.setTheme);
   const fontSize = useViewerStore((s) => s.fontSize);
   const increaseFontSize = useViewerStore((s) => s.increaseFontSize);
   const decreaseFontSize = useViewerStore((s) => s.decreaseFontSize);
 
-  const handleToggleMode = () => {
-    if (previewLockEnabled) return;
-    notifyModeChangeStart();
-    setMode(mode === 'edit' ? 'read' : 'edit');
-  };
-
-  const handleToggleSource = () => {
-    if (previewLockEnabled) return;
-    notifyModeChangeStart();
-    setMode(mode === 'source' ? 'read' : 'source');
-  };
-
   const handleCycleTheme = () => {
     setTheme(THEME_CYCLE[theme]);
   };
-
-  const modeToggleClass = [
-    'feishu-topbar__mode-toggle',
-    mode === 'edit' ? 'feishu-topbar__mode-toggle--active' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  const sourceToggleClass = [
-    'feishu-topbar__mode-toggle',
-    mode === 'source' ? 'feishu-topbar__mode-toggle--active' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-  const isModeSwitchDisabled = previewLockEnabled && mode === 'read';
 
   return (
     <header className="feishu-topbar">
@@ -102,55 +65,6 @@ export function TopBar({
       )}
 
       <div className="feishu-topbar__actions">
-        <div
-          className={[
-            'feishu-topbar__save-section',
-            !showSaveControls ? 'feishu-topbar__save-section--reserved' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          aria-hidden={!showSaveControls}
-        >
-          <SaveStatus
-            status={saveStatus}
-            errorMessage={saveError ?? undefined}
-            lastSaved={lastSaved}
-          />
-          <button
-            className="feishu-topbar__save-btn"
-            onClick={onSave}
-            type="button"
-            aria-label="保存"
-            title="保存 (Ctrl+S)"
-            disabled={!showSaveControls || (!isDirty && saveStatus === 'saved')}
-            tabIndex={showSaveControls ? 0 : -1}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M12.667 14H3.333A1.333 1.333 0 0 1 2 12.667V3.333A1.333 1.333 0 0 1 3.333 2h7.334L14 5.333v7.334A1.333 1.333 0 0 1 12.667 14Z"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M11.333 14V9.333H4.667V14"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M4.667 2v3.333h5.333"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-
         {/* Font size controls */}
         <div className="feishu-topbar__font-controls" role="group" aria-label="Font size controls">
           <button
@@ -207,59 +121,6 @@ export function TopBar({
           )}
         </button>
 
-        <button
-          className={modeToggleClass}
-          onClick={handleToggleMode}
-          type="button"
-          aria-pressed={mode === 'edit'}
-          aria-label={isModeSwitchDisabled ? 'Preview mode is locked' : (mode === 'edit' ? 'Switch to read mode' : 'Switch to edit mode')}
-          title={isModeSwitchDisabled ? '已锁定为始终预览，可在设置中改为允许编辑' : undefined}
-          disabled={isModeSwitchDisabled}
-        >
-          {mode === 'edit' ? (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path
-                d="M1 7.5L5 11.5L13 3.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path
-                d="M10.5 1.75L12.25 3.5M1.75 12.25L2.333 9.917L10.083 2.167L11.833 3.917L4.083 11.667L1.75 12.25Z"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-          {mode === 'edit' ? '阅读' : '编辑'}
-          {isDirty && <span className="feishu-topbar__dirty-indicator" aria-label="Unsaved changes" />}
-        </button>
-        <button
-          className={sourceToggleClass}
-          onClick={handleToggleSource}
-          type="button"
-          aria-pressed={mode === 'source'}
-          aria-label={isModeSwitchDisabled ? 'Preview mode is locked' : (mode === 'source' ? 'Switch to read mode' : 'Switch to source mode')}
-          title={isModeSwitchDisabled ? '已锁定为始终预览，可在设置中改为允许编辑' : undefined}
-          disabled={isModeSwitchDisabled}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path
-              d="M5 3L2 7l3 4M9 3l3 4-3 4"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          {mode === 'source' ? '阅读' : '源码'}
-        </button>
       </div>
     </header>
   );

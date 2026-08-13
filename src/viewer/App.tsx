@@ -1,26 +1,11 @@
-import { Suspense, lazy, useEffect, useMemo, useCallback, type MouseEvent } from 'react';
+import { useEffect, useMemo } from 'react';
 import { type PageSource } from '../content/detector';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
-import { type SaveStatusState } from './components/Common/SaveStatus';
 import { MarkdownReadView } from './components/Markdown/MarkdownReadView';
 import { AppShell } from './components/Layout/AppShell';
 import { ReadingProgress } from './components/Layout/ReadingProgress';
 import { useTOC } from './hooks/useTOC';
-import { useFileAccess } from './hooks/useFileAccess';
-import { useAutoSave } from './hooks/useAutoSave';
-import { useBeforeUnload } from './hooks/useBeforeUnload';
-import { notifyModeChangeStart, useModeScrollRestore } from './hooks/useModeScrollRestore';
 import { useViewerStore } from './store';
-
-const HANDLE_STORAGE_KEY = 'current-document-handle';
-const LazyWysiwygEditor = lazy(async () => {
-  const module = await import('./components/Markdown/WysiwygEditor');
-  return { default: module.WysiwygEditor };
-});
-const LazySourceModeEditor = lazy(async () => {
-  const module = await import('./components/Markdown/Editor/SourceModeEditor');
-  return { default: module.SourceModeEditor };
-});
 
 interface AppProps {
   markdown: string;
@@ -46,26 +31,9 @@ function getThemeClass(theme: 'light' | 'dark' | 'system'): string {
 export function App({ markdown, source }: AppProps) {
   const initDocument = useViewerStore((s) => s.initDocument);
   const content = useViewerStore((s) => s.content);
-  const mode = useViewerStore((s) => s.mode);
-  const setMode = useViewerStore((s) => s.setMode);
-  const previewLockEnabled = useViewerStore((s) => s.previewLockEnabled);
-  const isDirty = useViewerStore((s) => s.isDirty);
   const theme = useViewerStore((s) => s.theme);
   const fontSize = useViewerStore((s) => s.fontSize);
   const loadSettings = useViewerStore((s) => s.loadSettings);
-
-  // File system access
-  const {
-    fileHandle,
-    error: fileError,
-    isSupported,
-    requestFileHandle,
-    saveToHandle,
-    downloadFallback,
-    restoreHandle,
-    persistHandle,
-    setFileHandle,
-  } = useFileAccess();
 
   // Load stored settings on mount
   useEffect(() => {
@@ -77,100 +45,15 @@ export function App({ markdown, source }: AppProps) {
     initDocument(markdown);
   }, [markdown, initDocument]);
 
-  // Attempt to restore previously saved file handle
-  useEffect(() => {
-    void restoreHandle(HANDLE_STORAGE_KEY);
-  }, [restoreHandle]);
-
-  // Save callback
-  const handleSave = useCallback(async () => {
-    const currentContent = useViewerStore.getState().content;
-    if (!currentContent) return;
-
-    if (!isSupported) {
-      downloadFallback(currentContent);
-      return;
-    }
-
-    let handle = fileHandle;
-
-    if (!handle) {
-      // First save — prompt file picker
-      handle = await requestFileHandle();
-      if (!handle) return; // User cancelled
-      setFileHandle(handle);
-      await persistHandle(HANDLE_STORAGE_KEY, handle);
-    }
-
-    await saveToHandle(handle, currentContent);
-  }, [
-    fileHandle,
-    isSupported,
-    requestFileHandle,
-    saveToHandle,
-    downloadFallback,
-    persistHandle,
-    setFileHandle,
-  ]);
-
-  // Auto-save (only in edit mode with a handle)
-  const autoSave = useAutoSave({
-    content: content || '',
-    fileHandle,
-    enabled: mode !== 'read' && isDirty && fileHandle !== null,
-    onSave: saveToHandle,
-  });
-
-  // Guard against accidental tab close with unsaved changes
-  useBeforeUnload(isDirty);
-  useModeScrollRestore(mode);
-
-  // Keyboard shortcut: Ctrl+S / Cmd+S
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-        event.preventDefault();
-        void handleSave();
-      }
-    };
-
-    document.addEventListener('keydown', handler);
-    return () => {
-      document.removeEventListener('keydown', handler);
-    };
-  }, [handleSave]);
-
   const tocItems = useTOC(content || markdown);
   const title = useMemo(() => extractTitle(content || markdown), [content, markdown]);
 
   const displayContent = content || markdown;
 
-  const handleActivateEditFromRead = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    if (previewLockEnabled) return;
-    if (mode !== 'read' || event.button !== 0) return;
-    if (!(event.target instanceof Element)) return;
-    if (event.target.closest('button, a, input, textarea, select, [role="button"]')) return;
-
-    notifyModeChangeStart();
-    setMode('edit');
-  }, [mode, previewLockEnabled, setMode]);
-
-  // Derive save status for the UI
-  const saveStatus: SaveStatusState = (() => {
-    if (autoSave.error || fileError) return 'error';
-    if (autoSave.isSaving) return 'saving';
-    if (isDirty) return 'unsaved';
-    return 'saved';
-  })();
-
-  const saveErrorMessage = autoSave.error || fileError;
-
   const themeClass = getThemeClass(theme);
   const viewerClasses = [
     'feishu-viewer',
-    mode === 'edit' ? 'feishu-viewer--editing' : '',
-    mode === 'source' ? 'feishu-viewer--source' : '',
-    mode === 'read' ? 'feishu-viewer--reading' : '',
+    'feishu-viewer--reading',
     themeClass,
   ]
     .filter(Boolean)
@@ -183,34 +66,17 @@ export function App({ markdown, source }: AppProps) {
         role="article"
         aria-label="Rendered markdown document"
         data-source={source}
-        data-mode={mode}
+        data-mode="read"
         style={{ '--feishu-font-size-body': `${fontSize}px` } as React.CSSProperties}
       >
         <ReadingProgress />
         <AppShell
           title={title}
           tocItems={tocItems}
-          onSave={handleSave}
-          saveStatus={saveStatus}
-          saveError={saveErrorMessage}
-          lastSaved={autoSave.lastSaved}
-          showSaveControls={mode !== 'read'}
         >
-          <div className="feishu-viewer__page" data-mode={mode}>
-            <div className="feishu-viewer__content" data-mode={mode}>
-              {mode === 'source' ? (
-                <Suspense fallback={<div className="feishu-markdown-body"><p className="feishu-paragraph">源码编辑器加载中...</p></div>}>
-                  <LazySourceModeEditor content={displayContent} />
-                </Suspense>
-              ) : mode === 'edit' ? (
-                <Suspense fallback={<div className="feishu-markdown-body"><p className="feishu-paragraph">编辑器加载中...</p></div>}>
-                  <LazyWysiwygEditor content={displayContent} editable />
-                </Suspense>
-              ) : (
-                <div onDoubleClickCapture={handleActivateEditFromRead}>
-                  <MarkdownReadView content={displayContent} />
-                </div>
-              )}
+          <div className="feishu-viewer__page" data-mode="read">
+            <div className="feishu-viewer__content" data-mode="read">
+              <MarkdownReadView content={displayContent} />
             </div>
           </div>
         </AppShell>
