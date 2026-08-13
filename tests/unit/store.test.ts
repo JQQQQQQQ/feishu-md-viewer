@@ -1,168 +1,49 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useViewerStore } from '@/viewer/store/index';
 
-function forceHistorySplit() {
-  useViewerStore.setState({ lastHistoryCommitAt: Date.now() - 5000 });
-}
-
-describe('Zustand ViewerStore', () => {
+describe('预览版 ViewerStore', () => {
   beforeEach(() => {
-    // Reset the store to a clean state before each test
+    vi.stubGlobal('chrome', {
+      storage: { local: { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockResolvedValue(undefined) } },
+    });
     useViewerStore.setState({
       content: '',
       originalContent: '',
-      isDirty: false,
       mode: 'read',
-      history: [],
-      historyIndex: -1,
-      sidebarOpen: true,
-      previewLockEnabled: false,
+      theme: 'system',
+      fontSize: 15,
       tocSmoothScrollEnabled: true,
     });
   });
 
-  describe('initDocument', () => {
-    it('sets content and originalContent, marks isDirty=false', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('# Hello World');
+  afterEach(() => vi.unstubAllGlobals());
 
-      const state = useViewerStore.getState();
-      expect(state.content).toBe('# Hello World');
-      expect(state.originalContent).toBe('# Hello World');
-      expect(state.isDirty).toBe(false);
+  it('加载遗留 edit/source 模式设置后归一化为 read', async () => {
+    const get = vi.fn().mockResolvedValue({ viewerSettings: { mode: 'edit', theme: 'dark' } });
+    vi.stubGlobal('chrome', { storage: { local: { get, set: vi.fn() } } });
+
+    await useViewerStore.getState().loadSettings();
+
+    expect(useViewerStore.getState().mode).toBe('read');
+    expect(useViewerStore.getState().theme).toBe('dark');
+  });
+
+  it('持久化阅读设置时不再写入自动保存或编辑锁定选项', () => {
+    const set = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('chrome', { storage: { local: { get: vi.fn(), set } } });
+
+    useViewerStore.getState().setTheme('dark');
+
+    expect(set).toHaveBeenCalledWith({
+      viewerSettings: { theme: 'dark', fontSize: 15, tocSmoothScrollEnabled: true },
     });
   });
 
-  describe('setContent', () => {
-    it('updates content and marks isDirty=true', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('original');
+  it('保留主题、字号和目录滚动设置', () => {
+    useViewerStore.getState().setFontSize(30);
+    useViewerStore.getState().setTocSmoothScrollEnabled(false);
 
-      const { setContent } = useViewerStore.getState();
-      setContent('modified');
-
-      const state = useViewerStore.getState();
-      expect(state.content).toBe('modified');
-      expect(state.isDirty).toBe(true);
-    });
-
-    it('pushes to history', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('v1');
-      forceHistorySplit();
-
-      const { setContent } = useViewerStore.getState();
-      setContent('v2');
-
-      const state = useViewerStore.getState();
-      expect(state.history).toEqual(['v1', 'v2']);
-      expect(state.historyIndex).toBe(1);
-    });
-  });
-
-  describe('undo', () => {
-    it('reverts to previous content', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('v1');
-      forceHistorySplit();
-
-      useViewerStore.getState().setContent('v2');
-      useViewerStore.getState().undo();
-
-      const state = useViewerStore.getState();
-      expect(state.content).toBe('v1');
-      expect(state.historyIndex).toBe(0);
-    });
-
-    it('at beginning of history does nothing', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('v1');
-
-      useViewerStore.getState().undo();
-
-      const state = useViewerStore.getState();
-      expect(state.content).toBe('v1');
-      expect(state.historyIndex).toBe(0);
-    });
-  });
-
-  describe('redo', () => {
-    it('restores undone content', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('v1');
-      forceHistorySplit();
-
-      useViewerStore.getState().setContent('v2');
-      useViewerStore.getState().undo();
-      useViewerStore.getState().redo();
-
-      const state = useViewerStore.getState();
-      expect(state.content).toBe('v2');
-      expect(state.historyIndex).toBe(1);
-    });
-
-    it('at end of history does nothing', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('v1');
-      forceHistorySplit();
-
-      useViewerStore.getState().setContent('v2');
-      useViewerStore.getState().redo();
-
-      const state = useViewerStore.getState();
-      expect(state.content).toBe('v2');
-      expect(state.historyIndex).toBe(1);
-    });
-  });
-
-  describe('history cap', () => {
-    it('is capped at 20 entries', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('v0');
-
-      // Push 55 more entries (total would be 56 without cap)
-      for (let i = 1; i <= 55; i++) {
-        forceHistorySplit();
-        useViewerStore.getState().setContent(`v${i}`);
-      }
-
-      const state = useViewerStore.getState();
-      expect(state.history.length).toBe(20);
-      // The latest content should still be accessible
-      expect(state.content).toBe('v55');
-    });
-  });
-
-  describe('setMode', () => {
-    it('switches between read, edit, and source', () => {
-      const { setMode } = useViewerStore.getState();
-
-      setMode('edit');
-      expect(useViewerStore.getState().mode).toBe('edit');
-
-      setMode('source');
-      expect(useViewerStore.getState().mode).toBe('source');
-
-      setMode('read');
-      expect(useViewerStore.getState().mode).toBe('read');
-    });
-  });
-
-  describe('resetDocument', () => {
-    it('restores originalContent and clears dirty flag', () => {
-      const { initDocument } = useViewerStore.getState();
-      initDocument('original content');
-
-      useViewerStore.getState().setContent('modified content');
-      expect(useViewerStore.getState().isDirty).toBe(true);
-
-      useViewerStore.getState().resetDocument();
-
-      const state = useViewerStore.getState();
-      expect(state.content).toBe('original content');
-      expect(state.isDirty).toBe(false);
-      expect(state.history).toEqual(['original content']);
-      expect(state.historyIndex).toBe(0);
-    });
+    expect(useViewerStore.getState().fontSize).toBe(24);
+    expect(useViewerStore.getState().tocSmoothScrollEnabled).toBe(false);
   });
 });

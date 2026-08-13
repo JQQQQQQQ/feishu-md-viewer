@@ -5,16 +5,12 @@ type ThemeMode = 'light' | 'dark' | 'system';
 interface Settings {
   theme: ThemeMode;
   fontSize: number;
-  autoSaveEnabled: boolean;
-  previewLockEnabled: boolean;
   tocSmoothScrollEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   fontSize: 15,
-  autoSaveEnabled: true,
-  previewLockEnabled: false,
   tocSmoothScrollEnabled: true,
 };
 
@@ -38,8 +34,6 @@ export function Options() {
           setSettings({
             theme: stored.theme ?? DEFAULT_SETTINGS.theme,
             fontSize: stored.fontSize ?? DEFAULT_SETTINGS.fontSize,
-            autoSaveEnabled: stored.autoSaveEnabled ?? DEFAULT_SETTINGS.autoSaveEnabled,
-            previewLockEnabled: stored.previewLockEnabled ?? DEFAULT_SETTINGS.previewLockEnabled,
             tocSmoothScrollEnabled: stored.tocSmoothScrollEnabled ?? DEFAULT_SETTINGS.tocSmoothScrollEnabled,
           });
         }
@@ -70,18 +64,6 @@ export function Options() {
   const handleFontSizeChange = useCallback((fontSize: number) => {
     const clamped = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, fontSize));
     const newSettings = { ...settings, fontSize: clamped };
-    setSettings(newSettings);
-    void saveSettings(newSettings);
-  }, [settings, saveSettings]);
-
-  const handleAutoSaveChange = useCallback((autoSaveEnabled: boolean) => {
-    const newSettings = { ...settings, autoSaveEnabled };
-    setSettings(newSettings);
-    void saveSettings(newSettings);
-  }, [settings, saveSettings]);
-
-  const handlePreviewLockChange = useCallback((previewLockEnabled: boolean) => {
-    const newSettings = { ...settings, previewLockEnabled };
     setSettings(newSettings);
     void saveSettings(newSettings);
   }, [settings, saveSettings]);
@@ -164,55 +146,6 @@ export function Options() {
               style={styles.slider}
               aria-label="Font size slider"
             />
-          </div>
-        </section>
-
-        {/* Auto-save toggle */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>Auto-Save</h2>
-          <p style={styles.description}>
-            Automatically save changes when editing documents.
-          </p>
-          <label style={styles.toggleLabel}>
-            <input
-              type="checkbox"
-              checked={settings.autoSaveEnabled}
-              onChange={(e) => handleAutoSaveChange(e.target.checked)}
-              style={styles.checkbox}
-            />
-            <span style={styles.toggleText}>
-              {settings.autoSaveEnabled ? 'Auto-save enabled' : 'Auto-save disabled'}
-            </span>
-          </label>
-        </section>
-
-        {/* Interaction mode */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>Interaction Mode</h2>
-          <p style={styles.description}>
-            Choose whether this viewer stays in preview mode or allows editing/source mode.
-          </p>
-          <div style={styles.radioGroup} role="radiogroup" aria-label="Interaction mode selection">
-            <label style={styles.radioLabel}>
-              <input
-                type="radio"
-                name="interaction-mode"
-                checked={settings.previewLockEnabled}
-                onChange={() => handlePreviewLockChange(true)}
-                style={styles.radioInput}
-              />
-              <span style={styles.radioText}>Always preview (lock editing)</span>
-            </label>
-            <label style={styles.radioLabel}>
-              <input
-                type="radio"
-                name="interaction-mode"
-                checked={!settings.previewLockEnabled}
-                onChange={() => handlePreviewLockChange(false)}
-                style={styles.radioInput}
-              />
-              <span style={styles.radioText}>Allow editing</span>
-            </label>
           </div>
         </section>
 

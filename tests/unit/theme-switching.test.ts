@@ -6,8 +6,6 @@ describe('Theme switching & settings', () => {
     useViewerStore.setState({
       theme: 'system',
       fontSize: 15,
-      autoSaveEnabled: true,
-      previewLockEnabled: false,
       tocSmoothScrollEnabled: true,
     });
   });

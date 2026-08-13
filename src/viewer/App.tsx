@@ -29,8 +29,6 @@ function getThemeClass(theme: 'light' | 'dark' | 'system'): string {
 }
 
 export function App({ markdown, source }: AppProps) {
-  const initDocument = useViewerStore((s) => s.initDocument);
-  const content = useViewerStore((s) => s.content);
   const theme = useViewerStore((s) => s.theme);
   const fontSize = useViewerStore((s) => s.fontSize);
   const loadSettings = useViewerStore((s) => s.loadSettings);
@@ -40,15 +38,8 @@ export function App({ markdown, source }: AppProps) {
     void loadSettings();
   }, [loadSettings]);
 
-  // Initialize the store with the markdown content
-  useEffect(() => {
-    initDocument(markdown);
-  }, [markdown, initDocument]);
-
-  const tocItems = useTOC(content || markdown);
-  const title = useMemo(() => extractTitle(content || markdown), [content, markdown]);
-
-  const displayContent = content || markdown;
+  const tocItems = useTOC(markdown);
+  const title = useMemo(() => extractTitle(markdown), [markdown]);
 
   const themeClass = getThemeClass(theme);
   const viewerClasses = [
@@ -76,7 +67,7 @@ export function App({ markdown, source }: AppProps) {
         >
           <div className="feishu-viewer__page" data-mode="read">
             <div className="feishu-viewer__content" data-mode="read">
-              <MarkdownReadView content={displayContent} />
+              <MarkdownReadView content={markdown} />
             </div>
           </div>
         </AppShell>
