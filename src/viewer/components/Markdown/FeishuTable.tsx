@@ -246,6 +246,9 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     const observer = new ResizeObserver(updateWideLayout);
     observer.observe(wrapper);
     observer.observe(table);
+    if (wrapper.parentElement) observer.observe(wrapper.parentElement);
+    const main = wrapper.closest('.feishu-app-shell__main');
+    if (main instanceof HTMLElement) observer.observe(main);
     window.addEventListener('resize', updateWideLayout);
 
     return () => {

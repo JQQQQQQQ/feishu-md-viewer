@@ -128,6 +128,25 @@ describe('FeishuTable selection', () => {
     expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
   });
 
+  it('observes the content parent so sidebar resizing recalculates table width', () => {
+    const observed: Element[] = [];
+    class TestResizeObserver {
+      observe(target: Element) { observed.push(target); }
+      disconnect() {}
+    }
+    const previousResizeObserver = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = TestResizeObserver as unknown as typeof ResizeObserver;
+
+    try {
+      const { container } = render(<TableHarness />);
+      const wrapper = container.querySelector('.feishu-table-wrapper');
+      expect(wrapper).not.toBeNull();
+      expect(observed).toContain(wrapper?.parentElement);
+    } finally {
+      globalThis.ResizeObserver = previousResizeObserver;
+    }
+  });
+
   it('does not hijack mousedown when the pointer is on selectable cell text', () => {
     const preventDefault = vi.fn();
     const { container } = render(<TableHarness />);
