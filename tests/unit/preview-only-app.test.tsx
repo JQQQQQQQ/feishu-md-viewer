@@ -96,7 +96,7 @@ describe('预览专用 App 入口', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
-  it('挂载时不依赖文档状态，并保留阅读控件', () => {
+  it('Chrome 兼容包装器显式启用阅读设置控件', () => {
     renderApp();
 
     expect(screen.getByRole('navigation', { name: 'Table of contents' })).not.toBeNull();
