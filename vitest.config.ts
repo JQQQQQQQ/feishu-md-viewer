@@ -13,7 +13,7 @@ export default defineConfig({
     },
     globals: true,
     environment: 'jsdom',
-    include: ['tests/**/*.test.{ts,tsx}', 'vscode-extension/tests/**/*.test.ts'],
+    include: ['tests/**/*.test.{ts,tsx}', 'vscode-extension/tests/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'text-summary'],

@@ -13,6 +13,10 @@ declare module 'vscode' {
     toString(): string;
   }
 
+  export namespace Uri {
+    function joinPath(base: Uri, ...pathSegments: string[]): Uri;
+  }
+
   export interface TextDocument {
     readonly uri: Uri;
     readonly version: number;
@@ -35,8 +39,17 @@ declare module 'vscode' {
   }
 
   export interface Webview {
+    cspSource: string;
+    html: string;
+    options: WebviewOptions;
+    asWebviewUri(localResource: Uri): Uri;
     postMessage(message: unknown): PromiseLike<boolean>;
     onDidReceiveMessage(listener: (message: unknown) => void): Disposable;
+  }
+
+  export interface WebviewOptions {
+    enableScripts?: boolean;
+    localResourceRoots?: readonly Uri[];
   }
 
   export interface WebviewPanel {
@@ -59,6 +72,7 @@ declare module 'vscode' {
 
   export interface ExtensionContext {
     readonly subscriptions: Disposable[];
+    readonly extensionUri: Uri;
   }
 
   export namespace workspace {
