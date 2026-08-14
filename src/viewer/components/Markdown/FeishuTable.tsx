@@ -63,6 +63,25 @@ function eventPathContains(event: Event, node: Node): boolean { return event.com
 
 function mergeClassName(base: string, className?: string): string { return className ? `${base} ${className}` : base }
 
+async function writeTableClipboard(text: string, html: string): Promise<void> {
+  const clipboard = navigator.clipboard;
+  if (clipboard?.write && typeof ClipboardItem !== 'undefined') {
+    const item = new ClipboardItem({
+      'text/plain': new Blob([text], { type: 'text/plain' }),
+      'text/html': new Blob([html], { type: 'text/html' }),
+    });
+
+    try {
+      await clipboard.write([item]);
+      return;
+    } catch {
+      // Fall through to the plain-text path for browsers or permissions that reject rich clipboard writes.
+    }
+  }
+
+  await clipboard?.writeText(text);
+}
+
 function getActiveElement(node: HTMLElement): Element | null {
   const root = node.getRootNode();
   return root instanceof ShadowRoot ? root.activeElement : document.activeElement;
@@ -316,7 +335,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       if (!copiedRef.current.text || event.key.toLowerCase() !== 'c') return;
 
       event.preventDefault();
-      void navigator.clipboard?.writeText(copiedRef.current.text);
+      void writeTableClipboard(copiedRef.current.text, copiedRef.current.html);
     };
 
     const handleMouseDown = (event: globalThis.MouseEvent) => {

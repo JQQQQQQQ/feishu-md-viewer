@@ -64,7 +64,7 @@ describe('FeishuTableSelection', () => {
     expect(text).toBe('A\n1\n3');
     expect(html).toContain('<table style="');
     expect(html).toContain('<thead>');
-    expect(html).toContain('<th style="');
+    expect(html).toContain('<th scope="col" style="');
     expect(html).toContain('font-weight:600');
     expect(html).toContain('background:#f5f6f7');
     expect(html).toContain('>A</th>');

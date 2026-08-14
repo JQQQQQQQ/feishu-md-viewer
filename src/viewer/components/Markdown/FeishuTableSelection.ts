@@ -137,7 +137,8 @@ export function renderTableSelectionHtml(table: HTMLTableElement, selection: Sel
       const cell = row.cells[colIndex];
       const tag = cell?.tagName.toLowerCase() === 'th' ? 'th' : 'td';
       const style = tag === 'th' ? HEADER_CELL_COPY_STYLE : BODY_CELL_COPY_STYLE;
-      selectedCells.push(`<${tag} style="${style}">${escapeHtml(cell ? getCellText(cell) : '')}</${tag}>`);
+      const scope = tag === 'th' ? ' scope="col"' : '';
+      selectedCells.push(`<${tag}${scope} style="${style}">${escapeHtml(cell ? getCellText(cell) : '')}</${tag}>`);
       renderedCellCount += 1;
       if (tag === 'th') headerCellCount += 1;
     }

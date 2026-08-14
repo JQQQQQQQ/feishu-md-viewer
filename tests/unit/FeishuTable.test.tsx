@@ -187,4 +187,53 @@ describe('FeishuTable selection', () => {
     expect(setData).not.toHaveBeenCalled();
     window.getSelection()?.removeAllRanges();
   });
+
+  it('writes HTML table clipboard data for Ctrl+C so Excel preserves the header row', async () => {
+    const write = vi.fn().mockResolvedValue(undefined);
+    const clipboard = { write, writeText: vi.fn() };
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: clipboard });
+
+    class TestClipboardItem {
+      static supports() { return true; }
+      types: string[];
+      values: Record<string, { parts: unknown[] }>;
+
+      constructor(values: Record<string, { parts: unknown[] }>) {
+        this.values = values;
+        this.types = Object.keys(values);
+      }
+    }
+    const previousClipboardItem = globalThis.ClipboardItem;
+    const previousBlob = globalThis.Blob;
+    class TestBlob {
+      parts: unknown[];
+      type: string;
+
+      constructor(parts: unknown[], options?: { type?: string }) {
+        this.parts = parts;
+        this.type = options?.type ?? '';
+      }
+    }
+    globalThis.ClipboardItem = TestClipboardItem as unknown as typeof ClipboardItem;
+    globalThis.Blob = TestBlob as unknown as typeof Blob;
+
+    try {
+      const { container } = render(<TableHarness />);
+      const table = getSourceTable(container);
+      const firstDataCell = table.rows[1]?.cells[0] as HTMLTableCellElement;
+
+      fireEvent.mouseDown(firstDataCell, { button: 0, clientX: 100, clientY: 100 });
+      fireEvent.keyDown(document, { key: 'a', ctrlKey: true });
+      fireEvent.keyDown(document, { key: 'c', ctrlKey: true });
+
+      expect(write).toHaveBeenCalledTimes(1);
+      const clipboardItem = write.mock.calls[0]?.[0]?.[0] as TestClipboardItem;
+      expect(clipboardItem.types).toEqual(expect.arrayContaining(['text/plain', 'text/html']));
+      expect(clipboardItem.values['text/html']?.parts[0]).toContain('<thead>');
+      expect(clipboardItem.values['text/html']?.parts[0]).toContain('<th scope="col"');
+    } finally {
+      globalThis.ClipboardItem = previousClipboardItem;
+      globalThis.Blob = previousBlob;
+    }
+  });
 });
