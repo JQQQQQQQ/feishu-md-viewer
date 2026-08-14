@@ -9,6 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "build:vscode:host": "tsc -p vscode-extension/tsconfig.host.json",
     "build:vscode": "npm run build:vscode:host && vite build --config vscode-extension/vite.config.ts",
+    "test:vscode": "vitest run vscode-extension/tests",
+    "verify:vscode": "node scripts/vscode/verify-preview-build.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx --max-warnings 0",
