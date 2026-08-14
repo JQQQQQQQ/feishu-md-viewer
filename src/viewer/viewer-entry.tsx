@@ -1,7 +1,7 @@
 /**
  * Entry point for the standalone extension viewer page.
  * Reads a URL from query parameters, fetches the markdown content,
- * and renders the App component.
+ * and renders the App compatibility wrapper.
  */
 import { createRoot } from 'react-dom/client';
 import { useState, useEffect, useCallback } from 'react';

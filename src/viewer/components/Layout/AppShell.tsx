@@ -14,6 +14,7 @@ interface AppShellProps {
   title: string;
   tocItems: TOCItem[];
   children: ReactNode;
+  settingsEnabled?: boolean;
 }
 
 function useIsDrawerMode(): boolean {
@@ -59,6 +60,7 @@ export function AppShell({
   title,
   tocItems,
   children,
+  settingsEnabled = true,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(getStoredSidebarWidth);
@@ -124,6 +126,7 @@ export function AppShell({
         title={title}
         isSidebarOpen={sidebarOpen}
         onToggleSidebar={handleToggleSidebar}
+        settingsEnabled={settingsEnabled}
       />
       <div className="feishu-app-shell__body">
         <Sidebar
