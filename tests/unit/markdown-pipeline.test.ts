@@ -163,6 +163,26 @@ describe('markdown-pipeline', () => {
       expect(result).toBeDefined();
     });
 
+    it('marks task list checkboxes for high-contrast preview styling', () => {
+      const result = parseMarkdown('- [ ] Todo\n\n- [x] Done');
+      const findInputs = (node: unknown): Array<{ type?: unknown; props?: Record<string, unknown> }> => {
+        if (!node || typeof node !== 'object') return [];
+        const candidate = node as { type?: unknown; props?: Record<string, unknown> };
+        if (candidate.props?.type === 'checkbox') return [candidate];
+        const children = candidate.props?.children;
+        return Array.isArray(children) ? children.flatMap(findInputs) : findInputs(children);
+      };
+      const checkboxes = findInputs(result);
+
+      expect(checkboxes).toHaveLength(2);
+      expect(typeof checkboxes[0]?.type).toBe('function');
+      expect(checkboxes[0]?.props?.disabled).toBe(true);
+      expect(checkboxes[0]?.props?.checked).toBe(false);
+      expect(typeof checkboxes[1]?.type).toBe('function');
+      expect(checkboxes[1]?.props?.disabled).toBe(true);
+      expect(checkboxes[1]?.props?.checked).toBe(true);
+    });
+
     it('wraps heading content in hierarchy sections', () => {
       const result = parseMarkdown(`# Title
 

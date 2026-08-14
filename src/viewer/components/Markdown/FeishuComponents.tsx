@@ -5,6 +5,7 @@ import {
   type ComponentType,
   type HTMLAttributes,
   type ImgHTMLAttributes,
+  type InputHTMLAttributes,
   type ReactElement,
   type ReactNode,
 } from 'react';
@@ -132,6 +133,9 @@ export const feishuComponents: ComponentMap = {
   li: ({ children, className, ...props }) => (
     <li {...props} className={mergeClassName('feishu-list__item', className)}>{children}</li>
   ),
+  input: ({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) => (
+    <input {...props} className={mergeClassName('feishu-task-checkbox', className)} />
+  ) as unknown as ReactElement,
   pre: FeishuCodeBlock as ComponentType<HTMLAttributes<HTMLElement>>,
   code: ({ children, className, ...props }) => {
     if (className?.startsWith('language-')) {

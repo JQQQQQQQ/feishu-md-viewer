@@ -17,6 +17,58 @@ This is a paragraph with **bold text**, *italic text*, and `inline code`.
 2. Second ordered
 3. Third ordered
 
+### Subsection 1.2: Task Lists / Preview Checkboxes
+
+预期：未选中勾选框使用浅色背景和清晰边框；已选中勾选框使用主题蓝色背景和白色勾选标记。勾选框在预览态只读，不应修改文档内容。
+
+- [ ] 未完成任务：检查浅色背景、深色边框和与文字的垂直对齐
+- [x] 已完成任务：检查蓝色背景、白色正向勾选标记
+  - [ ] 嵌套未完成任务
+  - [x] 嵌套已完成任务
+
+### Subsection 1.3: Inline Styles and Links
+
+**粗体**、*斜体*、***粗斜体***、~~删除线~~、`inline code`、
+<https://github.com>、[GitHub Markdown Viewer](https://github.com/) 和自动换行文本。
+
+链接预期：使用蓝色文字，悬停时颜色和背景有反馈，并在新标签页打开。
+
+### Subsection 1.4: Long Text Wrapping
+
+这是一段用于验证阅读态换行和页面宽度的长文本：Feishu Markdown Viewer should keep readable line length while long URLs, file paths, identifiers, and mixed Chinese-English content remain inside the document layout without causing the whole page to overflow horizontally. 示例路径：`/root/workspace/feishu-md-viewer/src/viewer/components/Markdown/FeishuComponents.tsx`。
+
+---
+
+## Section 1.5: Image Preview
+
+预期：图片保持圆角、弱边界和合适的最大宽度；点击图片打开预览弹层，支持关闭、Esc 和焦点恢复。
+
+![Unsplash landscape preview](https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=80)
+
+图片加载失败时，正文应显示清晰的失败提示和原始地址，不应破坏相邻段落布局。
+
+![Intentional image error](https://example.invalid/feishu-md-viewer-image-error.png)
+
+## Section 1.6: Horizontal Rule
+
+上方内容和下方内容之间应显示低对比度分隔线。
+
+---
+
+分隔线下方的正文。
+
+#### Heading Level 4
+
+用于验证四级标题的字号、缩进、折叠按钮和目录定位。
+
+##### Heading Level 5
+
+用于验证五级标题的层级留白和标题定位。
+
+###### Heading Level 6
+
+用于验证六级标题的最小标题字号和长标题换行。
+
 ## Section 2: Code Block
 
 ```javascript
@@ -26,6 +78,36 @@ function hello(name) {
 }
 
 hello("Feishu");
+```
+
+### Code Block Variants
+
+预期：代码块使用独立背景、圆角和等宽字体；右上角显示语言标签和复制按钮；长代码只在代码块内部滚动，不撑破正文。
+
+```typescript
+type PreviewFeature = {
+  name: string;
+  enabled: boolean;
+};
+
+const features: PreviewFeature[] = [
+  { name: 'task checkbox', enabled: true },
+  { name: 'table selection', enabled: true },
+  { name: 'mermaid preview', enabled: true },
+];
+```
+
+```json
+{
+  "mode": "read",
+  "editing": false,
+  "mermaid": "preview-only"
+}
+```
+
+```text
+This is a plain text code block.
+It should preserve whitespace and remain readable on narrow screens.
 ```
 
 ## Section 3: Table
@@ -126,6 +208,9 @@ hello("Feishu");
 > This is a blockquote that should have a blue left border
 > and a light blue background in Feishu style.
 
+> Blockquotes can contain **bold text**, `inline code`, links, and multiple lines.
+> They should preserve the left accent border without becoming too dark.
+
 ## Section 5: Callouts
 
 > [!NOTE]
@@ -142,6 +227,27 @@ hello("Feishu");
 
 > [!CAUTION]
 > Caution callouts are for destructive or risky operations.
+
+### Callout with Rich Content
+
+> [!TIP]
+> Use the目录、搜索、字号和主题控制来验证阅读态交互。相关代码路径是 `src/viewer/App.tsx`。
+
+## Section 5.1: Mixed Content Flow
+
+这一节用于确认多个块连续出现时的间距、层级和留白：
+
+- 普通列表项
+- 包含 **强调** 和 `代码` 的列表项
+
+> [!NOTE]
+> 紧跟在列表后的 Callout 不应与列表发生粘连。
+
+| 块类型 | 前后间距 | 预期 |
+| --- | --- | --- |
+| Paragraph | 标准 | 与上下正文保持呼吸感 |
+| Callout | 加强 | 保留主题色左边框 |
+| Code block | 加强 | 工具栏不遮挡内容 |
 
 ## Section 6: Mermaid Diagram Types
 
