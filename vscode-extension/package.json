@@ -11,6 +11,12 @@
     "onCustomEditor:feishu-md-viewer.markdownPreview"
   ],
   "contributes": {
+    "commands": [
+      {
+        "command": "feishu-md-viewer.reopenWithTextEditor",
+        "title": "使用原生文本编辑器重新打开"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "feishu-md-viewer.markdownPreview",
@@ -18,6 +24,9 @@
         "selector": [
           {
             "filenamePattern": "*.md"
+          },
+          {
+            "filenamePattern": "*.markdown"
           }
         ],
         "priority": "default"

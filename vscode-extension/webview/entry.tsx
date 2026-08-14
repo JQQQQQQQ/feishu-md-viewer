@@ -105,15 +105,31 @@ export function WebviewPreview() {
   }, []);
 
   if (error) {
-    return <p role="alert">{error}</p>;
+    return (
+      <section role="alert" aria-live="assertive">
+        <h1>无法读取 Markdown 文档</h1>
+        <p>{error}</p>
+        <p>请检查文件是否可访问，或使用原生文本编辑器重新打开。</p>
+      </section>
+    );
   }
 
   if (!documentState) {
     return <p>正在等待 Markdown 文档…</p>;
   }
 
+  if (documentState.text.trim().length === 0) {
+    return (
+      <section role="status" aria-live="polite">
+        <h1>Markdown 文档为空</h1>
+        <p>此文件没有可预览的内容。</p>
+      </section>
+    );
+  }
+
   return (
     <PreviewRoot
+      key={documentState.version}
       markdown={documentState.text}
       source="file"
       themeOverride={theme}

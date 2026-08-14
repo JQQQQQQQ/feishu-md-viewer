@@ -12,6 +12,18 @@ interface DocumentMessage {
   version: number;
 }
 
+interface ThemeMessage {
+  type: 'theme';
+  kind: 'light' | 'dark';
+}
+
+interface ErrorMessage {
+  type: 'error';
+  message: string;
+}
+
+type WebviewStateMessage = DocumentMessage | ErrorMessage;
+
 function createNonce(): string {
   const bytes = new Uint8Array(16);
   globalThis.crypto.getRandomValues(bytes);
@@ -45,6 +57,18 @@ export function createWebviewHtml(webview: vscode.Webview, extensionUri: vscode.
 
 function isReadyMessage(message: unknown): message is ReadyMessage {
   return typeof message === 'object' && message !== null && (message as { type?: unknown }).type === 'ready';
+}
+
+function getThemeMessage(theme: vscode.ColorTheme): ThemeMessage {
+  const isLight = theme.kind === vscode.ColorThemeKind.Light
+    || theme.kind === vscode.ColorThemeKind.HighContrastLight;
+
+  return { type: 'theme', kind: isLight ? 'light' : 'dark' };
+}
+
+function getDocumentErrorMessage(uri: vscode.Uri, error: unknown): string {
+  const detail = error instanceof Error ? error.message : String(error);
+  return `无法读取 Markdown 文档（${uri.toString()}）：${detail || '未知错误'}`;
 }
 
 export class MarkdownPreviewDocument implements vscode.CustomDocument {
@@ -110,14 +134,22 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
     let isDisposed = false;
     let documentChangeListener: vscode.Disposable | undefined;
     let messageListener: vscode.Disposable | undefined;
-    let latestDocument: DocumentMessage | undefined;
+    let themeListener: vscode.Disposable | undefined;
+    let latestState: WebviewStateMessage | undefined;
     let panelDisposeListener: vscode.Disposable;
-    const sendLatestDocument = () => {
-      if (!isReady || isDisposed || !latestDocument) {
+    const sendLatestState = () => {
+      if (!isReady || isDisposed || !latestState) {
         return;
       }
 
-      void panel.webview.postMessage(latestDocument);
+      void panel.webview.postMessage(latestState);
+    };
+    const sendTheme = (theme: vscode.ColorTheme) => {
+      if (!isReady || isDisposed) {
+        return;
+      }
+
+      void panel.webview.postMessage(getThemeMessage(theme));
     };
     const disposeListeners = () => {
       if (isDisposed) {
@@ -131,6 +163,9 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
       if (messageListener) {
         document.disposeDisposable(messageListener);
       }
+      if (themeListener) {
+        document.disposeDisposable(themeListener);
+      }
       document.disposeDisposable(panelDisposeListener);
     };
 
@@ -142,40 +177,58 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
       }
 
       isReady = true;
-      sendLatestDocument();
+      sendLatestState();
+      if (latestState?.type === 'document') {
+        sendTheme(vscode.window.activeColorTheme);
+      }
     });
     document.addDisposable(messageListener);
 
-    const textDocument = await vscode.workspace.openTextDocument(document.uri);
-    if (isDisposed || document.isDisposed) {
-      return;
-    }
-
-    let latestVersion = textDocument.version;
-    let latestText = textDocument.getText();
-    latestDocument = {
-      type: 'document',
-      text: latestText,
-      version: latestVersion,
-    };
-    const documentUri = document.uri.toString();
-
-    documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
-      if (event.document.uri.toString() !== documentUri || event.document.version <= latestVersion) {
+    try {
+      const textDocument = await vscode.workspace.openTextDocument(document.uri);
+      if (isDisposed || document.isDisposed) {
         return;
       }
 
-      latestVersion = event.document.version;
-      latestText = event.document.getText();
-      latestDocument = {
+      let latestVersion = textDocument.version;
+      let latestText = textDocument.getText();
+      latestState = {
         type: 'document',
         text: latestText,
         version: latestVersion,
       };
-      sendLatestDocument();
-    });
+      const documentUri = document.uri.toString();
 
-    document.addDisposable(documentChangeListener);
-    sendLatestDocument();
+      documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
+        if (event.document.uri.toString() !== documentUri || event.document.version <= latestVersion) {
+          return;
+        }
+
+        latestVersion = event.document.version;
+        latestText = event.document.getText();
+        latestState = {
+          type: 'document',
+          text: latestText,
+          version: latestVersion,
+        };
+        sendLatestState();
+      });
+
+      document.addDisposable(documentChangeListener);
+      themeListener = vscode.window.onDidChangeActiveColorTheme(sendTheme);
+      document.addDisposable(themeListener);
+      sendLatestState();
+      sendTheme(vscode.window.activeColorTheme);
+    } catch (error) {
+      if (isDisposed || document.isDisposed) {
+        return;
+      }
+
+      latestState = {
+        type: 'error',
+        message: getDocumentErrorMessage(document.uri, error),
+      };
+      sendLatestState();
+    }
   }
 }

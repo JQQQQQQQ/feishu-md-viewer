@@ -61,6 +61,17 @@ declare module 'vscode' {
     readonly document: TextDocument;
   }
 
+  export const enum ColorThemeKind {
+    Light = 1,
+    Dark = 2,
+    HighContrast = 3,
+    HighContrastLight = 4,
+  }
+
+  export interface ColorTheme {
+    readonly kind: ColorThemeKind;
+  }
+
   export interface CustomReadonlyEditorProvider<T extends CustomDocument = CustomDocument> {
     openCustomDocument(
       uri: Uri,
@@ -81,9 +92,16 @@ declare module 'vscode' {
   }
 
   export namespace window {
+    const activeColorTheme: ColorTheme;
+    function onDidChangeActiveColorTheme(listener: (colorTheme: ColorTheme) => void): Disposable;
     function registerCustomEditorProvider<T extends CustomDocument>(
       viewType: string,
       provider: CustomReadonlyEditorProvider<T>,
     ): Disposable;
+  }
+
+  export namespace commands {
+    function registerCommand(command: string, callback: (...args: unknown[]) => unknown): Disposable;
+    function executeCommand<T = unknown>(command: string, ...rest: unknown[]): Thenable<T>;
   }
 }

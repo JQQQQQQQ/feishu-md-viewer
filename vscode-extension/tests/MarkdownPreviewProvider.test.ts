@@ -13,6 +13,12 @@ const vscodeMock = vi.hoisted(() => {
   const documentListenerDisposables: Array<{ dispose: ReturnType<typeof vi.fn> }> = [];
 
   return {
+    ColorThemeKind: {
+      Light: 1,
+      Dark: 2,
+      HighContrast: 3,
+      HighContrastLight: 4,
+    },
     Uri: {
       joinPath: (base: { toString(): string }, ...segments: string[]) => ({
         toString: () => `${base.toString()}/${segments.join('/')}`,
@@ -28,7 +34,13 @@ const vscodeMock = vi.hoisted(() => {
       openTextDocument: vi.fn(),
     },
     window: {
+      activeColorTheme: { kind: 1 },
+      onDidChangeActiveColorTheme: vi.fn(() => createDisposable()),
       registerCustomEditorProvider: vi.fn(() => createDisposable()),
+    },
+    commands: {
+      executeCommand: vi.fn(() => Promise.resolve(undefined)),
+      registerCommand: vi.fn(() => createDisposable()),
     },
     fireTextDocumentChange(document: FakeDocument) {
       for (const listener of textDocumentListeners) {
@@ -41,7 +53,10 @@ const vscodeMock = vi.hoisted(() => {
       documentListenerDisposables.length = 0;
       this.workspace.onDidChangeTextDocument.mockClear();
       this.workspace.openTextDocument.mockReset();
+      this.window.onDidChangeActiveColorTheme.mockClear();
       this.window.registerCustomEditorProvider.mockClear();
+      this.commands.executeCommand.mockClear();
+      this.commands.registerCommand.mockClear();
     },
   };
 });
@@ -136,21 +151,28 @@ describe('MarkdownPreviewProvider', () => {
       'feishu-md-viewer.markdownPreview',
       expect.any(MarkdownPreviewProvider),
     );
-    expect(context.subscriptions).toHaveLength(1);
+    expect(vscodeMock.commands.registerCommand).toHaveBeenCalledWith(
+      'feishu-md-viewer.reopenWithTextEditor',
+      expect.any(Function),
+    );
+    expect(context.subscriptions).toHaveLength(2);
   });
 
   it('注册默认优先级的 Markdown 自定义只读编辑器', () => {
     const packageJsonPath = resolve(process.cwd(), 'vscode-extension/package.json');
     const manifest = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 
-    expect(manifest.contributes.customEditors).toEqual([
+    expect(manifest.contributes.customEditors).toEqual(expect.arrayContaining([
       expect.objectContaining({
         viewType: 'feishu-md-viewer.markdownPreview',
         displayName: 'Feishu Markdown Preview',
-        selector: [{ filenamePattern: '*.md' }],
+        selector: expect.arrayContaining([
+          { filenamePattern: '*.md' },
+          { filenamePattern: '*.markdown' },
+        ]),
         priority: 'default',
       }),
-    ]);
+    ]));
   });
 
   it('以 CustomDocument 模型打开 URI，并兼容 openContext 与 cancellation token', async () => {
@@ -274,7 +296,7 @@ describe('MarkdownPreviewProvider', () => {
 
     panel.fireMessage({ type: 'ready' });
 
-    expect(panel.webview.postMessage).toHaveBeenCalledTimes(1);
+    expect(panel.webview.postMessage).toHaveBeenCalledTimes(2);
     expect(panel.webview.postMessage).toHaveBeenCalledWith({
       type: 'document',
       text: '# 第三版',
