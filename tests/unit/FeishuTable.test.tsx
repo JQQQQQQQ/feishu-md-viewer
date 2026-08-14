@@ -112,6 +112,99 @@ describe('FeishuTable selection', () => {
     expect(selectedRows[1]?.selectedCells).toBe(1);
   });
 
+  it('selects a whole column or row by clicking the outer border rail', () => {
+    const { container } = render(<TableHarness />);
+    const table = getSourceTable(container);
+    const columnRail = container.querySelectorAll('.feishu-table__selection-rail--top .feishu-table__selection-rail-segment');
+    const rowRail = container.querySelectorAll('.feishu-table__selection-rail--left .feishu-table__selection-rail-segment');
+
+    expect(columnRail).toHaveLength(2);
+    expect(rowRail).toHaveLength(3);
+
+    fireEvent.mouseDown(columnRail[1]);
+    expect(table.rows[0]?.cells[1]?.classList.contains('feishu-table__header--selected')).toBe(true);
+    expect(table.rows[1]?.cells[1]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(table.rows[2]?.cells[1]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(columnRail[1]?.classList.contains('is-selected')).toBe(true);
+
+    fireEvent.mouseDown(rowRail[2]);
+    expect(table.rows[2]?.cells[0]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(table.rows[2]?.cells[1]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(rowRail[2]?.classList.contains('is-selected')).toBe(true);
+  });
+
+  it('does not highlight row or column rails for a normal cell selection', () => {
+    const { container } = render(<TableHarness />);
+    const table = getSourceTable(container);
+    const firstDataCell = table.rows[1]?.cells[0] as HTMLTableCellElement;
+
+    fireEvent.mouseDown(firstDataCell, { button: 0, clientX: 100, clientY: 100 });
+
+    expect(container.querySelectorAll('.feishu-table__selection-rail-segment.is-selected')).toHaveLength(0);
+  });
+
+  it('extends a column selection while dragging across top border rails', () => {
+    const { container } = render(<TableHarness />);
+    const table = getSourceTable(container);
+    const rails = container.querySelectorAll('.feishu-table__selection-rail--top .feishu-table__selection-rail-segment');
+
+    fireEvent.mouseDown(rails[0]);
+    fireEvent.mouseEnter(rails[1]);
+    fireEvent.mouseUp(document);
+
+    expect(table.rows[0]?.cells[0]?.classList.contains('feishu-table__header--selected')).toBe(true);
+    expect(table.rows[0]?.cells[1]?.classList.contains('feishu-table__header--selected')).toBe(true);
+    expect(table.rows[1]?.cells[0]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(table.rows[1]?.cells[1]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(rails[0]?.classList.contains('is-selected')).toBe(true);
+    expect(rails[1]?.classList.contains('is-selected')).toBe(true);
+  });
+
+  it('extends a row selection while dragging across left border rails', () => {
+    const { container } = render(<TableHarness />);
+    const table = getSourceTable(container);
+    const rails = container.querySelectorAll('.feishu-table__selection-rail--left .feishu-table__selection-rail-segment');
+
+    fireEvent.mouseDown(rails[2]);
+    fireEvent.mouseEnter(rails[1]);
+    fireEvent.mouseUp(document);
+
+    expect(table.rows[1]?.cells[0]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(table.rows[1]?.cells[1]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(table.rows[2]?.cells[0]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(table.rows[2]?.cells[1]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(rails[1]?.classList.contains('is-selected')).toBe(true);
+    expect(rails[2]?.classList.contains('is-selected')).toBe(true);
+  });
+
+  it('continues column rail dragging after entering table cells', () => {
+    const { container } = render(<TableHarness />);
+    const table = getSourceTable(container);
+    const rails = container.querySelectorAll('.feishu-table__selection-rail--top .feishu-table__selection-rail-segment');
+    const targetCell = table.rows[1]?.cells[1] as HTMLTableCellElement;
+
+    fireEvent.mouseDown(rails[0]);
+    fireEvent.mouseOver(targetCell);
+    fireEvent.mouseUp(document);
+
+    expect(table.rows[1]?.cells[0]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(table.rows[1]?.cells[1]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+  });
+
+  it('continues row rail dragging after entering table cells', () => {
+    const { container } = render(<TableHarness />);
+    const table = getSourceTable(container);
+    const rails = container.querySelectorAll('.feishu-table__selection-rail--left .feishu-table__selection-rail-segment');
+    const targetCell = table.rows[1]?.cells[0] as HTMLTableCellElement;
+
+    fireEvent.mouseDown(rails[2]);
+    fireEvent.mouseOver(targetCell);
+    fireEvent.mouseUp(document);
+
+    expect(table.rows[1]?.cells[0]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(table.rows[2]?.cells[0]?.classList.contains('feishu-table__cell--selected')).toBe(true);
+  });
+
   it('focuses table wrapper with preventScroll to avoid viewport jump', () => {
     Object.defineProperty(document, 'elementFromPoint', {
       configurable: true,

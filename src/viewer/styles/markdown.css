@@ -454,6 +454,7 @@
 
 /* Tables */
 .feishu-table-wrapper {
+  position: relative;
   width: 100%;
   max-width: 100%;
   margin: 1em 0;
@@ -464,7 +465,66 @@
   outline: none;
   scrollbar-color: color-mix(in srgb, var(--feishu-brand-primary) 34%, var(--feishu-border-light)) transparent;
   scrollbar-width: thin;
-  position: relative;
+}
+
+/* Clickable edge rails for whole-row / whole-column selection. */
+.feishu-table__selection-rails {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.feishu-table__selection-rail {
+  position: absolute;
+  pointer-events: none;
+}
+
+.feishu-table__selection-rail--top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 9px;
+}
+
+.feishu-table__selection-rail--left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 9px;
+}
+
+.feishu-table__selection-rail-segment {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  border: 0 solid transparent;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.feishu-table__selection-rail--top .feishu-table__selection-rail-segment {
+  top: 0;
+  height: 9px;
+  border-top-width: 3px;
+}
+
+.feishu-table__selection-rail--left .feishu-table__selection-rail-segment {
+  left: 0;
+  width: 9px;
+  border-left-width: 3px;
+}
+
+.feishu-table__selection-rail-segment:hover {
+  border-color: color-mix(in srgb, var(--feishu-brand-primary) 58%, transparent);
+  background: color-mix(in srgb, var(--feishu-brand-primary) 12%, transparent);
+}
+
+.feishu-table__selection-rail-segment.is-selected {
+  border-color: var(--feishu-brand-primary);
+  background: color-mix(in srgb, var(--feishu-brand-primary) 20%, transparent);
 }
 
 .feishu-table__sticky-head {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type MouseEvent, type ReactNode } from 'react';
 import {
   getTableLayoutMode,
   resolveTableLayoutMode,
@@ -116,6 +116,40 @@ function applyColumnWidth(table: HTMLTableElement, colIndex: number, width: numb
   });
 }
 
+interface SelectionRailSegment {
+  offset: number;
+  size: number;
+}
+
+interface SelectionRails {
+  columns: SelectionRailSegment[];
+  rows: SelectionRailSegment[];
+}
+
+interface RailSelection {
+  axis: 'column' | 'row';
+  start: number;
+  end: number;
+}
+
+function getSelectionRails(table: HTMLTableElement): SelectionRails {
+  const rows = Array.from(table.rows);
+  const firstRow = rows[0];
+  const columns = firstRow
+    ? Array.from(firstRow.cells).map((cell) => ({
+        offset: cell.offsetLeft,
+        size: cell.offsetWidth || 1,
+      }))
+    : [];
+  return {
+    columns,
+    rows: rows.map((row) => ({
+      offset: row.offsetTop,
+      size: row.offsetHeight || 1,
+    })),
+  };
+}
+
 export function FeishuTable({ children, className, ...props }: FeishuTableProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -124,12 +158,15 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
   const selectionRef = useRef<SelectionState | null>(null);
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
+  const railDragRef = useRef<{ axis: RailSelection['axis']; anchor: number } | null>(null);
   const dragStartYRef = useRef<number | null>(null);
   const anchorRowHeightRef = useRef<number | null>(null);
   const copiedRef = useRef({ text: '', html: '' });
   const [layoutMode, setLayoutMode] = useState<TableLayoutMode>('normal');
+  const [selectionRails, setSelectionRails] = useState<SelectionRails>({ columns: [], rows: [] });
+  const [railSelection, setRailSelection] = useState<RailSelection | null>(null);
 
-  const applySelection = useCallback((selection: SelectionState) => {
+  const applySelection = useCallback((selection: SelectionState, nextRailSelection: RailSelection | null = null) => {
     const table = tableRef.current;
     if (!table) return;
 
@@ -138,6 +175,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       text: renderTableSelection(table, selection),
       html: renderTableSelectionHtml(table, selection),
     };
+    setRailSelection(nextRailSelection);
   }, []);
 
   const extendSelectionToCell = useCallback((cell: HTMLTableCellElement, clientY: number) => {
@@ -167,6 +205,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     if (table) clearTableSelection(table);
     selectionRef.current = null;
     copiedRef.current = { text: '', html: '' };
+    setRailSelection(null);
+    railDragRef.current = null;
     dragStartYRef.current = null;
     anchorRowHeightRef.current = null;
   }, []);
@@ -234,14 +274,50 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     applySelection({ anchor: point, focus: point });
   }, [applySelection, resetSelection]);
 
-  const handleMouseOver = useCallback((event: MouseEvent<HTMLTableElement>) => {
-    if (isResizingRef.current || !isDraggingRef.current || !selectionRef.current) return;
+  const applyRailSelection = useCallback((axis: RailSelection['axis'], anchor: number, focus: number) => {
+    const table = tableRef.current;
+    if (!table) return;
 
+    const start = Math.min(anchor, focus);
+    const end = Math.max(anchor, focus);
+    if (axis === 'column') {
+      const rowCount = table.rows.length;
+      applySelection(
+        { anchor: { row: 0, col: anchor }, focus: { row: Math.max(0, rowCount - 1), col: focus } },
+        { axis, start, end },
+      );
+      return;
+    }
+
+    const colCount = table.rows[anchor]?.cells.length ?? 0;
+    applySelection(
+      { anchor: { row: anchor, col: 0 }, focus: { row: focus, col: Math.max(0, colCount - 1) } },
+      { axis, start, end },
+    );
+  }, [applySelection]);
+
+  const handleMouseOver = useCallback((event: MouseEvent<HTMLTableElement>) => {
     const cell = getCell(event.target);
     if (!cell) return;
 
+    const railDrag = railDragRef.current;
+    if (railDrag) {
+      applyRailSelection(
+        railDrag.axis,
+        railDrag.anchor,
+        railDrag.axis === 'column'
+          ? cell.cellIndex
+          : cell.parentElement instanceof HTMLTableRowElement
+            ? cell.parentElement.rowIndex
+            : railDrag.anchor,
+      );
+      return;
+    }
+
+    if (isResizingRef.current || !isDraggingRef.current || !selectionRef.current) return;
+
     extendSelectionToCell(cell, event.clientY);
-  }, [extendSelectionToCell]);
+  }, [applyRailSelection, extendSelectionToCell]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -276,6 +352,21 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
   }, [children]);
 
   useEffect(() => {
+    const table = tableRef.current;
+    if (!table) return undefined;
+
+    const updateRails = () => setSelectionRails(getSelectionRails(table));
+    updateRails();
+    window.addEventListener('resize', updateRails);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateRails);
+    observer?.observe(table);
+    return () => {
+      window.removeEventListener('resize', updateRails);
+      observer?.disconnect();
+    };
+  }, [children]);
+
+  useEffect(() => {
     const handleMouseMove = (event: globalThis.MouseEvent) => {
       if (isResizingRef.current) return;
       if (!isDraggingRef.current) {
@@ -299,6 +390,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
     const handleMouseUp = () => {
       isDraggingRef.current = false;
+      railDragRef.current = null;
       dragStartYRef.current = null;
       anchorRowHeightRef.current = null;
     };
@@ -486,6 +578,60 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     >
       <div ref={stickyHeaderRef} className="feishu-table__sticky-head" aria-hidden="true">
         <table ref={stickyHeaderTableRef} className="feishu-table feishu-table--sticky-clone" />
+      </div>
+      <div className="feishu-table__selection-rails" aria-hidden="true">
+        <div className="feishu-table__selection-rail feishu-table__selection-rail--top">
+          {selectionRails.columns.map((segment, col) => {
+            const selected = railSelection?.axis === 'column'
+              && railSelection.start <= col
+              && railSelection.end >= col;
+            const style = { left: segment.offset, width: segment.size } satisfies CSSProperties;
+            return (
+              <span
+                key={`column-${col}`}
+                className={`feishu-table__selection-rail-segment${selected ? ' is-selected' : ''}`}
+                style={style}
+                role="presentation"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  railDragRef.current = { axis: 'column', anchor: col };
+                  applyRailSelection('column', col, col);
+                }}
+                onMouseEnter={() => {
+                  const drag = railDragRef.current;
+                  if (drag?.axis === 'column') applyRailSelection('column', drag.anchor, col);
+                }}
+              />
+            );
+          })}
+        </div>
+        <div className="feishu-table__selection-rail feishu-table__selection-rail--left">
+          {selectionRails.rows.map((segment, row) => {
+            const selected = railSelection?.axis === 'row'
+              && railSelection.start <= row
+              && railSelection.end >= row;
+            const style = { top: segment.offset, height: segment.size } satisfies CSSProperties;
+            return (
+              <span
+                key={`row-${row}`}
+                className={`feishu-table__selection-rail-segment${selected ? ' is-selected' : ''}`}
+                style={style}
+                role="presentation"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  railDragRef.current = { axis: 'row', anchor: row };
+                  applyRailSelection('row', row, row);
+                }}
+                onMouseEnter={() => {
+                  const drag = railDragRef.current;
+                  if (drag?.axis === 'row') applyRailSelection('row', drag.anchor, row);
+                }}
+              />
+            );
+          })}
+        </div>
       </div>
       <table
         ref={tableRef}
