@@ -1,0 +1,27 @@
+{
+  "name": "feishu-md-viewer-vscode",
+  "displayName": "Feishu Markdown Viewer",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCustomEditor:feishu-md-viewer.markdownPreview"
+  ],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "feishu-md-viewer.markdownPreview",
+        "displayName": "Feishu Markdown Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ],
+        "priority": "default"
+      }
+    ]
+  }
+}

@@ -8,9 +8,12 @@ export default defineConfig({
     },
   },
   test: {
+    alias: {
+      vscode: resolve(__dirname, 'vscode-extension/tests/vscode.ts'),
+    },
     globals: true,
     environment: 'jsdom',
-    include: ['tests/**/*.test.{ts,tsx}'],
+    include: ['tests/**/*.test.{ts,tsx}', 'vscode-extension/tests/**/*.test.ts'],
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'text-summary'],
