@@ -20,6 +20,17 @@ function setupTable(inShadowRoot = false) {
 }
 
 describe('table pointer intent', () => {
+  function setVsCodeWebview(enabled: boolean) {
+    if (enabled) {
+      Object.defineProperty(window, 'acquireVsCodeApi', {
+        configurable: true,
+        value: () => ({ postMessage: () => undefined }),
+      });
+    } else {
+      delete (window as Window & { acquireVsCodeApi?: unknown }).acquireVsCodeApi;
+    }
+  }
+
   function mockCaretResult(result: Range | null) {
     Object.defineProperty(document, 'caretRangeFromPoint', {
       configurable: true,
@@ -69,5 +80,25 @@ describe('table pointer intent', () => {
     mockCaretResult(null);
 
     expect(resolveTablePointerIntent(new MouseEvent('mousedown'), wrapper, cell)).toBe('cell-range');
+  });
+
+  it('uses cell-range selection for a single text click in a VS Code Webview', () => {
+    const { wrapper, cell } = setupTable();
+    setVsCodeWebview(true);
+    mockCaretResult({ commonAncestorContainer: cell.firstChild } as Range);
+
+    expect(resolveTablePointerIntent(new MouseEvent('mousedown', { detail: 1 }), wrapper, cell)).toBe('cell-range');
+
+    setVsCodeWebview(false);
+  });
+
+  it('keeps double-click text selection available in a VS Code Webview', () => {
+    const { wrapper, cell } = setupTable();
+    setVsCodeWebview(true);
+    mockCaretResult({ commonAncestorContainer: cell.firstChild } as Range);
+
+    expect(resolveTablePointerIntent(new MouseEvent('mousedown', { detail: 2 }), wrapper, cell)).toBe('text');
+
+    setVsCodeWebview(false);
   });
 });

@@ -76,6 +76,16 @@ describe('VS Code Webview preview', () => {
     expect(screen.getByRole('article')).toHaveAttribute('data-mode', 'read');
   });
 
+  it('阅读态提供主题、字号和目录滚动设置', async () => {
+    await mountWebview();
+    sendWebviewMessage({ type: 'document', text: '# 设置入口', version: 1 });
+
+    expect(await screen.findByRole('heading', { name: '设置入口' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Theme:/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /TOC scroll:/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Decrease font size' })).toBeInTheDocument();
+  });
+
   it('忽略版本未递增的 document 消息', async () => {
     await mountWebview();
 
@@ -118,6 +128,9 @@ describe('VS Code Webview preview', () => {
     sendWebviewMessage({ type: 'theme', kind });
 
     expect(screen.getByRole('article').classList.contains('feishu-viewer--dark')).toBe(expectsDarkClass);
+    if (!expectsDarkClass) {
+      expect(screen.getByRole('article')).toHaveClass('feishu-viewer--light');
+    }
   });
 
   it('仅将 VS Code 转换后的本地脚本和样式 URI 写入严格 CSP', () => {

@@ -47,7 +47,9 @@ function getStickyTopOffset(wrapper: HTMLElement): number {
     ? getComputedStyle(viewer).getPropertyValue('--feishu-topbar-height')
     : '';
   const topbarHeight = Number.parseFloat(rawTopbarHeight);
-  return (Number.isFinite(topbarHeight) ? topbarHeight : 56) + 3;
+  // The reading progress bar was removed; the sticky clone now sits directly
+  // below the fixed top bar without an extra gap.
+  return Number.isFinite(topbarHeight) ? topbarHeight : 56;
 }
 
 function focusWithoutScroll(node: HTMLElement | null): void {

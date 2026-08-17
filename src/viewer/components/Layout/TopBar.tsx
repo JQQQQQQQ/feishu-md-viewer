@@ -25,6 +25,8 @@ function SettingsControls() {
   const fontSize = useViewerStore((s) => s.fontSize);
   const increaseFontSize = useViewerStore((s) => s.increaseFontSize);
   const decreaseFontSize = useViewerStore((s) => s.decreaseFontSize);
+  const tocSmoothScrollEnabled = useViewerStore((s) => s.tocSmoothScrollEnabled);
+  const setTocSmoothScrollEnabled = useViewerStore((s) => s.setTocSmoothScrollEnabled);
 
   const handleCycleTheme = () => {
     setTheme(THEME_CYCLE[theme]);
@@ -86,6 +88,17 @@ function SettingsControls() {
             <path d="M5 14h6M8 11v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
         )}
+      </button>
+
+      <button
+        className="feishu-topbar__smooth-btn"
+        onClick={() => setTocSmoothScrollEnabled(!tocSmoothScrollEnabled)}
+        type="button"
+        aria-pressed={tocSmoothScrollEnabled}
+        aria-label={`TOC scroll: ${tocSmoothScrollEnabled ? 'smooth' : 'instant'}`}
+        title={tocSmoothScrollEnabled ? '目录平滑滚动：开' : '目录平滑滚动：关'}
+      >
+        {tocSmoothScrollEnabled ? '平滑' : '即时'}
       </button>
     </div>
   );

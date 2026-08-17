@@ -3,7 +3,6 @@ import { type PageSource } from '../content/detector';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { MarkdownReadView } from './components/Markdown/MarkdownReadView';
 import { AppShell } from './components/Layout/AppShell';
-import { ReadingProgress } from './components/Layout/ReadingProgress';
 import { useTOC } from './hooks/useTOC';
 import { useViewerStore, type ThemeMode } from './store';
 
@@ -21,6 +20,8 @@ function extractTitle(markdown: string): string {
 
 function getThemeClass(theme: ThemeMode): string {
   switch (theme) {
+    case 'light':
+      return 'feishu-viewer--light';
     case 'dark':
       return 'feishu-viewer--dark';
     case 'system':
@@ -59,7 +60,6 @@ export function PreviewRoot({
         data-mode="read"
         style={{ '--feishu-font-size-body': `${fontSize}px` } as React.CSSProperties}
       >
-        <ReadingProgress />
         <AppShell
           title={title}
           tocItems={tocItems}

@@ -10,6 +10,7 @@ const temporaryRoots: string[] = [];
 
 interface BuildFixtureOptions {
   chromeSource?: string;
+  indexHtml?: string;
   writeIndexHtml?: boolean;
   writeJavaScriptEntry?: boolean;
   writeStylesheetEntry?: boolean;
@@ -17,6 +18,7 @@ interface BuildFixtureOptions {
 
 function createBuildFixture({
   chromeSource = "console.log('Chrome preview');\n",
+  indexHtml = '<link rel="stylesheet" href="./assets/index.css"><script type="module" src="./assets/index.js"></script>',
   writeIndexHtml = true,
   writeJavaScriptEntry = true,
   writeStylesheetEntry = true,
@@ -31,7 +33,7 @@ function createBuildFixture({
   if (writeIndexHtml) {
     writeFileSync(
       join(fixtureRoot, 'vscode-extension/dist/index.html'),
-      '<link rel="stylesheet" href="./assets/index.css"><script type="module" src="./assets/index.js"></script>',
+      indexHtml,
     );
   }
   if (writeJavaScriptEntry) {
@@ -97,6 +99,14 @@ describe('VS Code 与 Chrome 构建隔离验证脚本', () => {
 
   it('发现 index.html 引用缺失的 CSS 入口时失败', () => {
     const result = runVerification(createBuildFixture({ writeStylesheetEntry: false }));
+
+    expect(result.status).toBe(1);
+  });
+
+  it('拒绝 VS Code Webview 中会脱离 webview 资源根的绝对资源路径', () => {
+    const result = runVerification(createBuildFixture({
+      indexHtml: '<link rel="stylesheet" href="/assets/index.css"><script type="module" src="./assets/index.js"></script>',
+    }));
 
     expect(result.status).toBe(1);
   });

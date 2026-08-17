@@ -1,6 +1,11 @@
 /* Dark theme overrides for Feishu MD Viewer */
 /* Applied when .feishu-viewer--dark is on the root element */
 
+/* Keep light mode explicit inside hosts such as VS Code Webviews. */
+.feishu-viewer--light {
+  color-scheme: light;
+}
+
 .feishu-viewer--dark {
   --feishu-bg-page: #1a1a1a;
   --feishu-bg-content: #242424;

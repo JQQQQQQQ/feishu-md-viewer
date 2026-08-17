@@ -67,8 +67,13 @@ function verifyBuildOutputs() {
     fail(`VS Code Webview 构建目录未找到 CSS 产物：${vscodeDistDirectory}`);
   }
   const webviewIndex = readFileSync(vscodeWebviewIndexPath, 'utf8');
-  const referencedAssets = [...webviewIndex.matchAll(/(?:src|href)="([^"]+)"/g)]
-    .map((match) => match[1])
+  const referencedAssetUrls = [...webviewIndex.matchAll(/(?:src|href)="([^"]+)"/g)]
+    .map((match) => match[1]);
+  const absoluteAsset = referencedAssetUrls.find((asset) => asset.startsWith('/'));
+  if (absoluteAsset) {
+    fail(`VS Code Webview 资源必须使用相对路径，不能使用绝对路径：${absoluteAsset}`);
+  }
+  const referencedAssets = referencedAssetUrls
     .filter((asset) => asset.startsWith('./'))
     .map((asset) => resolve(vscodeDistDirectory, asset.slice(2)));
   for (const assetPath of referencedAssets) {

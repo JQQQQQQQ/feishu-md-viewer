@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PreviewRoot } from '../../src/viewer/PreviewRoot';
+import { useViewerStore, type ThemeMode } from '../../src/viewer/store';
 import '../../src/viewer/styles/feishu-theme.css';
 import '../../src/viewer/styles/tailwind-output.css';
 import '../../src/viewer/styles/markdown.css';
@@ -32,6 +33,8 @@ type WebviewMessage = DocumentMessage | ThemeMessage | ErrorMessage;
 
 interface VsCodeApi {
   postMessage(message: { type: 'ready' }): void;
+  getState?: () => unknown;
+  setState?: (state: unknown) => unknown;
 }
 
 declare global {
@@ -69,10 +72,47 @@ export function WebviewPreview() {
   const [documentState, setDocumentState] = useState<{ text: string; version: number }>();
   const [theme, setTheme] = useState<ThemeKind>('light');
   const [error, setError] = useState<string>();
+  const storedTheme = useViewerStore((state) => state.theme);
+  const fontSize = useViewerStore((state) => state.fontSize);
+  const tocSmoothScrollEnabled = useViewerStore((state) => state.tocSmoothScrollEnabled);
+  const setStoredTheme = useViewerStore((state) => state.setTheme);
+  const setStoredFontSize = useViewerStore((state) => state.setFontSize);
+  const setStoredSmoothScroll = useViewerStore((state) => state.setTocSmoothScrollEnabled);
+  const [settingsHydrated, setSettingsHydrated] = useState(false);
+
+  const vscodeApi = useMemo(() => getVsCodeApi(), []);
 
   useEffect(() => {
-    getVsCodeApi()?.postMessage({ type: 'ready' });
-  }, []);
+    const state = vscodeApi?.getState?.() as { settings?: {
+      theme?: ThemeMode;
+      fontSize?: number;
+      tocSmoothScrollEnabled?: boolean;
+    } } | undefined;
+    const settings = state?.settings;
+    if (!settings) {
+      setSettingsHydrated(true);
+      return;
+    }
+    if (settings.theme === 'light' || settings.theme === 'dark' || settings.theme === 'system') {
+      setStoredTheme(settings.theme);
+    }
+    if (typeof settings.fontSize === 'number') setStoredFontSize(settings.fontSize);
+    if (typeof settings.tocSmoothScrollEnabled === 'boolean') {
+      setStoredSmoothScroll(settings.tocSmoothScrollEnabled);
+    }
+    setSettingsHydrated(true);
+  }, [setStoredFontSize, setStoredSmoothScroll, setStoredTheme, vscodeApi]);
+
+  useEffect(() => {
+    if (!settingsHydrated) return;
+    vscodeApi?.setState?.({
+      settings: { theme: storedTheme, fontSize, tocSmoothScrollEnabled },
+    });
+  }, [fontSize, settingsHydrated, storedTheme, tocSmoothScrollEnabled, vscodeApi]);
+
+  useEffect(() => {
+    vscodeApi?.postMessage({ type: 'ready' });
+  }, [vscodeApi]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<unknown>) => {
@@ -132,8 +172,8 @@ export function WebviewPreview() {
       key={documentState.version}
       markdown={documentState.text}
       source="file"
-      themeOverride={theme}
-      settingsEnabled={false}
+      themeOverride={storedTheme === 'system' ? theme : undefined}
+      settingsEnabled
     />
   );
 }

@@ -1,5 +1,10 @@
 export type TablePointerIntent = 'text' | 'cell-range' | 'column-resize' | 'interactive';
 
+function isVsCodeWebview(): boolean {
+  return typeof window !== 'undefined'
+    && typeof (window as Window & { acquireVsCodeApi?: unknown }).acquireVsCodeApi === 'function';
+}
+
 function isInteractiveElement(target: EventTarget | null): boolean {
   return target instanceof Element
     && Boolean(target.closest('a,button,input,textarea,select,[contenteditable="true"]'));
@@ -50,6 +55,11 @@ export function resolveTablePointerIntent(
   target: EventTarget | null = event.target,
 ): TablePointerIntent {
   if (isInteractiveElement(target)) return 'interactive';
+
+  // VS Code Webviews do not expose a visible native text selection on a
+  // single click. Prefer the Excel-style cell selection there, while still
+  // keeping double-click available for selecting text within a cell.
+  if (isVsCodeWebview() && event.detail < 2) return 'cell-range';
 
   const caretNode = getCaretNode(event);
   if (
