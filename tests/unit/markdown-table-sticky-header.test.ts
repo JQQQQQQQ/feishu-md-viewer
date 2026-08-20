@@ -8,6 +8,10 @@ const stylesheet = readFileSync(
 );
 
 const normalized = stylesheet.replace(/\s+/g, ' ');
+const darkStylesheet = readFileSync(
+  resolve(__dirname, '../../src/viewer/styles/dark-theme.css'),
+  'utf-8',
+).replace(/\s+/g, ' ');
 
 describe('markdown table sticky header styles', () => {
   it('defines a fixed sticky header host for reading mode tables', () => {
@@ -63,5 +67,17 @@ describe('markdown table sticky header styles', () => {
     expect(normalized).toMatch(
       /\.feishu-table-wrapper--wide-right,\s*\.feishu-table-wrapper--wide-balanced\s*\{[^}]*width:\s*min\(var\(--feishu-table-wide-width/i,
     );
+  });
+
+  it('uses theme-aware and symmetric edge cues when horizontal content remains', () => {
+    expect(normalized).toMatch(
+      /\.feishu-table-wrapper--can-scroll-right::after\s*\{[^}]*var\(--feishu-table-scroll-cue-shadow\)[^}]*var\(--feishu-table-scroll-cue-highlight\)/i,
+    );
+    expect(normalized).toMatch(
+      /\.feishu-table-wrapper--can-scroll-left\s+\.feishu-table__left-reveal::before\s*\{[^}]*var\(--feishu-table-scroll-cue-shadow\)[^}]*var\(--feishu-table-scroll-cue-highlight\)/i,
+    );
+    expect(darkStylesheet).toMatch(/\.feishu-viewer--dark\s*\{[^}]*--feishu-table-scroll-cue-shadow:\s*rgba\(0,\s*0,\s*0,/i);
+    expect(darkStylesheet).toMatch(/\.feishu-viewer--dark\s*\{[^}]*--feishu-table-scroll-cue-highlight:\s*rgba\(255,\s*255,\s*255,/i);
+    expect(darkStylesheet).toMatch(/\.feishu-viewer--system\s*\{[^}]*--feishu-table-scroll-cue-shadow:\s*rgba\(0,\s*0,\s*0,/i);
   });
 });

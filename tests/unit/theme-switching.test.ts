@@ -7,6 +7,7 @@ describe('Theme switching & settings', () => {
       theme: 'system',
       fontSize: 15,
       tocSmoothScrollEnabled: true,
+      contentAlignment: 'center',
     });
   });
 
@@ -81,6 +82,17 @@ describe('Theme switching & settings', () => {
       useViewerStore.getState().setFontSize(12);
       useViewerStore.getState().decreaseFontSize();
       expect(useViewerStore.getState().fontSize).toBe(12);
+    });
+  });
+
+  describe('contentAlignment', () => {
+    it('defaults to a centered reading column', () => {
+      expect(useViewerStore.getState().contentAlignment).toBe('center');
+    });
+
+    it('setContentAlignment updates the reading column alignment', () => {
+      useViewerStore.getState().setContentAlignment('center');
+      expect(useViewerStore.getState().contentAlignment).toBe('center');
     });
   });
 });

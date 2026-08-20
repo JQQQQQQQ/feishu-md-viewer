@@ -13,6 +13,8 @@ describe('预览版 ViewerStore', () => {
       theme: 'system',
       fontSize: 15,
       tocSmoothScrollEnabled: true,
+      contentAlignment: 'center',
+      settingsHydrated: false,
     });
   });
 
@@ -28,22 +30,43 @@ describe('预览版 ViewerStore', () => {
     expect(useViewerStore.getState().theme).toBe('dark');
   });
 
-  it('持久化阅读设置时不再写入自动保存或编辑锁定选项', () => {
+  it('持久化阅读设置时保留正文对齐且不写入自动保存或编辑锁定选项', () => {
     const set = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('chrome', { storage: { local: { get: vi.fn(), set } } });
 
     useViewerStore.getState().setTheme('dark');
 
     expect(set).toHaveBeenCalledWith({
-      viewerSettings: { theme: 'dark', fontSize: 15, tocSmoothScrollEnabled: true },
+      viewerSettings: {
+        theme: 'dark',
+        fontSize: 15,
+        tocSmoothScrollEnabled: true,
+        contentAlignment: 'center',
+      },
     });
   });
 
-  it('保留主题、字号和目录滚动设置', () => {
+  it('保留主题、字号、目录滚动和正文对齐设置', () => {
     useViewerStore.getState().setFontSize(30);
     useViewerStore.getState().setTocSmoothScrollEnabled(false);
 
     expect(useViewerStore.getState().fontSize).toBe(24);
     expect(useViewerStore.getState().tocSmoothScrollEnabled).toBe(false);
+    expect(useViewerStore.getState().contentAlignment).toBe('center');
+  });
+
+  it('用户切换正文对齐后，不会被随后读取到的旧设置覆盖', async () => {
+    const get = vi.fn().mockResolvedValue({
+      viewerSettings: { theme: 'light', contentAlignment: 'left' },
+    });
+    vi.stubGlobal('chrome', { storage: { local: { get, set: vi.fn() } } });
+
+    await useViewerStore.getState().loadSettings();
+    expect(useViewerStore.getState().contentAlignment).toBe('left');
+
+    useViewerStore.getState().setContentAlignment('center');
+    await useViewerStore.getState().loadSettings();
+
+    expect(useViewerStore.getState().contentAlignment).toBe('center');
   });
 });

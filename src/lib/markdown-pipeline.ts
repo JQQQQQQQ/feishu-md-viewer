@@ -2,6 +2,8 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeReact from 'rehype-react';
 import * as prod from 'react/jsx-runtime';
 import { feishuComponents } from '../viewer/components/Markdown/FeishuComponents';
@@ -9,6 +11,17 @@ import { resetMermaidRenderCounter } from '../viewer/components/Markdown/CodeBlo
 import type { ReactElement } from 'react';
 
 const production = { Fragment: prod.Fragment, jsx: prod.jsx, jsxs: prod.jsxs };
+
+const markdownHtmlSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    // remark-gfm emits `checked` for completed task-list inputs.  The
+    // GitHub-style default schema permits only the checkbox type/disabled
+    // attributes, so preserve this harmless boolean explicitly.
+    input: [...(defaultSchema.attributes?.input ?? []), 'checked'],
+  },
+};
 
 interface HastNode {
   type: string;
@@ -94,10 +107,32 @@ function rehypeSectionHierarchy() {
   };
 }
 
+function rehypeNormalizeTaskCheckboxes() {
+  const visit = (node: HastNode): void => {
+    if (isElement(node)
+      && node.tagName === 'input'
+      && node.properties?.type === 'checkbox'
+      && node.properties.disabled === true
+      && !Object.hasOwn(node.properties, 'checked')) {
+      node.properties.checked = false;
+    }
+
+    node.children?.forEach(visit);
+  };
+
+  return (tree: HastRoot) => visit(tree);
+}
+
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
-  .use(remarkRehype, { allowDangerousHtml: false })
+  // README files commonly use presentation-only HTML for badges, responsive
+  // images, and contributor walls. Parse it first, then immediately apply
+  // rehype-sanitize's GitHub-style allowlist before creating React elements.
+  .use(remarkRehype, { allowDangerousHtml: true })
+  .use(rehypeRaw)
+  .use(rehypeSanitize, markdownHtmlSchema)
+  .use(rehypeNormalizeTaskCheckboxes)
   .use(rehypeSectionHierarchy)
   .use(rehypeReact, {
     ...production,

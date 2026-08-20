@@ -6,6 +6,7 @@
 }
 
 .feishu-viewer__content {
+  box-sizing: border-box;
   max-width: 900px;
   margin: 0 auto;
   padding: 0 48px;
@@ -15,6 +16,11 @@
 @media (min-width: 1024px) {
   .feishu-viewer__content {
     max-width: 980px;
+  }
+}
+
+@media (min-width: 769px) {
+  .feishu-viewer--content-left .feishu-viewer__content {
     margin-left: clamp(24px, 2.8vw, 72px);
     margin-right: auto;
   }
@@ -479,7 +485,9 @@
 }
 
 .feishu-table-wrapper--can-scroll-right::after {
-  box-shadow: inset -14px 0 12px -12px rgba(31, 35, 41, 0.32);
+  box-shadow:
+    inset -16px 0 14px -12px var(--feishu-table-scroll-cue-shadow),
+    inset -1px 0 0 var(--feishu-table-scroll-cue-highlight);
 }
 
 /* The only horizontal scroll container.  Its native scrollbar keeps a stable
@@ -530,7 +538,9 @@
 }
 
 .feishu-table-wrapper--can-scroll-left .feishu-table__left-reveal::before {
-  box-shadow: inset 14px 0 12px -12px rgba(31, 35, 41, 0.32);
+  box-shadow:
+    inset 16px 0 14px -12px var(--feishu-table-scroll-cue-shadow),
+    inset 1px 0 0 var(--feishu-table-scroll-cue-highlight);
 }
 
 .feishu-table__left-reveal .feishu-table {

@@ -25,6 +25,15 @@ function TableHarness() {
   );
 }
 
+function WideTableHarness() {
+  return (
+    <FeishuTable>
+      <thead><tr><th>H1</th><th>H2</th><th>H3</th></tr></thead>
+      <tbody><tr><td /><td /><td /></tr></tbody>
+    </FeishuTable>
+  );
+}
+
 function readSelectedDataRows(table: HTMLTableElement): Array<{ row: number; selectedCells: number }> {
   return Array.from(table.rows)
     .map((tr, row) => ({
@@ -297,6 +306,37 @@ describe('FeishuTable selection', () => {
     expect(Number.parseFloat(wrapper.style.getPropertyValue('--feishu-table-left-reveal'))).toBeCloseTo(63.4);
     expect(Number.parseFloat(wrapper.style.getPropertyValue('--feishu-table-left-reveal-content-offset'))).toBeCloseTo(36.6);
     expect(wrapper.style.getPropertyValue('--feishu-table-native-scroll-left')).toBe('100px');
+  });
+
+  it('auto-scrolls a cell-range drag at the horizontal edge and extends into newly revealed cells', () => {
+    const { container } = render(<WideTableHarness />);
+    const scrollport = container.querySelector('.feishu-table__scrollport');
+    const table = getSourceTable(container);
+    const cells = table.querySelectorAll<HTMLTableCellElement>('tbody td');
+    expect(scrollport).toBeInstanceOf(HTMLElement);
+    expect(cells).toHaveLength(3);
+    if (!(scrollport instanceof HTMLElement) || !cells[0] || !cells[2]) return;
+
+    scrollport.getBoundingClientRect = () => ({
+      x: 0, y: 0, top: 0, left: 0, right: 500, bottom: 220, width: 500, height: 220,
+      toJSON: () => '',
+    });
+    Object.defineProperty(scrollport, 'scrollLeft', { configurable: true, value: 0, writable: true });
+    Object.defineProperty(scrollport, 'scrollWidth', { configurable: true, value: 900 });
+    Object.defineProperty(scrollport, 'clientWidth', { configurable: true, value: 500 });
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: vi.fn(() => cells[2]),
+    });
+
+    fireEvent.mouseDown(cells[0], { button: 0, clientX: 80, clientY: 80 });
+    fireEvent.mouseMove(document, { clientX: 498, clientY: 80 });
+
+    expect(scrollport.scrollLeft).toBeGreaterThan(0);
+    expect(cells[0].classList.contains('feishu-table__cell--selected')).toBe(true);
+    expect(cells[2].classList.contains('feishu-table__cell--selected')).toBe(true);
+
+    fireEvent.mouseUp(document);
   });
 
   it('shows edge-scroll affordances only for directions with hidden table content', () => {

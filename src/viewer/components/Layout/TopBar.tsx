@@ -1,4 +1,5 @@
-import { useViewerStore, type ThemeMode } from '../../store';
+import { useEffect, useRef, useState } from 'react';
+import { useViewerStore, type ContentAlignment, type ThemeMode } from '../../store';
 
 interface TopBarProps {
   title: string;
@@ -27,9 +28,39 @@ function SettingsControls() {
   const decreaseFontSize = useViewerStore((s) => s.decreaseFontSize);
   const tocSmoothScrollEnabled = useViewerStore((s) => s.tocSmoothScrollEnabled);
   const setTocSmoothScrollEnabled = useViewerStore((s) => s.setTocSmoothScrollEnabled);
+  const contentAlignment = useViewerStore((s) => s.contentAlignment);
+  const setContentAlignment = useViewerStore((s) => s.setContentAlignment);
+  const [isAlignmentMenuOpen, setIsAlignmentMenuOpen] = useState(false);
+  const alignmentControlRef = useRef<HTMLDivElement>(null);
 
   const handleCycleTheme = () => {
     setTheme(THEME_CYCLE[theme]);
+  };
+
+  useEffect(() => {
+    if (!isAlignmentMenuOpen) return undefined;
+
+    const closeWhenOutside = (event: MouseEvent) => {
+      const control = alignmentControlRef.current;
+      const occurredInsideControl = control
+        ? event.composedPath().includes(control)
+        : false;
+      if (!occurredInsideControl) setIsAlignmentMenuOpen(false);
+    };
+    const closeWhenEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsAlignmentMenuOpen(false);
+    };
+    document.addEventListener('mousedown', closeWhenOutside);
+    document.addEventListener('keydown', closeWhenEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeWhenOutside);
+      document.removeEventListener('keydown', closeWhenEscape);
+    };
+  }, [isAlignmentMenuOpen]);
+
+  const selectContentAlignment = (alignment: ContentAlignment) => {
+    setContentAlignment(alignment);
+    setIsAlignmentMenuOpen(false);
   };
 
   return (
@@ -100,6 +131,31 @@ function SettingsControls() {
       >
         {tocSmoothScrollEnabled ? '平滑' : '即时'}
       </button>
+
+      <div className="feishu-topbar__alignment" ref={alignmentControlRef}>
+        <button
+          className="feishu-topbar__smooth-btn"
+          onClick={() => setIsAlignmentMenuOpen((open) => !open)}
+          type="button"
+          aria-label="正文对齐"
+          aria-haspopup="menu"
+          aria-expanded={isAlignmentMenuOpen}
+          title={`正文对齐：${contentAlignment === 'left' ? '靠左' : '居中'}`}
+        >
+          对齐
+        </button>
+        {isAlignmentMenuOpen && (
+          <div className="feishu-topbar__alignment-menu" role="menu" aria-label="正文对齐">
+            <button type="button" role="menuitemradio" aria-checked={contentAlignment === 'left'} onClick={() => selectContentAlignment('left')}>
+              正文靠左
+            </button>
+            <button type="button" role="menuitemradio" aria-checked={contentAlignment === 'center'} onClick={() => selectContentAlignment('center')}>
+              正文居中
+            </button>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

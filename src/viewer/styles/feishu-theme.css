@@ -36,6 +36,8 @@
   --feishu-blockquote-border: #3370ff;
   --feishu-table-header-bg: #f5f6f7;
   --feishu-table-stripe-bg: #fafbfc;
+  --feishu-table-scroll-cue-shadow: rgba(31, 35, 41, 0.32);
+  --feishu-table-scroll-cue-highlight: transparent;
   --feishu-scrollbar-track: transparent;
   --feishu-scrollbar-thumb: #d8dbe1;
   --feishu-scrollbar-thumb-hover: #bfc3cc;

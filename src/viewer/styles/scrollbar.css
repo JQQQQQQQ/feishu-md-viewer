@@ -32,3 +32,32 @@
 .feishu-viewer *::-webkit-scrollbar-corner {
   background: var(--feishu-scrollbar-track);
 }
+
+/* Directory navigation deliberately stays quiet until it is being used.
+ * These selectors live after the global viewer rule so they also apply to
+ * Shadow DOM injection, where the stylesheet order is the same. */
+.feishu-viewer .feishu-sidebar,
+.feishu-viewer .feishu-toc {
+  scrollbar-width: none;
+}
+
+.feishu-viewer .feishu-sidebar::-webkit-scrollbar,
+.feishu-viewer .feishu-toc::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.feishu-viewer .feishu-sidebar:hover,
+.feishu-viewer .feishu-sidebar:focus-within,
+.feishu-viewer .feishu-sidebar:hover .feishu-toc,
+.feishu-viewer .feishu-sidebar:focus-within .feishu-toc {
+  scrollbar-width: thin;
+}
+
+.feishu-viewer .feishu-sidebar:hover::-webkit-scrollbar,
+.feishu-viewer .feishu-sidebar:focus-within::-webkit-scrollbar,
+.feishu-viewer .feishu-sidebar:hover .feishu-toc::-webkit-scrollbar,
+.feishu-viewer .feishu-sidebar:focus-within .feishu-toc::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}

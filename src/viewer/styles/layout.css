@@ -239,6 +239,48 @@
   outline-offset: 1px;
 }
 
+.feishu-topbar__alignment {
+  position: relative;
+}
+
+.feishu-topbar__alignment-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  min-width: 128px;
+  padding: 4px;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: var(--feishu-radius-sm);
+  background: var(--feishu-bg-content);
+  box-shadow: 0 8px 24px rgba(31, 35, 41, 0.14);
+  z-index: 120;
+}
+
+.feishu-topbar__alignment-menu button {
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--feishu-text-primary);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.feishu-topbar__alignment-menu button:hover,
+.feishu-topbar__alignment-menu button[aria-checked="true"] {
+  background: var(--feishu-blockquote-bg, #f0f5ff);
+  color: var(--feishu-brand-primary);
+}
+
+.feishu-topbar__alignment-menu button:focus-visible {
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: -2px;
+}
+
 /* ===== Sidebar ===== */
 .feishu-sidebar {
   position: fixed;

@@ -39,12 +39,14 @@ export function PreviewRoot({
 }: PreviewRootProps) {
   const storedTheme = useViewerStore((s) => s.theme);
   const fontSize = useViewerStore((s) => s.fontSize);
+  const contentAlignment = useViewerStore((s) => s.contentAlignment);
   const tocItems = useTOC(markdown);
   const title = useMemo(() => extractTitle(markdown), [markdown]);
   const themeClass = getThemeClass(themeOverride ?? storedTheme);
   const viewerClasses = [
     'feishu-viewer',
     'feishu-viewer--reading',
+    `feishu-viewer--content-${contentAlignment}`,
     themeClass,
   ]
     .filter(Boolean)

@@ -13,6 +13,8 @@ function renderAppWithLegacyMode() {
     mode: 'read',
     theme: 'light',
     fontSize: 15,
+    contentAlignment: 'center',
+    settingsHydrated: false,
   });
 
   return render(<App markdown={DOCUMENT} source="file" />);
@@ -25,6 +27,8 @@ function renderApp() {
     mode: 'read',
     theme: 'light',
     fontSize: 15,
+    contentAlignment: 'center',
+    settingsHydrated: false,
   });
 
   return render(<App markdown={DOCUMENT} source="file" />);
@@ -106,4 +110,17 @@ describe('预览专用 App 入口', () => {
     fireEvent.click(screen.getByRole('button', { name: /Theme: light/ }));
     expect(screen.getByRole('button', { name: /Theme: dark/ })).not.toBeNull();
   });
+
+  it('阅读页快捷对齐菜单会立即更新完整预览的布局状态', () => {
+    renderApp();
+    const article = screen.getByRole('article', { name: 'Rendered markdown document' });
+
+    expect(article.classList.contains('feishu-viewer--content-center')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '正文对齐' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '正文靠左' }));
+
+    expect(article.classList.contains('feishu-viewer--content-left')).toBe(true);
+    expect(article.classList.contains('feishu-viewer--content-center')).toBe(false);
+  });
+
 });

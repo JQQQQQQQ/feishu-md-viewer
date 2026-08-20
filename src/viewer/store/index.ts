@@ -3,8 +3,10 @@ import { create } from 'zustand';
 const FONT_SIZE_MIN = 12;
 const FONT_SIZE_MAX = 24;
 const FONT_SIZE_DEFAULT = 15;
+let settingsRevision = 0;
 
 export type ThemeMode = 'light' | 'dark' | 'system';
+export type ContentAlignment = 'left' | 'center';
 
 interface DocumentSlice {
   content: string;
@@ -24,7 +26,12 @@ interface SettingsSlice {
   theme: ThemeMode;
   fontSize: number;
   tocSmoothScrollEnabled: boolean;
+  contentAlignment: ContentAlignment;
+  /** 本次阅读会话的设置已完成首次加载，后续不再用旧存储覆盖用户选择。 */
+  settingsHydrated: boolean;
 }
+
+type PersistedSettings = Omit<SettingsSlice, 'settingsHydrated'>;
 
 interface Actions {
   initDocument: (content: string) => void;
@@ -37,6 +44,7 @@ interface Actions {
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
   setTocSmoothScrollEnabled: (enabled: boolean) => void;
+  setContentAlignment: (alignment: ContentAlignment) => void;
   loadSettings: () => Promise<void>;
 }
 
@@ -46,15 +54,16 @@ function clampFontSize(size: number): number {
   return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, size));
 }
 
-function currentSettings(state: SettingsSlice): SettingsSlice {
+function currentSettings(state: SettingsSlice): PersistedSettings {
   return {
     theme: state.theme,
     fontSize: state.fontSize,
     tocSmoothScrollEnabled: state.tocSmoothScrollEnabled,
+    contentAlignment: state.contentAlignment,
   };
 }
 
-async function persistSettings(settings: SettingsSlice): Promise<void> {
+async function persistSettings(settings: PersistedSettings): Promise<void> {
   try {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       await chrome.storage.local.set({ viewerSettings: settings });
@@ -74,6 +83,8 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
   theme: 'system',
   fontSize: FONT_SIZE_DEFAULT,
   tocSmoothScrollEnabled: true,
+  contentAlignment: 'center',
+  settingsHydrated: false,
 
   initDocument: (content: string) => {
     set({ content, originalContent: content, mode: 'read' });
@@ -97,46 +108,64 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
   },
 
   setTheme: (theme: ThemeMode) => {
-    set({ theme });
+    settingsRevision += 1;
+    set({ theme, settingsHydrated: true });
     void persistSettings(currentSettings({ ...get(), theme }));
   },
 
   setFontSize: (size: number) => {
     const fontSize = clampFontSize(size);
-    set({ fontSize });
+    settingsRevision += 1;
+    set({ fontSize, settingsHydrated: true });
     void persistSettings(currentSettings({ ...get(), fontSize }));
   },
 
   increaseFontSize: () => {
     const fontSize = clampFontSize(get().fontSize + 1);
-    set({ fontSize });
+    settingsRevision += 1;
+    set({ fontSize, settingsHydrated: true });
     void persistSettings(currentSettings({ ...get(), fontSize }));
   },
 
   decreaseFontSize: () => {
     const fontSize = clampFontSize(get().fontSize - 1);
-    set({ fontSize });
+    settingsRevision += 1;
+    set({ fontSize, settingsHydrated: true });
     void persistSettings(currentSettings({ ...get(), fontSize }));
   },
 
   setTocSmoothScrollEnabled: (tocSmoothScrollEnabled: boolean) => {
-    set({ tocSmoothScrollEnabled });
+    settingsRevision += 1;
+    set({ tocSmoothScrollEnabled, settingsHydrated: true });
     void persistSettings(currentSettings({ ...get(), tocSmoothScrollEnabled }));
   },
 
+  setContentAlignment: (contentAlignment: ContentAlignment) => {
+    settingsRevision += 1;
+    set({ contentAlignment, settingsHydrated: true });
+    void persistSettings(currentSettings({ ...get(), contentAlignment }));
+  },
+
   loadSettings: async () => {
+    if (get().settingsHydrated) return;
+    const loadRevision = settingsRevision;
     try {
       if (typeof chrome !== 'undefined' && chrome.storage?.local) {
         const result = await chrome.storage.local.get('viewerSettings');
-        const settings = result['viewerSettings'] as Partial<SettingsSlice> | undefined;
+        const settings = result['viewerSettings'] as Partial<PersistedSettings> | undefined;
         if (settings) {
+          if (settingsRevision !== loadRevision || get().settingsHydrated) return;
           set({
             theme: settings.theme ?? 'system',
             fontSize: clampFontSize(settings.fontSize ?? FONT_SIZE_DEFAULT),
             tocSmoothScrollEnabled: settings.tocSmoothScrollEnabled ?? true,
+            contentAlignment: settings.contentAlignment === 'left' ? 'left' : 'center',
             // 兼容旧数据：无论存储值为何，都从阅读态启动。
             mode: 'read',
+            settingsHydrated: true,
           });
+        } else if (settingsRevision === loadRevision && !get().settingsHydrated) {
+          set({ settingsHydrated: true });
         }
       }
     } catch {

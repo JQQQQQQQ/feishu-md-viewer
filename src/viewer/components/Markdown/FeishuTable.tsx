@@ -248,6 +248,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
   const railDragRef = useRef<{ axis: RailSelection['axis']; anchor: number } | null>(null);
+  const stopCellDragAutoScrollRef = useRef<() => void>(() => {});
   const dragStartYRef = useRef<number | null>(null);
   const anchorRowHeightRef = useRef<number | null>(null);
   const copiedRef = useRef({ text: '', html: '' });
@@ -411,6 +412,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
   }, [applySelection]);
 
   const resetSelection = useCallback(() => {
+    stopCellDragAutoScrollRef.current();
     const table = tableRef.current;
     if (table) clearTableSelection(table);
     selectionRef.current = null;
@@ -667,6 +669,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
   useEffect(() => {
     let railDragFrame = 0;
     let railDragPointer: { x: number; y: number } | null = null;
+    let cellDragFrame = 0;
+    let cellDragPointer: { x: number; y: number } | null = null;
 
     const stopRailDragAutoScroll = () => {
       railDragPointer = null;
@@ -674,6 +678,22 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
         window.cancelAnimationFrame(railDragFrame);
         railDragFrame = 0;
       }
+    };
+
+    const stopCellDragAutoScroll = () => {
+      cellDragPointer = null;
+      if (cellDragFrame !== 0) {
+        window.cancelAnimationFrame(cellDragFrame);
+        cellDragFrame = 0;
+      }
+    };
+    stopCellDragAutoScrollRef.current = stopCellDragAutoScroll;
+
+    const getSourceCell = (cell: HTMLTableCellElement | null) => {
+      const table = tableRef.current;
+      if (!cell || !table) return null;
+      if (table.contains(cell)) return cell;
+      return getSourceCellFromLeftReveal(table, cell);
     };
 
     const scrollColumnRailAtPointer = (): boolean => {
@@ -712,6 +732,37 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       });
     };
 
+    const scrollCellRangeAtPointer = (): boolean => {
+      const pointer = cellDragPointer;
+      const scrollport = scrollportRef.current;
+      if (!pointer || !isDraggingRef.current || !selectionRef.current || !scrollport) return false;
+
+      const bounds = scrollport.getBoundingClientRect();
+      const delta = getTableRailDragScrollDelta(
+        pointer.x,
+        { left: bounds.left, right: bounds.right },
+        scrollport.scrollLeft,
+        scrollport.scrollWidth,
+        scrollport.clientWidth,
+      );
+      if (delta === 0) return false;
+
+      scrollport.scrollLeft += delta;
+      scrollport.dispatchEvent(new Event('scroll', { bubbles: false }));
+
+      const cell = getSourceCell(getCellFromPoint(pointer.x, pointer.y));
+      if (cell) extendSelectionToCell(cell, pointer.y);
+      return true;
+    };
+
+    const scheduleCellDragAutoScroll = () => {
+      if (cellDragFrame !== 0 || typeof window.requestAnimationFrame !== 'function') return;
+      cellDragFrame = window.requestAnimationFrame(() => {
+        cellDragFrame = 0;
+        if (scrollCellRangeAtPointer()) scheduleCellDragAutoScroll();
+      });
+    };
+
     const handleMouseMove = (event: globalThis.MouseEvent) => {
       if (isResizingRef.current) return;
       if (railDragRef.current?.axis === 'column') {
@@ -732,14 +783,17 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
         return;
       }
 
-      const cell = getCellFromEvent(event) ?? getCellFromPoint(event.clientX, event.clientY);
-      if (!cell || !tableRef.current?.contains(cell)) return;
-
-      extendSelectionToCell(cell, event.clientY);
+      cellDragPointer = { x: event.clientX, y: event.clientY };
+      const cell = getSourceCell(
+        getCellFromEvent(event) ?? getCellFromPoint(event.clientX, event.clientY),
+      );
+      if (cell) extendSelectionToCell(cell, event.clientY);
+      if (scrollCellRangeAtPointer()) scheduleCellDragAutoScroll();
     };
 
     const handleMouseUp = () => {
       stopRailDragAutoScroll();
+      stopCellDragAutoScroll();
       isDraggingRef.current = false;
       railDragRef.current = null;
       dragStartYRef.current = null;
@@ -795,6 +849,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
     return () => {
       stopRailDragAutoScroll();
+      stopCellDragAutoScroll();
+      stopCellDragAutoScrollRef.current = () => {};
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('copy', handleCopy);

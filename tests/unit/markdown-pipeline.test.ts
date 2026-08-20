@@ -14,6 +14,27 @@ describe('markdown-pipeline', () => {
       expect(result).toBeDefined();
     });
 
+    it('renders safe raw HTML commonly used by project READMEs', () => {
+      const result = parseMarkdown(`
+<div align="center">
+  <a href="https://github.com/ayangweb/EcoPaste">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://example.com/hero-dark.png" />
+      <img src="https://example.com/hero-light.png" alt="EcoPaste" width="320" />
+    </picture>
+  </a>
+  <a href="https://github.com/ayangweb/EcoPaste/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=ayangweb/EcoPaste" alt="贡献者" />
+  </a>
+</div>`);
+      const { container } = render(result);
+
+      expect(container.querySelector('div[align="center"]')).not.toBeNull();
+      expect(container.querySelector('picture source')?.getAttribute('srcset')).toBe('https://example.com/hero-dark.png');
+      expect(container.querySelector('img[alt="EcoPaste"]')?.getAttribute('src')).toBe('https://example.com/hero-light.png');
+      expect(container.querySelector('img[alt="贡献者"]')?.getAttribute('src')).toBe('https://contrib.rocks/image?repo=ayangweb/EcoPaste');
+    });
+
     it('strips embedded HTML for XSS prevention', () => {
       const result = parseMarkdown('<script>alert("xss")</script>Hello');
       expect(result).toBeDefined();

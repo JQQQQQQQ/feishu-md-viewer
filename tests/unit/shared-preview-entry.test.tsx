@@ -32,6 +32,7 @@ it('renders the same read-only document contract without a browser URL', () => {
   render(<PreviewRoot markdown="# 标题" source="file" />);
 
   expect(screen.getByRole('article')).toHaveAttribute('data-mode', 'read');
+  expect(screen.getByRole('article')).toHaveClass('feishu-viewer--content-center');
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 });
 

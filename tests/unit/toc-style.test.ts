@@ -10,6 +10,10 @@ const markdownStylesheet = readFileSync(
   resolve(__dirname, '../../src/viewer/styles/markdown.css'),
   'utf8',
 ).replace(/\s+/g, ' ');
+const scrollbarStylesheet = readFileSync(
+  resolve(__dirname, '../../src/viewer/styles/scrollbar.css'),
+  'utf8',
+).replace(/\s+/g, ' ');
 
 describe('table of contents styles', () => {
   it('keeps major headings bold while they are active', () => {
@@ -78,6 +82,13 @@ describe('table of contents styles', () => {
   it('uses the content surface below a hidden desktop sidebar', () => {
     expect(stylesheet).toMatch(/\.feishu-app-shell__body::before\s*\{[^}]*width:\s*var\(--feishu-main-offset\)/);
     expect(stylesheet).toMatch(/\.feishu-app-shell__body::before\s*\{[^}]*background-color:\s*var\(--feishu-bg-content\)/);
+  });
+
+  it('hides navigation scrollbars until the directory is hovered or receives keyboard focus', () => {
+    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar,\s*\.feishu-viewer \.feishu-toc\s*\{[^}]*scrollbar-width:\s*none/);
+    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar::-webkit-scrollbar,\s*\.feishu-viewer \.feishu-toc::-webkit-scrollbar\s*\{[^}]*width:\s*0/);
+    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar:hover,\s*\.feishu-viewer \.feishu-sidebar:focus-within,\s*\.feishu-viewer \.feishu-sidebar:hover \.feishu-toc,\s*\.feishu-viewer \.feishu-sidebar:focus-within \.feishu-toc\s*\{[^}]*scrollbar-width:\s*thin/);
+    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar:hover::-webkit-scrollbar,\s*\.feishu-viewer \.feishu-sidebar:focus-within::-webkit-scrollbar,\s*\.feishu-viewer \.feishu-sidebar:hover \.feishu-toc::-webkit-scrollbar,\s*\.feishu-viewer \.feishu-sidebar:focus-within \.feishu-toc::-webkit-scrollbar\s*\{[^}]*width:\s*8px/);
   });
 
 });

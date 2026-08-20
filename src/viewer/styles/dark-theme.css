@@ -30,6 +30,8 @@
   --feishu-blockquote-border: #4e83fd;
   --feishu-table-header-bg: #2a2a2a;
   --feishu-table-stripe-bg: #222222;
+  --feishu-table-scroll-cue-shadow: rgba(0, 0, 0, 0.86);
+  --feishu-table-scroll-cue-highlight: rgba(255, 255, 255, 0.12);
   --feishu-scrollbar-track: #1f1f1f;
   --feishu-scrollbar-thumb: #4a4a4a;
   --feishu-scrollbar-thumb-hover: #5f5f5f;
@@ -210,6 +212,8 @@
     --feishu-blockquote-border: #4e83fd;
     --feishu-table-header-bg: #2a2a2a;
     --feishu-table-stripe-bg: #222222;
+    --feishu-table-scroll-cue-shadow: rgba(0, 0, 0, 0.86);
+    --feishu-table-scroll-cue-highlight: rgba(255, 255, 255, 0.12);
     --feishu-scrollbar-track: #1f1f1f;
     --feishu-scrollbar-thumb: #4a4a4a;
     --feishu-scrollbar-thumb-hover: #5f5f5f;

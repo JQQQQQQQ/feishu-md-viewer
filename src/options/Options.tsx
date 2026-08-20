@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 
 type ThemeMode = 'light' | 'dark' | 'system';
+type ContentAlignment = 'left' | 'center';
 
 interface Settings {
   theme: ThemeMode;
   fontSize: number;
   tocSmoothScrollEnabled: boolean;
+  contentAlignment: ContentAlignment;
 }
 
 const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   fontSize: 15,
   tocSmoothScrollEnabled: true,
+  contentAlignment: 'center',
 };
 
 const FONT_SIZE_MIN = 12;
@@ -35,6 +38,7 @@ export function Options() {
             theme: stored.theme ?? DEFAULT_SETTINGS.theme,
             fontSize: stored.fontSize ?? DEFAULT_SETTINGS.fontSize,
             tocSmoothScrollEnabled: stored.tocSmoothScrollEnabled ?? DEFAULT_SETTINGS.tocSmoothScrollEnabled,
+            contentAlignment: stored.contentAlignment === 'left' ? 'left' : 'center',
           });
         }
       }
@@ -70,6 +74,12 @@ export function Options() {
 
   const handleTocSmoothScrollChange = useCallback((tocSmoothScrollEnabled: boolean) => {
     const newSettings = { ...settings, tocSmoothScrollEnabled };
+    setSettings(newSettings);
+    void saveSettings(newSettings);
+  }, [settings, saveSettings]);
+
+  const handleContentAlignmentChange = useCallback((contentAlignment: ContentAlignment) => {
+    const newSettings = { ...settings, contentAlignment };
     setSettings(newSettings);
     void saveSettings(newSettings);
   }, [settings, saveSettings]);
@@ -175,6 +185,33 @@ export function Options() {
                 style={styles.radioInput}
               />
               <span style={styles.radioText}>Instant jump</span>
+            </label>
+          </div>
+        </section>
+
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>正文对齐</h2>
+          <p style={styles.description}>选择桌面阅读页中正文栏的默认对齐方式。</p>
+          <div style={styles.radioGroup} role="radiogroup" aria-label="正文对齐">
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="content-alignment"
+                checked={settings.contentAlignment === 'center'}
+                onChange={() => handleContentAlignmentChange('center')}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>正文居中</span>
+            </label>
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="content-alignment"
+                checked={settings.contentAlignment === 'left'}
+                onChange={() => handleContentAlignmentChange('left')}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>正文靠左</span>
             </label>
           </div>
         </section>
