@@ -80,6 +80,7 @@ export function applyTableColumnWidths(table: HTMLTableElement, widths: number[]
 
       cell.style.width = `${Math.round(width)}px`;
       cell.style.minWidth = `${Math.round(width)}px`;
+      cell.style.maxWidth = `${Math.round(width)}px`;
     });
   });
 }

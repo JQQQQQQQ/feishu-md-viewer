@@ -9,6 +9,22 @@ const MIN_SIDEBAR_WIDTH = 220;
 const MAX_SIDEBAR_WIDTH = 520;
 const MAIN_MIN_READABLE_WIDTH = 980;
 const MAIN_MAX_OFFSET = 400;
+const TABLE_SCROLL_THRESHOLD_PX = 8;
+
+export function shouldHideSidebarForTableScroll(scrollLeft: number): boolean {
+  return Number.isFinite(scrollLeft) && scrollLeft > TABLE_SCROLL_THRESHOLD_PX;
+}
+
+export function resolveSidebarToggleState(
+  sidebarOpen: boolean,
+  tableScrollHidden: boolean,
+): { sidebarOpen: boolean; tableScrollHidden: boolean } {
+  if (tableScrollHidden) {
+    return { sidebarOpen: true, tableScrollHidden: false };
+  }
+
+  return { sidebarOpen: !sidebarOpen, tableScrollHidden: false };
+}
 
 interface AppShellProps {
   title: string;
@@ -66,11 +82,14 @@ export function AppShell({
   const [sidebarWidth, setSidebarWidth] = useState(getStoredSidebarWidth);
   const contentRef = useRef<HTMLElement | null>(null);
   const isDrawerMode = useIsDrawerMode();
+  const [tableScrollHidden, setTableScrollHidden] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
 
   const handleToggleSidebar = useCallback(() => {
-    setSidebarOpen((prev) => !prev);
-  }, []);
+    const next = resolveSidebarToggleState(sidebarOpen, tableScrollHidden);
+    setSidebarOpen(next.sidebarOpen);
+    setTableScrollHidden(next.tableScrollHidden);
+  }, [sidebarOpen, tableScrollHidden]);
 
   const handleCloseSidebar = useCallback(() => {
     setSidebarOpen(false);
@@ -90,8 +109,23 @@ export function AppShell({
     if (isDrawerMode && sidebarOpen) {
       setSidebarOpen(false);
     }
+    if (isDrawerMode) setTableScrollHidden(false);
     // Only react to drawer mode change, not sidebarOpen
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDrawerMode]);
+
+  useEffect(() => {
+    const main = contentRef.current;
+    if (!main) return undefined;
+
+    const handleTableScroll = (event: Event) => {
+      if (isDrawerMode) return;
+      const detail = (event as CustomEvent<{ scrollLeft?: number }>).detail;
+      setTableScrollHidden(shouldHideSidebarForTableScroll(Number(detail?.scrollLeft ?? 0)));
+    };
+
+    main.addEventListener('feishu-table-horizontal-scroll', handleTableScroll);
+    return () => main.removeEventListener('feishu-table-horizontal-scroll', handleTableScroll);
   }, [isDrawerMode]);
 
   useEffect(() => {
@@ -106,7 +140,7 @@ export function AppShell({
 
   const mainClassName = [
     'feishu-app-shell__main',
-    !sidebarOpen ? 'feishu-app-shell__main--collapsed' : '',
+    tableScrollHidden ? 'feishu-app-shell__main--table-scrolling' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -134,6 +168,7 @@ export function AppShell({
           items={tocItems}
           containerRef={contentRef}
           isDrawerMode={isDrawerMode}
+          isTableScrollHidden={tableScrollHidden}
           onClose={handleCloseSidebar}
           onWidthChange={handleSidebarWidthChange}
         />

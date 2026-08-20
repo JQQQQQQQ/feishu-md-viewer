@@ -146,7 +146,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--feishu-text-primary);
   margin-top: 1.5em;
   margin-bottom: 0.5em;
@@ -159,33 +159,9 @@
 }
 
 .feishu-section {
-  --feishu-section-indent: 0px;
   --feishu-section-line: transparent;
 
   position: relative;
-}
-
-.feishu-section--level-2,
-.feishu-section--level-3,
-.feishu-section--level-4,
-.feishu-section--level-5,
-.feishu-section--level-6 {
-  margin-left: var(--feishu-section-indent);
-  padding-left: 16px;
-}
-
-.feishu-section--level-2 {
-  --feishu-section-indent: 34px;
-}
-
-.feishu-section--level-3 {
-  --feishu-section-indent: 28px;
-}
-
-.feishu-section--level-4,
-.feishu-section--level-5,
-.feishu-section--level-6 {
-  --feishu-section-indent: 22px;
 }
 
 .feishu-section > :first-child {
@@ -198,6 +174,7 @@
 
 .feishu-h1 {
   font-size: var(--feishu-font-size-h1);
+  font-weight: 750;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--feishu-border-lighter);
   margin-top: 0;
@@ -205,33 +182,41 @@
 
 .feishu-h2 {
   font-size: var(--feishu-font-size-h2);
+  font-weight: 700;
 }
 
 .feishu-h3 {
   font-size: var(--feishu-font-size-h3);
+  font-weight: 700;
 }
 
 .feishu-h4 {
   font-size: var(--feishu-font-size-h4);
+  font-weight: 650;
 }
 
 .feishu-h5 {
-  font-size: var(--feishu-font-size-body);
+  font-size: 18px;
+  font-weight: 650;
 }
 
 .feishu-h6 {
-  font-size: var(--feishu-font-size-small);
+  font-size: 16px;
+  font-weight: 600;
   color: var(--feishu-text-secondary);
 }
 
 /* Heading Toggle */
 .feishu-heading__toggle {
+  position: absolute;
+  left: -32px;
+  top: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
-  margin-right: 8px;
+  margin: 0;
   border: none;
   background: none;
   cursor: pointer;
@@ -240,10 +225,18 @@
   vertical-align: middle;
   padding: 0;
   border-radius: 4px;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 150ms ease, color 150ms ease, background-color 150ms ease;
 }
 
 .feishu-heading__toggle--expanded {
-  transform: rotate(90deg);
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.feishu-heading:hover .feishu-heading__toggle,
+.feishu-heading__toggle:focus-visible {
+  opacity: 1;
 }
 
 .feishu-heading__toggle:hover {
@@ -455,16 +448,94 @@
 /* Tables */
 .feishu-table-wrapper {
   position: relative;
+  width: max-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 1em 0;
+  overflow: visible;
+  border-radius: var(--feishu-radius);
+  border: none;
+  outline: none;
+}
+
+.feishu-table-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  box-sizing: border-box;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.feishu-table-wrapper--left-revealed {
+  border-left-color: transparent;
+  border-radius: 0 var(--feishu-radius) var(--feishu-radius) 0;
+}
+
+.feishu-table-wrapper--left-revealed::after {
+  border-left-color: transparent;
+}
+
+.feishu-table-wrapper--can-scroll-right::after {
+  box-shadow: inset -14px 0 12px -12px rgba(31, 35, 41, 0.32);
+}
+
+/* The only horizontal scroll container.  Its native scrollbar keeps a stable
+ * track while an optional left reveal layer displays the otherwise clipped
+ * starting edge of a wide table. */
+.feishu-table__scrollport {
+  position: relative;
   width: 100%;
   max-width: 100%;
-  margin: 1em 0;
+  border-radius: inherit;
   overflow-x: auto;
   overflow-y: hidden;
-  border-radius: var(--feishu-radius);
-  border: 1px solid var(--feishu-border-light);
-  outline: none;
-  scrollbar-color: color-mix(in srgb, var(--feishu-brand-primary) 34%, var(--feishu-border-light)) transparent;
-  scrollbar-width: thin;
+}
+
+/* Once the left reveal becomes the visible outer edge, the scrollport must
+ * not round that same internal seam. It retains only the real right corners. */
+.feishu-table-wrapper--left-revealed .feishu-table__scrollport {
+  border-radius: 0 var(--feishu-radius) var(--feishu-radius) 0;
+}
+
+.feishu-table__left-reveal {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 100%;
+  width: var(--feishu-table-left-reveal, 0px);
+  height: calc(100% - var(--feishu-table-scrollbar-height, 0px));
+  border-radius: var(--feishu-radius) 0 0 var(--feishu-radius);
+  overflow: hidden;
+  pointer-events: auto;
+  user-select: text;
+}
+
+/* Complete the outer frame where the read-only left reveal extends beyond
+ * the fixed native scrollport.  This is visual only: table geometry and the
+ * browser-owned scrollbar remain unchanged. */
+.feishu-table__left-reveal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  border-top: 1px solid var(--feishu-border-light);
+  border-bottom: 1px solid var(--feishu-border-light);
+  border-left: 1px solid var(--feishu-border-light);
+  border-radius: var(--feishu-radius) 0 0 var(--feishu-radius);
+  pointer-events: none;
+}
+
+.feishu-table-wrapper--can-scroll-left .feishu-table__left-reveal::before {
+  box-shadow: inset 14px 0 12px -12px rgba(31, 35, 41, 0.32);
+}
+
+.feishu-table__left-reveal .feishu-table {
+  margin: 0;
+  transform: translateX(calc(-1 * var(--feishu-table-left-reveal-content-offset, 0px)));
 }
 
 /* Clickable edge rails for whole-row / whole-column selection. */
@@ -482,15 +553,27 @@
 
 .feishu-table__selection-rail--top {
   top: 0;
-  left: 0;
+  /* The left reveal lives outside the fixed scrollport. Extend the same
+   * column rail over it so selection remains available for those visible
+   * columns, without adding another selection control. */
+  left: calc(-1 * var(--feishu-table-left-reveal, 0px));
   right: 0;
   height: 9px;
+  overflow: hidden;
+}
+
+.feishu-table__selection-rail--top > .feishu-table__selection-rail-segment {
+  /* The rail's left edge already accounts for the reveal. Shift the source
+   * columns only by the remaining native-scroll offset to stay aligned. */
+  transform: translateX(calc(-1 * var(--feishu-table-left-reveal-content-offset, 0px)));
 }
 
 .feishu-table__selection-rail--left {
   top: 0;
   bottom: 0;
-  left: 0;
+  /* Keep whole-row selection on the visible left frame when wide-table
+   * content is revealed outside the fixed scrollport. */
+  left: calc(-1 * var(--feishu-table-left-reveal, 0px));
   width: 9px;
 }
 
@@ -540,6 +623,32 @@
   box-shadow: 0 2px 8px rgba(31, 35, 41, 0.08);
 }
 
+.feishu-table__sticky-left-reveal {
+  position: fixed;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 80;
+  background: var(--feishu-bg-content);
+  border-left: 1px solid var(--feishu-border-light);
+  border-top: 1px solid var(--feishu-border-light);
+  box-shadow: 0 2px 8px rgba(31, 35, 41, 0.08);
+}
+
+.feishu-table__sticky-head--with-left-reveal {
+  border-left-color: transparent;
+}
+
+.feishu-table__sticky-left-reveal .feishu-table--sticky-clone {
+  margin: 0;
+}
+
+.feishu-table__sticky-left-reveal .feishu-table__header {
+  position: static;
+  top: auto;
+  z-index: auto;
+}
+
 .feishu-table__sticky-head .feishu-table--sticky-clone {
   margin: 0;
 }
@@ -552,12 +661,13 @@
 
 .feishu-table-wrapper--wide-right,
 .feishu-table-wrapper--wide-balanced {
-  width: var(--feishu-table-wide-width, 100%);
-  max-width: none;
+  width: min(var(--feishu-table-wide-width, 100%), 80vw);
+  max-width: 80vw;
+  box-sizing: border-box;
 }
 
 .feishu-table-wrapper--wide-right {
-  margin-left: 0;
+  margin-left: var(--feishu-table-wide-offset, 0);
 }
 
 .feishu-table-wrapper--wide-balanced {
@@ -566,33 +676,13 @@
 
 .feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-right,
 .feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-balanced {
-  width: var(--feishu-table-wide-width, 100%);
-  max-width: none;
-}
-
-.feishu-table-wrapper::-webkit-scrollbar {
-  height: 10px;
-}
-
-.feishu-table-wrapper::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.feishu-table-wrapper::-webkit-scrollbar-thumb {
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--feishu-brand-primary) 34%, var(--feishu-border-light));
-  background-clip: content-box;
-}
-
-.feishu-table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--feishu-brand-primary) 52%, var(--feishu-border-light));
-  background-clip: content-box;
+  width: min(var(--feishu-table-wide-width, 100%), 80vw);
+  max-width: 80vw;
 }
 
 .feishu-table {
   width: max-content;
-  min-width: 100%;
+  min-width: 0;
   border-collapse: collapse;
   table-layout: auto;
   font-size: var(--feishu-font-size-small);
@@ -603,6 +693,7 @@
 }
 
 .feishu-table__header {
+  background-color: var(--feishu-table-header-bg);
   padding: 8px 12px;
   text-align: left;
   font-weight: 600;
@@ -688,8 +779,8 @@
     var(--feishu-table-header-bg);
 }
 
-.feishu-table__row:nth-child(even) {
-  background-color: var(--feishu-table-stripe-bg);
+.feishu-table__row {
+  background-color: var(--feishu-bg-content);
 }
 
 .feishu-table__row:last-child .feishu-table__cell {
@@ -1059,12 +1150,4 @@
     transform: none;
   }
 
-  .feishu-section--level-2,
-  .feishu-section--level-3,
-  .feishu-section--level-4,
-  .feishu-section--level-5,
-  .feishu-section--level-6 {
-    margin-left: 14px;
-    padding-left: 12px;
-  }
 }

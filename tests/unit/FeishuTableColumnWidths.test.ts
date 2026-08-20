@@ -69,6 +69,7 @@ describe('FeishuTableColumnWidths', () => {
 
     expect(table.rows[0].cells[0].style.width).toBe('144px');
     expect(table.rows[1].cells[0].style.minWidth).toBe('144px');
+    expect(table.rows[1].cells[0].style.maxWidth).toBe('144px');
     expect(table.rows[2].cells[1].style.width).toBe('288px');
   });
 

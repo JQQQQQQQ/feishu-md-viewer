@@ -42,7 +42,22 @@
 .feishu-app-shell__body {
   display: flex;
   flex: 1;
+  position: relative;
   padding-top: var(--feishu-topbar-height);
+}
+
+/* The sidebar is fixed and slides away on desktop.  Keep the reserved left
+ * column on the same surface as the reading page after it has moved away. */
+.feishu-app-shell__body::before {
+  content: '';
+  position: fixed;
+  top: var(--feishu-topbar-height);
+  left: 0;
+  bottom: 0;
+  width: var(--feishu-main-offset);
+  background-color: var(--feishu-bg-content);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .feishu-app-shell__main {
@@ -53,7 +68,11 @@
 }
 
 .feishu-app-shell__main--collapsed {
-  margin-left: 0;
+  margin-left: var(--feishu-main-offset);
+}
+
+.feishu-app-shell__main--table-scrolling {
+  margin-left: var(--feishu-main-offset);
 }
 
 /* ===== Top Bar ===== */
@@ -240,6 +259,11 @@
   transform: translateX(-100%);
 }
 
+.feishu-sidebar--table-scrolling {
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
 .feishu-sidebar__content {
   padding: 16px 0;
 }
@@ -283,6 +307,10 @@
 
   .feishu-app-shell__main--collapsed {
     margin-left: 0;
+  }
+
+  .feishu-app-shell__body::before {
+    display: none;
   }
 
   .feishu-sidebar {
@@ -346,7 +374,8 @@
 }
 
 .feishu-toc__link--major {
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--feishu-text-primary);
 }
 
 .feishu-toc__link:hover {
@@ -361,7 +390,7 @@
 }
 
 .feishu-toc__link--active.feishu-toc__link--major {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .feishu-toc__toggle {

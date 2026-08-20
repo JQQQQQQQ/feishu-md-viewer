@@ -7,6 +7,7 @@ interface SidebarProps {
   items: TOCItem[];
   containerRef: React.RefObject<HTMLElement | null>;
   isDrawerMode: boolean;
+  isTableScrollHidden?: boolean;
   onClose: () => void;
   onWidthChange: (width: number) => void;
 }
@@ -16,6 +17,7 @@ export function Sidebar({
   items,
   containerRef,
   isDrawerMode,
+  isTableScrollHidden = false,
   onClose,
   onWidthChange,
 }: SidebarProps) {
@@ -83,6 +85,7 @@ export function Sidebar({
   const sidebarClassName = [
     'feishu-sidebar',
     !isOpen ? 'feishu-sidebar--collapsed' : '',
+    isTableScrollHidden ? 'feishu-sidebar--table-scrolling' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -107,7 +110,7 @@ export function Sidebar({
         ref={sidebarRef}
         className={sidebarClassName}
         aria-label="Document navigation"
-        aria-hidden={!isOpen}
+        aria-hidden={!isOpen || isTableScrollHidden}
       >
         <div className="feishu-sidebar__content">
           <TableOfContents items={items} containerRef={containerRef} />

@@ -1,5 +1,84 @@
 export type TableLayoutMode = 'normal' | 'right' | 'balanced';
 
+export interface TableScrollPresentation {
+  leftReveal: number;
+  mainScrollLeft: number;
+}
+
+/**
+ * 将原生滚动距离拆成“左侧露出”和固定视口内部的滚动距离。
+ *
+ * 左侧最多移动到窗口左侧 10% 的安全线；超过安全线的距离交给内部
+ * scrollport，避免外框继续变宽或把正文整体向左推移。
+ */
+export function resolveTableScrollPresentation(
+  scrollLeft: number,
+  tableLeft: number,
+  viewportWidth: number,
+): TableScrollPresentation {
+  const safeScrollLeft = Number.isFinite(scrollLeft) ? Math.max(0, scrollLeft) : 0;
+  const safeTableLeft = Number.isFinite(tableLeft) ? tableLeft : 0;
+  const safeViewportWidth = Number.isFinite(viewportWidth) ? Math.max(0, viewportWidth) : 0;
+  const maxLeftReveal = Math.max(0, safeTableLeft - safeViewportWidth * 0.1);
+  const leftReveal = Math.min(safeScrollLeft, maxLeftReveal);
+  const mainScrollLeft = safeScrollLeft - leftReveal;
+
+  return {
+    leftReveal,
+    mainScrollLeft,
+  };
+}
+
+export function getTableContentOffset(scrollLeft: number, tableLeft: number, viewportWidth: number): number {
+  return Math.min(Math.max(0, scrollLeft), Math.max(0, tableLeft - viewportWidth * TABLE_VIEWPORT_LEFT_RATIO));
+}
+
+export function getTableResizeScrollTarget(
+  pointerX: number,
+  bounds: { left: number; right: number },
+  scrollLeft: number,
+  scrollWidth: number,
+  clientWidth: number,
+): number | null {
+  const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+  if (maxScrollLeft <= 0 || !Number.isFinite(pointerX)) return null;
+  if (pointerX >= bounds.right - 24) return maxScrollLeft === scrollLeft ? null : maxScrollLeft;
+  if (pointerX <= bounds.left + 24) return scrollLeft === 0 ? null : 0;
+  return null;
+}
+
+/**
+ * 返回整列边框拖拽时单帧应追加的原生滚动距离。
+ * 指针越靠近边缘，滚动越快；到达边界或离开热区则停止。
+ */
+export function getTableRailDragScrollDelta(
+  pointerX: number,
+  bounds: { left: number; right: number },
+  scrollLeft: number,
+  scrollWidth: number,
+  clientWidth: number,
+): number {
+  const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+  if (maxScrollLeft <= 0 || !Number.isFinite(pointerX)) return 0;
+
+  const edgeSize = 28;
+  const minSpeed = 6;
+  const maxSpeed = 24;
+  const speedForDistance = (distance: number) => {
+    const strength = Math.min(1, Math.max(0, (edgeSize - distance) / edgeSize));
+    return Math.round(minSpeed + (maxSpeed - minSpeed) * strength);
+  };
+
+  const safeScrollLeft = Math.min(maxScrollLeft, Math.max(0, scrollLeft));
+  if (pointerX >= bounds.right - edgeSize && safeScrollLeft < maxScrollLeft) {
+    return Math.min(speedForDistance(bounds.right - pointerX), maxScrollLeft - safeScrollLeft);
+  }
+  if (pointerX <= bounds.left + edgeSize && safeScrollLeft > 0) {
+    return -Math.min(speedForDistance(pointerX - bounds.left), safeScrollLeft);
+  }
+  return 0;
+}
+
 type ContentPressure = 'low' | 'medium' | 'high';
 
 const CONTENT_AWARE_COLUMN_THRESHOLD = 4;
@@ -10,16 +89,12 @@ const LONG_CELL_TEXT_THRESHOLD = 56;
 const VERY_LONG_CELL_TEXT_THRESHOLD = 150;
 const LONG_UNBROKEN_TEXT_THRESHOLD = 24;
 const VERY_LONG_UNBROKEN_TEXT_THRESHOLD = 48;
-const TABLE_VIEWPORT_GUTTER = 48;
 const MAX_WIDE_TABLE_WIDTH = 1320;
+const TABLE_VIEWPORT_LEFT_RATIO = 0.1;
+const TABLE_VIEWPORT_RIGHT_RATIO = 0.9;
 const HORIZONTAL_OVERFLOW_TOLERANCE_PX = 1;
 
 interface TableBaseBox {
-  left: number;
-  width: number;
-}
-
-interface TableLayoutBounds {
   left: number;
   width: number;
 }
@@ -172,19 +247,12 @@ function getTableBaseBox(wrapper: HTMLElement): TableBaseBox {
   };
 }
 
-function getTableLayoutBounds(wrapper: HTMLElement): TableLayoutBounds {
-  const main = wrapper.closest('.feishu-app-shell__main');
-  const mainLeft = main instanceof HTMLElement ? main.getBoundingClientRect().left : 0;
-  const left = mainLeft + TABLE_VIEWPORT_GUTTER;
-  const right = window.innerWidth - TABLE_VIEWPORT_GUTTER;
-
-  return {
-    left,
-    width: Math.max(0, right - left),
-  };
-}
-
-export function updateTableWideWidth(wrapper: HTMLElement, mode: TableLayoutMode): void {
+export function updateTableWideWidth(
+  wrapper: HTMLElement,
+  mode: TableLayoutMode,
+  _contentWidth?: number,
+  scrollLeft = 0,
+): void {
   if (mode === 'normal') {
     wrapper.style.removeProperty('--feishu-table-wide-width');
     wrapper.style.removeProperty('--feishu-table-wide-offset');
@@ -192,16 +260,33 @@ export function updateTableWideWidth(wrapper: HTMLElement, mode: TableLayoutMode
   }
 
   const baseBox = getTableBaseBox(wrapper);
-  const layoutBounds = getTableLayoutBounds(wrapper);
-  const rightWidth = layoutBounds.left + layoutBounds.width - baseBox.left;
-  const nextWidth = Math.min(
-    MAX_WIDE_TABLE_WIDTH,
-    Math.max(baseBox.width, mode === 'right' ? rightWidth : layoutBounds.width)
-  );
-  const nextOffset = mode === 'balanced'
-    ? Math.round(layoutBounds.left + (layoutBounds.width - nextWidth) / 2 - baseBox.left)
-    : 0;
+  const viewportRight = window.innerWidth * TABLE_VIEWPORT_RIGHT_RATIO;
+  // Both wide modes keep the wrapper at its real reading-column start.  Width
+  // must therefore be derived from that same physical left edge; mixing in a
+  // synthetic mainLeft + gutter origin lets balanced tables cross the 90vw
+  // right boundary whenever the actual wrapper begins farther to the right.
+  const defaultWidth = Math.max(0, viewportRight - baseBox.left);
+  // The outer frame follows the table while it fits in the reading viewport.
+  // Once the table is wider than that viewport, the frame stops at the right
+  // boundary and the table provides the horizontal overflow inside it.
+  const measuredWidth = Number.isFinite(_contentWidth) && (_contentWidth ?? 0) > 0
+    ? _contentWidth as number
+    : defaultWidth;
+  const viewportLeft = window.innerWidth * TABLE_VIEWPORT_LEFT_RATIO;
+  const baseLeft = baseBox.left;
+  const maxShift = Math.max(0, baseLeft - viewportLeft);
+  const appliedShift = Math.min(Math.max(0, scrollLeft), maxShift);
+  const maxWideWidth = Math.min(MAX_WIDE_TABLE_WIDTH, window.innerWidth * 0.8);
+  const initialWidth = Math.max(0, Math.min(measuredWidth, defaultWidth));
+  const nextWidth = Math.min(maxWideWidth, initialWidth);
+  // Wide tables keep their left edge aligned with the reading column.  The
+  // wrapper owns horizontal scrolling; never shift the table into the TOC
+  // gutter when a very wide table is rendered.
+  const nextOffset = 0;
 
-  wrapper.style.setProperty('--feishu-table-wide-width', `${Math.round(nextWidth)}px`);
+  // Never round a fractional boundary upward: even half a pixel would violate
+  // the hard 90vw right-edge invariant.
+  wrapper.style.setProperty('--feishu-table-wide-width', `${Math.floor(nextWidth)}px`);
   wrapper.style.setProperty('--feishu-table-wide-offset', `${nextOffset}px`);
+  wrapper.style.setProperty('--feishu-table-content-offset', `${Math.round(appliedShift)}px`);
 }
