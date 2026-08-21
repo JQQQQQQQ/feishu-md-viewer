@@ -84,11 +84,14 @@ describe('table of contents styles', () => {
     expect(stylesheet).toMatch(/\.feishu-app-shell__body::before\s*\{[^}]*background-color:\s*var\(--feishu-bg-content\)/);
   });
 
-  it('hides navigation scrollbars until the directory is hovered or receives keyboard focus', () => {
-    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar,\s*\.feishu-viewer \.feishu-toc\s*\{[^}]*scrollbar-width:\s*none/);
-    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar::-webkit-scrollbar,\s*\.feishu-viewer \.feishu-toc::-webkit-scrollbar\s*\{[^}]*width:\s*0/);
-    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar:hover,\s*\.feishu-viewer \.feishu-sidebar:focus-within,\s*\.feishu-viewer \.feishu-sidebar:hover \.feishu-toc,\s*\.feishu-viewer \.feishu-sidebar:focus-within \.feishu-toc\s*\{[^}]*scrollbar-width:\s*thin/);
-    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar:hover::-webkit-scrollbar,\s*\.feishu-viewer \.feishu-sidebar:focus-within::-webkit-scrollbar,\s*\.feishu-viewer \.feishu-sidebar:hover \.feishu-toc::-webkit-scrollbar,\s*\.feishu-viewer \.feishu-sidebar:focus-within \.feishu-toc::-webkit-scrollbar\s*\{[^}]*width:\s*8px/);
+  it('uses one stable-width directory scrollport whose thumb appears without shifting content', () => {
+    expect(stylesheet).toMatch(/\.feishu-toc\s*\{[^}]*height:\s*auto;[^}]*overflow:\s*visible/);
+    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar\s*\{[^}]*scrollbar-width:\s*thin;[^}]*scrollbar-color:\s*transparent transparent/);
+    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar::-webkit-scrollbar\s*\{[^}]*width:\s*8px/);
+    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar::-webkit-scrollbar-thumb\s*\{[^}]*background:\s*transparent/);
+    expect(scrollbarStylesheet).toMatch(/\.feishu-viewer \.feishu-sidebar:hover,\s*\.feishu-viewer \.feishu-sidebar:focus-within\s*\{[^}]*scrollbar-color:\s*var\(--feishu-scrollbar-thumb\) var\(--feishu-scrollbar-track\)/);
+    expect(scrollbarStylesheet).not.toMatch(/\.feishu-viewer \.feishu-sidebar::-webkit-scrollbar[^}]*width:\s*0/);
+    expect(scrollbarStylesheet).not.toMatch(/\.feishu-viewer \.feishu-toc[^}]*scrollbar-width/);
   });
 
 });

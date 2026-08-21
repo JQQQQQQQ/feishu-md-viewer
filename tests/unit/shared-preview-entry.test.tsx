@@ -1,8 +1,9 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
 import { PreviewRoot } from '@/viewer/PreviewRoot';
+import { useViewerStore } from '@/viewer/store';
 
 afterEach(() => {
   cleanup();
@@ -58,4 +59,16 @@ it('keeps a VS Code themed preview read-only without persistent settings control
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   expect(screen.queryByRole('group', { name: 'Font size controls' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Theme:/ })).not.toBeInTheDocument();
+});
+
+it('字号设置变化会更新阅读根节点的正文字号变量', () => {
+  useViewerStore.setState({ fontSize: 15 });
+  render(<PreviewRoot markdown="正文" source="file" />);
+
+  const article = screen.getByRole('article');
+  expect(article).toHaveStyle('--feishu-font-size-body: 15px');
+
+  act(() => useViewerStore.setState({ fontSize: 20 }));
+
+  expect(article).toHaveStyle('--feishu-font-size-body: 20px');
 });

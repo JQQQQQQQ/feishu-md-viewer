@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,6 +57,7 @@ describe('VS Code Webview preview', () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     delete window.acquireVsCodeApi;
   });
 
@@ -128,8 +129,131 @@ describe('VS Code Webview preview', () => {
     sendWebviewMessage({ type: 'theme', kind });
 
     expect(screen.getByRole('article').classList.contains('feishu-viewer--dark')).toBe(expectsDarkClass);
+    expect(document.documentElement).toHaveAttribute('data-feishu-vscode-theme', kind);
     if (!expectsDarkClass) {
       expect(screen.getByRole('article')).toHaveClass('feishu-viewer--light');
+    }
+  });
+
+  it('标签恢复时用加载层遮住两个渲染帧', async () => {
+    const originalVisibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    const animationFrames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback);
+      return animationFrames.length;
+    });
+    const flushAnimationFrame = (timestamp: number) => {
+      const callbacks = animationFrames.splice(0);
+      act(() => callbacks.forEach((callback) => callback(timestamp)));
+    };
+
+    try {
+      await mountWebview();
+      sendWebviewMessage({ type: 'document', text: '# 保持目录状态', version: 1 });
+      const overlay = screen.getByTestId('vscode-resume-overlay');
+
+      expect(overlay).not.toHaveClass('feishu-vscode-resume-overlay--visible');
+
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      fireEvent(document, new Event('visibilitychange'));
+      expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
+
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      fireEvent(document, new Event('visibilitychange'));
+      expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
+
+      flushAnimationFrame(1);
+      expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
+
+      flushAnimationFrame(2);
+      expect(overlay).not.toHaveClass('feishu-vscode-resume-overlay--visible');
+    } finally {
+      if (originalVisibility) {
+        Object.defineProperty(document, 'visibilityState', originalVisibility);
+      } else {
+        delete (document as { visibilityState?: unknown }).visibilityState;
+      }
+    }
+  });
+
+  it('VS Code 仅触发窗口 blur/focus 时也显示恢复加载层', async () => {
+    const animationFrames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback);
+      return animationFrames.length;
+    });
+    const flushAnimationFrame = (timestamp: number) => {
+      const callbacks = animationFrames.splice(0);
+      act(() => callbacks.forEach((callback) => callback(timestamp)));
+    };
+
+    await mountWebview();
+    sendWebviewMessage({ type: 'document', text: '# 窗口切换', version: 1 });
+    const overlay = screen.getByTestId('vscode-resume-overlay');
+
+    fireEvent(window, new Event('blur'));
+    expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
+
+    fireEvent(window, new Event('focus'));
+    flushAnimationFrame(1);
+    flushAnimationFrame(2);
+
+    expect(overlay).not.toHaveClass('feishu-vscode-resume-overlay--visible');
+  });
+
+  it('blur 后没有收到 focus 时也会自动结束恢复状态', async () => {
+    vi.useFakeTimers();
+
+    try {
+      await mountWebview();
+      sendWebviewMessage({ type: 'document', text: '# 无 focus 回调', version: 1 });
+      const overlay = screen.getByTestId('vscode-resume-overlay');
+
+      fireEvent(window, new Event('blur'));
+      expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
+
+      act(() => vi.advanceTimersByTime(1000));
+
+      expect(overlay).not.toHaveClass('feishu-vscode-resume-overlay--visible');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('连续隐藏时旧的恢复帧不能提前关闭加载层', async () => {
+    const originalVisibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    const animationFrames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback);
+      return animationFrames.length;
+    });
+    const flushAnimationFrame = (timestamp: number) => {
+      const callbacks = animationFrames.splice(0);
+      act(() => callbacks.forEach((callback) => callback(timestamp)));
+    };
+
+    try {
+      await mountWebview();
+      sendWebviewMessage({ type: 'document', text: '# 连续切换', version: 1 });
+      const overlay = screen.getByTestId('vscode-resume-overlay');
+
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      fireEvent(document, new Event('visibilitychange'));
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      fireEvent(document, new Event('visibilitychange'));
+      flushAnimationFrame(1);
+
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      fireEvent(document, new Event('visibilitychange'));
+      flushAnimationFrame(2);
+
+      expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
+    } finally {
+      if (originalVisibility) {
+        Object.defineProperty(document, 'visibilityState', originalVisibility);
+      } else {
+        delete (document as { visibilityState?: unknown }).visibilityState;
+      }
     }
   });
 

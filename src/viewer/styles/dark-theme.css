@@ -24,8 +24,9 @@
   --feishu-code-number: #ff9e64;
   --feishu-code-function: #7aa2f7;
   --feishu-code-punctuation: #c0caf5;
-  --feishu-inline-code-bg: #1f2f4d;
-  --feishu-inline-code-text: #8fb5ff;
+  --feishu-inline-code-bg: #3a3a3a;
+  --feishu-inline-code-text: #d8dee9;
+  --feishu-inline-code-border: #4a4a4a;
   --feishu-blockquote-bg: #1e2a3d;
   --feishu-blockquote-border: #4e83fd;
   --feishu-table-header-bg: #2a2a2a;
@@ -206,8 +207,9 @@
     --feishu-code-number: #ff9e64;
     --feishu-code-function: #7aa2f7;
     --feishu-code-punctuation: #c0caf5;
-    --feishu-inline-code-bg: #1f2f4d;
-    --feishu-inline-code-text: #8fb5ff;
+    --feishu-inline-code-bg: #3a3a3a;
+    --feishu-inline-code-text: #d8dee9;
+    --feishu-inline-code-border: #4a4a4a;
     --feishu-blockquote-bg: #1e2a3d;
     --feishu-blockquote-border: #4e83fd;
     --feishu-table-header-bg: #2a2a2a;

@@ -1,10 +1,5 @@
 export type TablePointerIntent = 'text' | 'cell-range' | 'column-resize' | 'interactive';
 
-function isVsCodeWebview(): boolean {
-  return typeof window !== 'undefined'
-    && typeof (window as Window & { acquireVsCodeApi?: unknown }).acquireVsCodeApi === 'function';
-}
-
 function isInteractiveElement(target: EventTarget | null): boolean {
   return target instanceof Element
     && Boolean(target.closest('a,button,input,textarea,select,[contenteditable="true"]'));
@@ -20,9 +15,10 @@ function getCaretNode(event: MouseEvent): Node | null {
   return documentWithCaret.caretPositionFromPoint?.(event.clientX, event.clientY)?.offsetNode ?? null;
 }
 
-function isPointInsideCellText(cell: HTMLTableCellElement, event: MouseEvent): boolean {
+function isPointInsideCellText(cell: HTMLTableCellElement, event: MouseEvent): boolean | null {
   const ownerDocument = cell.ownerDocument;
   const walker = ownerDocument.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+  let hasMeasuredText = false;
   let currentNode = walker.nextNode();
 
   while (currentNode) {
@@ -33,7 +29,9 @@ function isPointInsideCellText(cell: HTMLTableCellElement, event: MouseEvent): b
         currentNode = walker.nextNode();
         continue;
       }
-      for (const rect of Array.from(range.getClientRects())) {
+      const rects = Array.from(range.getClientRects());
+      if (rects.length > 0) hasMeasuredText = true;
+      for (const rect of rects) {
         if (
           event.clientX >= rect.left
           && event.clientX <= rect.right
@@ -45,7 +43,9 @@ function isPointInsideCellText(cell: HTMLTableCellElement, event: MouseEvent): b
     currentNode = walker.nextNode();
   }
 
-  return false;
+  // null means layout could not provide usable text rectangles, so the caret
+  // APIs remain a safe fallback for browser/Webview implementations that do.
+  return hasMeasuredText ? false : null;
 }
 
 export function resolveTablePointerIntent(
@@ -56,10 +56,9 @@ export function resolveTablePointerIntent(
 ): TablePointerIntent {
   if (isInteractiveElement(target)) return 'interactive';
 
-  // VS Code Webviews do not expose a visible native text selection on a
-  // single click. Prefer the Excel-style cell selection there, while still
-  // keeping double-click available for selecting text within a cell.
-  if (isVsCodeWebview() && event.detail < 2) return 'cell-range';
+  const pointInsideText = isPointInsideCellText(cell, event);
+  if (pointInsideText === true) return 'text';
+  if (pointInsideText === false) return 'cell-range';
 
   const caretNode = getCaretNode(event);
   if (
@@ -71,8 +70,6 @@ export function resolveTablePointerIntent(
       || cell.textContent?.trim()
     )
   ) return 'text';
-
-  if (isPointInsideCellText(cell, event)) return 'text';
 
   return 'cell-range';
 }

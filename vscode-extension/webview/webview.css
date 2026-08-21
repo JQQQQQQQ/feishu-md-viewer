@@ -1,0 +1,114 @@
+/* VS Code Webview has a workbench-coloured document outside the React tree.
+ * Keep the whole preview canvas on the reading-paper surface, while the real
+ * navigation sidebar keeps its own darker layer through the shared theme. */
+html,
+body,
+#webview-root {
+  min-height: 100%;
+  margin: 0;
+  background-color: #ffffff;
+}
+
+html[data-feishu-vscode-theme="dark"],
+body[data-feishu-vscode-theme="dark"],
+#webview-root[data-feishu-vscode-theme="dark"] {
+  background-color: #1a1a1a;
+}
+
+.feishu-vscode-webview {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.feishu-vscode-webview--light {
+  background-color: #ffffff;
+  color-scheme: light;
+}
+
+.feishu-vscode-webview--dark {
+  background-color: #1a1a1a;
+  color-scheme: dark;
+}
+
+.feishu-vscode-webview .feishu-app-shell,
+.feishu-vscode-webview .feishu-viewer__page,
+.feishu-vscode-webview .feishu-viewer__content {
+  background-color: var(--feishu-bg-content);
+}
+
+/* Keep the light Webview surface explicit so VS Code's workbench background
+ * cannot leak into the code block or the unused area beside centered text. */
+.feishu-vscode-webview--light .feishu-app-shell,
+.feishu-vscode-webview--light .feishu-viewer__page,
+.feishu-vscode-webview--light .feishu-viewer__content {
+  background-color: #ffffff;
+}
+
+.feishu-vscode-webview--light .feishu-code-block {
+  background-color: #f7f8fa;
+  color: #1f2329;
+}
+
+.feishu-vscode-webview--light .feishu-code-block__pre,
+.feishu-vscode-webview--light .feishu-code-block__code {
+  background-color: #f7f8fa;
+  color: #1f2329;
+}
+
+.feishu-vscode-webview--dark .feishu-app-shell,
+.feishu-vscode-webview--dark .feishu-viewer__page {
+  background-color: #1a1a1a;
+}
+
+.feishu-vscode-webview--dark .feishu-code-block {
+  background-color: #2d2d2d;
+  color: #d8dee9;
+}
+
+.feishu-vscode-webview--dark .feishu-code-block__pre,
+.feishu-vscode-webview--dark .feishu-code-block__code {
+  background-color: #2d2d2d;
+  color: #d8dee9;
+}
+
+.feishu-vscode-resume-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background-color: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms ease;
+}
+
+.feishu-vscode-resume-overlay--visible {
+  opacity: 1;
+}
+
+.feishu-vscode-resume-overlay__spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid color-mix(in srgb, #3370ff 22%, transparent);
+  border-top-color: #3370ff;
+  border-radius: 50%;
+  animation: feishu-vscode-resume-spin 700ms linear infinite;
+}
+
+@keyframes feishu-vscode-resume-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feishu-vscode-resume-overlay {
+    transition: none;
+  }
+
+  .feishu-vscode-resume-overlay__spinner {
+    animation: none;
+  }
+}

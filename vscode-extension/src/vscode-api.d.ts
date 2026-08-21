@@ -57,6 +57,15 @@ declare module 'vscode' {
     onDidDispose(listener: () => void): Disposable;
   }
 
+  export interface WebviewPanelOptions {
+    retainContextWhenHidden?: boolean;
+  }
+
+  export interface CustomEditorProviderOptions {
+    supportsMultipleEditorsPerDocument?: boolean;
+    webviewOptions?: WebviewPanelOptions;
+  }
+
   export interface TextDocumentChangeEvent {
     readonly document: TextDocument;
   }
@@ -97,6 +106,7 @@ declare module 'vscode' {
     function registerCustomEditorProvider<T extends CustomDocument>(
       viewType: string,
       provider: CustomReadonlyEditorProvider<T>,
+      options?: CustomEditorProviderOptions,
     ): Disposable;
   }
 

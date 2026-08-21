@@ -10,6 +10,7 @@ const MAX_SIDEBAR_WIDTH = 520;
 const MAIN_MIN_READABLE_WIDTH = 980;
 const MAIN_MAX_OFFSET = 400;
 const TABLE_SCROLL_THRESHOLD_PX = 8;
+const DRAWER_BREAKPOINT_PX = 767;
 
 export function shouldHideSidebarForTableScroll(scrollLeft: number): boolean {
   return Number.isFinite(scrollLeft) && scrollLeft > TABLE_SCROLL_THRESHOLD_PX;
@@ -33,20 +34,104 @@ interface AppShellProps {
   settingsEnabled?: boolean;
 }
 
+function resolveStableDrawerMode(mediaMatches: boolean): boolean | null {
+  if (!document.hasFocus()) return null;
+
+  const viewportWidth = window.innerWidth;
+  const documentWidth = document.documentElement.clientWidth;
+  if (
+    !Number.isFinite(viewportWidth)
+    || !Number.isFinite(documentWidth)
+    || viewportWidth <= 0
+    || documentWidth <= 0
+  ) return null;
+
+  const viewportIsDrawer = viewportWidth <= DRAWER_BREAKPOINT_PX;
+  const documentIsDrawer = documentWidth <= DRAWER_BREAKPOINT_PX;
+  if (viewportIsDrawer !== documentIsDrawer || viewportIsDrawer !== mediaMatches) return null;
+  return mediaMatches;
+}
+
 function useIsDrawerMode(): boolean {
-  const [isDrawer, setIsDrawer] = useState(false);
+  const [isDrawer, setIsDrawer] = useState(() => (
+    typeof window !== 'undefined'
+    && document.visibilityState !== 'hidden'
+    && window.matchMedia('(max-width: 767px)').matches
+  ));
+  const resumeFrameRef = useRef<number>();
+  const settleFrameRef = useRef<number>();
+  const isResumingRef = useRef(false);
+  const isWindowFocusedRef = useRef(true);
 
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 767px)');
     setIsDrawer(mql.matches);
 
+    const cancelResumeFrames = () => {
+      if (resumeFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(resumeFrameRef.current);
+        resumeFrameRef.current = undefined;
+      }
+      if (settleFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(settleFrameRef.current);
+        settleFrameRef.current = undefined;
+      }
+    };
+    const scheduleResumeReconcile = () => {
+      cancelResumeFrames();
+      isResumingRef.current = true;
+      resumeFrameRef.current = window.requestAnimationFrame(() => {
+        resumeFrameRef.current = undefined;
+        settleFrameRef.current = window.requestAnimationFrame(() => {
+          settleFrameRef.current = undefined;
+          if (document.visibilityState === 'hidden' || !isWindowFocusedRef.current) {
+            return;
+          }
+          isResumingRef.current = false;
+          const stableMode = resolveStableDrawerMode(mql.matches);
+          if (stableMode !== null) setIsDrawer(stableMode);
+        });
+      });
+    };
     const handler = (e: MediaQueryListEvent) => {
-      setIsDrawer(e.matches);
+      if (
+        document.visibilityState === 'hidden'
+        || !isWindowFocusedRef.current
+        || isResumingRef.current
+      ) return;
+      const stableMode = resolveStableDrawerMode(e.matches);
+      if (stableMode !== null) setIsDrawer(stableMode);
+    };
+    const handleVisibilityChange = () => {
+      cancelResumeFrames();
+      isResumingRef.current = true;
+      if (document.visibilityState === 'hidden' || !isWindowFocusedRef.current) {
+        return;
+      }
+      scheduleResumeReconcile();
+    };
+    const handleWindowBlur = () => {
+      isWindowFocusedRef.current = false;
+      isResumingRef.current = true;
+      cancelResumeFrames();
+    };
+    const handleWindowFocus = () => {
+      isWindowFocusedRef.current = true;
+      if (document.visibilityState !== 'hidden') scheduleResumeReconcile();
     };
 
     mql.addEventListener('change', handler);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
     return () => {
       mql.removeEventListener('change', handler);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
+      cancelResumeFrames();
+      isResumingRef.current = false;
+      isWindowFocusedRef.current = true;
     };
   }, []);
 
@@ -78,22 +163,34 @@ export function AppShell({
   children,
   settingsEnabled = true,
 }: AppShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(getStoredSidebarWidth);
   const contentRef = useRef<HTMLElement | null>(null);
   const isDrawerMode = useIsDrawerMode();
   const [tableScrollHidden, setTableScrollHidden] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
+  const sidebarOpen = isDrawerMode ? drawerOpen : desktopSidebarOpen;
 
   const handleToggleSidebar = useCallback(() => {
-    const next = resolveSidebarToggleState(sidebarOpen, tableScrollHidden);
-    setSidebarOpen(next.sidebarOpen);
+    if (isDrawerMode) {
+      setDrawerOpen((open) => !open);
+      setTableScrollHidden(false);
+      return;
+    }
+
+    const next = resolveSidebarToggleState(desktopSidebarOpen, tableScrollHidden);
+    setDesktopSidebarOpen(next.sidebarOpen);
     setTableScrollHidden(next.tableScrollHidden);
-  }, [sidebarOpen, tableScrollHidden]);
+  }, [desktopSidebarOpen, isDrawerMode, tableScrollHidden]);
 
   const handleCloseSidebar = useCallback(() => {
-    setSidebarOpen(false);
-  }, []);
+    if (isDrawerMode) {
+      setDrawerOpen(false);
+    } else {
+      setDesktopSidebarOpen(false);
+    }
+  }, [isDrawerMode]);
 
   const handleSidebarWidthChange = useCallback((width: number) => {
     const nextWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
@@ -106,12 +203,9 @@ export function AppShell({
   }, []);
 
   useEffect(() => {
-    if (isDrawerMode && sidebarOpen) {
-      setSidebarOpen(false);
-    }
-    if (isDrawerMode) setTableScrollHidden(false);
-    // Only react to drawer mode change, not sidebarOpen
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!isDrawerMode) return;
+    setDrawerOpen(false);
+    setTableScrollHidden(false);
   }, [isDrawerMode]);
 
   useEffect(() => {

@@ -82,10 +82,47 @@ describe('table pointer intent', () => {
     expect(resolveTablePointerIntent(new MouseEvent('mousedown'), wrapper, cell)).toBe('cell-range');
   });
 
-  it('uses cell-range selection for a single text click in a VS Code Webview', () => {
+  it('keeps native text selection for a single text click in a VS Code Webview', () => {
     const { wrapper, cell } = setupTable();
     setVsCodeWebview(true);
     mockCaretResult({ commonAncestorContainer: cell.firstChild } as Range);
+
+    expect(resolveTablePointerIntent(new MouseEvent('mousedown', { detail: 1 }), wrapper, cell)).toBe('text');
+
+    setVsCodeWebview(false);
+  });
+
+  it('treats a VS Code click in cell padding as cell selection even when caret API returns text', () => {
+    const { wrapper, cell } = setupTable();
+    const originalRects = Object.getOwnPropertyDescriptor(Range.prototype, 'getClientRects');
+    setVsCodeWebview(true);
+    mockCaretResult({ commonAncestorContainer: cell.firstChild } as Range);
+    Object.defineProperty(Range.prototype, 'getClientRects', {
+      configurable: true,
+      value: () => [{ left: 0, right: 40, top: 0, bottom: 20 }],
+    });
+
+    try {
+      expect(resolveTablePointerIntent(
+        new MouseEvent('mousedown', { detail: 1, clientX: 80, clientY: 10 }),
+        wrapper,
+        cell,
+      )).toBe('cell-range');
+    } finally {
+      setVsCodeWebview(false);
+      if (originalRects) {
+        Object.defineProperty(Range.prototype, 'getClientRects', originalRects);
+      } else {
+        delete (Range.prototype as { getClientRects?: unknown }).getClientRects;
+      }
+    }
+  });
+
+  it('keeps Excel cell selection for an empty VS Code cell', () => {
+    const { wrapper, cell } = setupTable();
+    cell.textContent = '';
+    setVsCodeWebview(true);
+    mockCaretResult(null);
 
     expect(resolveTablePointerIntent(new MouseEvent('mousedown', { detail: 1 }), wrapper, cell)).toBe('cell-range');
 

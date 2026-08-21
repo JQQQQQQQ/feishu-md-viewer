@@ -30,6 +30,7 @@
 .feishu-markdown-body {
   word-wrap: break-word;
   overflow-wrap: break-word;
+  font-size: var(--feishu-font-size-body);
 }
 
 /* Keep collapse state stable for React-managed blocks (for example table wrappers). */
@@ -447,6 +448,7 @@
   font-size: 0.9em;
   color: var(--feishu-inline-code-text, var(--feishu-code-text));
   background-color: var(--feishu-inline-code-bg, var(--feishu-code-bg));
+  border: 1px solid var(--feishu-inline-code-border, var(--feishu-border-light));
   padding: 2px 6px;
   border-radius: var(--feishu-radius-sm);
 }
@@ -695,7 +697,7 @@
   min-width: 0;
   border-collapse: collapse;
   table-layout: auto;
-  font-size: var(--feishu-font-size-small);
+  font-size: var(--feishu-font-size-body);
 }
 
 .feishu-table__head {

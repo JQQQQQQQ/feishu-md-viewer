@@ -246,6 +246,69 @@ describe('FeishuTable selection', () => {
     });
   });
 
+  it('布局触发的滚动同步只更新表格视觉，不收起目录', () => {
+    const { container } = render(<TableHarness />);
+    const wrapper = container.querySelector('.feishu-table-wrapper');
+    const scrollport = container.querySelector('.feishu-table__scrollport');
+    expect(wrapper).toBeInstanceOf(HTMLElement);
+    expect(scrollport).toBeInstanceOf(HTMLElement);
+    if (!(wrapper instanceof HTMLElement) || !(scrollport instanceof HTMLElement)) return;
+
+    wrapper.getBoundingClientRect = () => ({
+      x: 200, y: 0, top: 0, left: 200, right: 700, bottom: 220, width: 500, height: 220,
+      toJSON: () => '',
+    });
+    Object.defineProperty(scrollport, 'scrollLeft', { configurable: true, value: 10, writable: true });
+    Object.defineProperty(scrollport, 'scrollWidth', { configurable: true, value: 900 });
+    Object.defineProperty(scrollport, 'clientWidth', { configurable: true, value: 500 });
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1366 });
+    const events: CustomEvent[] = [];
+    wrapper.addEventListener('feishu-table-horizontal-scroll', (event) => {
+      events.push(event as CustomEvent);
+    });
+
+    const originalVisibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    try {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      fireEvent.scroll(scrollport);
+
+      expect(wrapper.style.getPropertyValue('--feishu-table-left-reveal')).toBe('10px');
+      expect(events).toHaveLength(0);
+    } finally {
+      if (originalVisibility) {
+        Object.defineProperty(document, 'visibilityState', originalVisibility);
+      } else {
+        delete (document as { visibilityState?: unknown }).visibilityState;
+      }
+    }
+  });
+
+  it('页面可见时只要原生 scrollLeft 发生变化就收起目录', () => {
+    const { container } = render(<TableHarness />);
+    const wrapper = container.querySelector('.feishu-table-wrapper');
+    const scrollport = container.querySelector('.feishu-table__scrollport');
+    if (!(wrapper instanceof HTMLElement) || !(scrollport instanceof HTMLElement)) {
+      throw new Error('Table harness is incomplete.');
+    }
+
+    wrapper.getBoundingClientRect = () => ({
+      x: 200, y: 0, top: 0, left: 200, right: 700, bottom: 220, width: 500, height: 220,
+      toJSON: () => '',
+    });
+    Object.defineProperty(scrollport, 'scrollLeft', { configurable: true, value: 10, writable: true });
+    Object.defineProperty(scrollport, 'scrollWidth', { configurable: true, value: 900 });
+    Object.defineProperty(scrollport, 'clientWidth', { configurable: true, value: 500 });
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1366 });
+    const events: CustomEvent[] = [];
+    wrapper.addEventListener('feishu-table-horizontal-scroll', (event) => {
+      events.push(event as CustomEvent);
+    });
+
+    fireEvent.scroll(scrollport);
+
+    expect(events.at(-1)?.detail).toMatchObject({ active: true, leftReveal: 10 });
+  });
+
   it('clears the left reveal and sidebar signal after scrolling back or losing overflow', () => {
     const { container } = render(<TableHarness />);
     const wrapper = container.querySelector('.feishu-table-wrapper');
@@ -281,6 +344,76 @@ describe('FeishuTable selection', () => {
       leftReveal: 0,
       maxScrollLeft: 0,
     });
+  });
+
+  it('离开垂直可视范围时清除该表的目录隐藏来源', () => {
+    const originalIntersectionObserver = Object.getOwnPropertyDescriptor(globalThis, 'IntersectionObserver');
+    let intersectionCallback: IntersectionObserverCallback | undefined;
+    class FakeIntersectionObserver {
+      constructor(callback: IntersectionObserverCallback) {
+        intersectionCallback = callback;
+      }
+
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+      takeRecords = vi.fn(() => []);
+      root = null;
+      rootMargin = '';
+      thresholds = [0];
+    }
+
+    Object.defineProperty(globalThis, 'IntersectionObserver', {
+      configurable: true,
+      writable: true,
+      value: FakeIntersectionObserver,
+    });
+
+    try {
+      const { container } = render(<TableHarness />);
+      const wrapper = container.querySelector('.feishu-table-wrapper');
+      const scrollport = container.querySelector('.feishu-table__scrollport');
+      expect(wrapper).toBeInstanceOf(HTMLElement);
+      expect(scrollport).toBeInstanceOf(HTMLElement);
+      if (!(wrapper instanceof HTMLElement) || !(scrollport instanceof HTMLElement)) return;
+
+      wrapper.getBoundingClientRect = () => ({
+        x: 200, y: 0, top: 0, left: 200, right: 700, bottom: 220, width: 500, height: 220,
+        toJSON: () => '',
+      });
+      Object.defineProperty(scrollport, 'scrollLeft', { configurable: true, value: 24, writable: true });
+      Object.defineProperty(scrollport, 'scrollWidth', { configurable: true, value: 900 });
+      Object.defineProperty(scrollport, 'clientWidth', { configurable: true, value: 500 });
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1366 });
+      const events: CustomEvent[] = [];
+      wrapper.addEventListener('feishu-table-horizontal-scroll', (event) => {
+        events.push(event as CustomEvent);
+      });
+
+      fireEvent.scroll(scrollport);
+      expect(events.at(-1)?.detail).toMatchObject({ active: true, leftReveal: 24 });
+      expect(intersectionCallback).toBeTypeOf('function');
+
+      intersectionCallback?.([
+        {
+          target: wrapper,
+          isIntersecting: false,
+          intersectionRatio: 0,
+        } as IntersectionObserverEntry,
+      ], {} as IntersectionObserver);
+
+      expect(events.at(-1)?.detail).toMatchObject({
+        active: false,
+        leftReveal: 0,
+        scrollLeft: 0,
+      });
+    } finally {
+      if (originalIntersectionObserver) {
+        Object.defineProperty(globalThis, 'IntersectionObserver', originalIntersectionObserver);
+      } else {
+        delete (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver;
+      }
+    }
   });
 
   it('caps the visual reveal while preserving the native scroll distance beyond the cap', () => {

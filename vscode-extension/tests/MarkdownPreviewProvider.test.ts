@@ -81,6 +81,7 @@ function createProvider(): MarkdownPreviewProvider {
 }
 
 interface FakePanel {
+  options: { retainContextWhenHidden?: boolean };
   webview: {
     cspSource: string;
     html: string;
@@ -109,6 +110,7 @@ function createPanel(): FakePanel {
   const listenerDisposables: Array<{ dispose: ReturnType<typeof vi.fn> }> = [];
 
   return {
+    options: {},
     webview: {
       cspSource: 'vscode-webview://preview',
       html: '',
@@ -150,6 +152,11 @@ describe('MarkdownPreviewProvider', () => {
     expect(vscodeMock.window.registerCustomEditorProvider).toHaveBeenCalledWith(
       'feishu-md-viewer.markdownPreview',
       expect.any(MarkdownPreviewProvider),
+      {
+        webviewOptions: {
+          retainContextWhenHidden: true,
+        },
+      },
     );
     expect(vscodeMock.commands.registerCommand).toHaveBeenCalledWith(
       'feishu-md-viewer.reopenWithTextEditor',
@@ -245,6 +252,35 @@ describe('MarkdownPreviewProvider', () => {
       type: 'document',
       text: '# 延迟打开的内容',
       version: 7,
+    });
+  });
+
+  it('Webview 重建后再次发送 ready 时重新发送最新文档快照', async () => {
+    vscodeMock.reset();
+    const provider = createProvider();
+    const panel = createPanel();
+    const sourceDocument = createDocument('# 初始内容', 3);
+    vscodeMock.workspace.openTextDocument.mockResolvedValue(sourceDocument);
+    const customDocument = await provider.openCustomDocument(
+      sourceDocument.uri,
+      customDocumentOpenContext,
+      cancellationToken,
+    );
+
+    await provider.resolveCustomEditor(customDocument, panel, cancellationToken);
+    panel.fireMessage({ type: 'ready' });
+    panel.webview.postMessage.mockClear();
+
+    vscodeMock.fireTextDocumentChange(createDocument('# Webview 重建前的最新内容', 4));
+    panel.webview.postMessage.mockClear();
+
+    // VS Code 切换标签后可能重建 Webview 前端；新的前端会再次发送 ready。
+    panel.fireMessage({ type: 'ready' });
+
+    expect(panel.webview.postMessage).toHaveBeenCalledWith({
+      type: 'document',
+      text: '# Webview 重建前的最新内容',
+      version: 4,
     });
   });
 

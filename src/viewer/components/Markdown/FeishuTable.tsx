@@ -26,6 +26,8 @@ const RESIZE_EDGE_THRESHOLD = 6;
 const MIN_COLUMN_WIDTH = 80;
 const DIRECTORY_ACTIVE_SCROLL_SIGNAL = 9;
 
+type TableScrollSyncIntent = 'layout' | 'native-scroll' | 'user';
+
 let tableScrollSourceSequence = 0;
 const revealedTableScrollSources = new Map<string, number>();
 
@@ -253,6 +255,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
   const anchorRowHeightRef = useRef<number | null>(null);
   const copiedRef = useRef({ text: '', html: '' });
   const leftRevealCloneFrameRef = useRef<number | null>(null);
+  const lastObservedScrollLeftRef = useRef(0);
   const directorySourceIdRef = useRef('');
   if (!directorySourceIdRef.current) {
     tableScrollSourceSequence += 1;
@@ -267,7 +270,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     stickyLeftRevealRef.current?.setAttribute('inert', '');
   }, []);
 
-  const syncHorizontalScroll = useCallback(() => {
+  const syncHorizontalScroll = useCallback((intent: TableScrollSyncIntent = 'layout') => {
     const wrapper = wrapperRef.current;
     const scrollport = scrollportRef.current;
     const table = tableRef.current;
@@ -282,6 +285,13 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     const nativeScrollLeft = hasHorizontalOverflow
       ? Math.min(Math.max(0, scrollport.scrollLeft), maxScrollLeft)
       : 0;
+    const previousScrollLeft = lastObservedScrollLeftRef.current;
+    lastObservedScrollLeftRef.current = nativeScrollLeft;
+    const didNativeScrollMove = Math.abs(nativeScrollLeft - previousScrollLeft) > 0.01;
+    const isUserScroll = intent === 'user'
+      || (intent === 'native-scroll'
+        && document.visibilityState !== 'hidden'
+        && didNativeScrollMove);
     const tableLeft = scrollport.getBoundingClientRect().left
       || wrapper.getBoundingClientRect().left;
     const presentation = resolveTableScrollPresentation(nativeScrollLeft, tableLeft, window.innerWidth);
@@ -309,6 +319,19 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
     const sourceId = directorySourceIdRef.current;
     const wasRevealed = revealedTableScrollSources.has(sourceId);
+    // Losing overflow is a real state reset, even when it was discovered by a
+    // layout pass. In every other layout pass, preserve the last user-owned
+    // sidebar state while only refreshing the table's visual presentation.
+    if (!hasHorizontalOverflow) {
+      revealedTableScrollSources.delete(sourceId);
+      if (wasRevealed) {
+        dispatchAggregateTableScrollState(wrapper, sourceId, 0, maxScrollLeft);
+      }
+      return;
+    }
+
+    if (!isUserScroll) return;
+
     if (leftReveal > 0) {
       revealedTableScrollSources.set(sourceId, leftReveal);
     } else {
@@ -374,6 +397,35 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       if (!revealedTableScrollSources.delete(sourceId) || !eventTarget) return;
       dispatchAggregateTableScrollState(eventTarget, sourceId, 0, 0);
     };
+  }, []);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const scrollport = scrollportRef.current;
+    const eventTarget = wrapper?.closest('.feishu-app-shell__main')
+      ?? wrapper;
+    const sourceId = directorySourceIdRef.current;
+    if (
+      !wrapper
+      || !scrollport
+      || !eventTarget
+      || typeof IntersectionObserver === 'undefined'
+    ) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries.find((candidate) => candidate.target === wrapper);
+      if (!entry || (entry.isIntersecting && entry.intersectionRatio > 0)) return;
+
+      // A table can remain mounted while the reader scrolls vertically past
+      // it. Clear only this table's reveal source; the aggregate map keeps
+      // the directory hidden if another table is still left-revealed.
+      if (!revealedTableScrollSources.delete(sourceId)) return;
+      const maxScrollLeft = Math.max(0, scrollport.scrollWidth - scrollport.clientWidth);
+      dispatchAggregateTableScrollState(eventTarget, sourceId, 0, maxScrollLeft);
+    }, { threshold: [0, 0.01] });
+
+    observer.observe(wrapper);
+    return () => observer.disconnect();
   }, []);
 
   const applySelection = useCallback((selection: SelectionState, nextRailSelection: RailSelection | null = null) => {
@@ -476,7 +528,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
             activeMode === 'normal' ? undefined : table.scrollWidth,
           );
           scheduleLeftRevealCloneRefresh();
-          syncHorizontalScroll();
+          syncHorizontalScroll('user');
         }
       };
 
@@ -715,6 +767,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
       scrollport.scrollLeft += delta;
       scrollport.dispatchEvent(new Event('scroll', { bubbles: false }));
+      syncHorizontalScroll('user');
 
       const contentX = scrollport.scrollLeft + pointer.x - bounds.left;
       const targetColumn = getSelectionRails(table).columns.findIndex((segment) => (
@@ -749,6 +802,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
       scrollport.scrollLeft += delta;
       scrollport.dispatchEvent(new Event('scroll', { bubbles: false }));
+      syncHorizontalScroll('user');
 
       const cell = getSourceCell(getCellFromPoint(pointer.x, pointer.y));
       if (cell) extendSelectionToCell(cell, pointer.y);
@@ -994,7 +1048,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     document.addEventListener('scroll', scheduleUpdate, true);
     window.addEventListener('resize', scheduleUpdate);
     scrollport.addEventListener('scroll', scheduleUpdate, { passive: true });
-    const handleHorizontalScroll = () => syncHorizontalScroll();
+    const handleHorizontalScroll = () => syncHorizontalScroll('native-scroll');
     scrollport.addEventListener('scroll', handleHorizontalScroll, { passive: true });
 
     const observer = new MutationObserver(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PreviewRoot } from '../../src/viewer/PreviewRoot';
 import { useViewerStore, type ThemeMode } from '../../src/viewer/store';
@@ -10,6 +10,7 @@ import '../../src/viewer/styles/scrollbar.css';
 import '../../src/viewer/styles/mermaid.css';
 import '../../src/viewer/styles/dark-theme.css';
 import '../../src/viewer/styles/print.css';
+import './webview.css';
 
 type ThemeKind = 'light' | 'dark';
 
@@ -79,8 +80,94 @@ export function WebviewPreview() {
   const setStoredFontSize = useViewerStore((state) => state.setFontSize);
   const setStoredSmoothScroll = useViewerStore((state) => state.setTocSmoothScrollEnabled);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
-
+  const [isResumeOverlayVisible, setIsResumeOverlayVisible] = useState(
+    () => document.visibilityState === 'hidden',
+  );
+  const resumeGenerationRef = useRef(0);
+  const resumeFrameRef = useRef<number>();
+  const resumeFallbackTimerRef = useRef<number>();
   const vscodeApi = useMemo(() => getVsCodeApi(), []);
+  const effectiveTheme = storedTheme === 'system' ? theme : storedTheme;
+
+  useEffect(() => {
+    const themedElements = [
+      document.documentElement,
+      document.body,
+      document.getElementById('webview-root'),
+    ].filter((element): element is HTMLElement => element instanceof HTMLElement);
+
+    themedElements.forEach((element) => {
+      element.dataset.feishuVscodeTheme = effectiveTheme;
+    });
+
+    return () => {
+      themedElements.forEach((element) => {
+        if (element.dataset.feishuVscodeTheme === effectiveTheme) {
+          delete element.dataset.feishuVscodeTheme;
+        }
+      });
+    };
+  }, [effectiveTheme]);
+
+  useEffect(() => {
+    const cancelPendingResume = () => {
+      if (resumeFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(resumeFrameRef.current);
+        resumeFrameRef.current = undefined;
+      }
+      if (resumeFallbackTimerRef.current !== undefined) {
+        window.clearTimeout(resumeFallbackTimerRef.current);
+        resumeFallbackTimerRef.current = undefined;
+      }
+    };
+
+    const beginResume = () => {
+      ++resumeGenerationRef.current;
+      cancelPendingResume();
+      setIsResumeOverlayVisible(true);
+      const generation = resumeGenerationRef.current;
+      resumeFallbackTimerRef.current = window.setTimeout(() => {
+        if (resumeGenerationRef.current !== generation) return;
+        resumeFallbackTimerRef.current = undefined;
+        setIsResumeOverlayVisible(false);
+      }, 800);
+    };
+
+    const finishResume = () => {
+      const generation = ++resumeGenerationRef.current;
+      cancelPendingResume();
+
+      resumeFrameRef.current = window.requestAnimationFrame(() => {
+        if (resumeGenerationRef.current !== generation) return;
+        resumeFrameRef.current = window.requestAnimationFrame(() => {
+          if (resumeGenerationRef.current !== generation) return;
+          resumeFrameRef.current = undefined;
+          setIsResumeOverlayVisible(false);
+        });
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        beginResume();
+      } else {
+        finishResume();
+      }
+    };
+    const handleWindowBlur = () => beginResume();
+    const handleWindowFocus = () => finishResume();
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
+    return () => {
+      ++resumeGenerationRef.current;
+      cancelPendingResume();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, []);
 
   useEffect(() => {
     const state = vscodeApi?.getState?.() as { settings?: {
@@ -168,13 +255,25 @@ export function WebviewPreview() {
   }
 
   return (
-    <PreviewRoot
-      key={documentState.version}
-      markdown={documentState.text}
-      source="file"
-      themeOverride={storedTheme === 'system' ? theme : undefined}
-      settingsEnabled
-    />
+    <div
+      className={`feishu-vscode-webview feishu-vscode-webview--${effectiveTheme}`}
+      data-testid="feishu-vscode-webview"
+    >
+      <PreviewRoot
+        key={documentState.version}
+        markdown={documentState.text}
+        source="file"
+        themeOverride={storedTheme === 'system' ? theme : undefined}
+        settingsEnabled
+      />
+      <div
+        aria-hidden="true"
+        className={`feishu-vscode-resume-overlay${isResumeOverlayVisible ? ' feishu-vscode-resume-overlay--visible' : ''}`}
+        data-testid="vscode-resume-overlay"
+      >
+        <span className="feishu-vscode-resume-overlay__spinner" />
+      </div>
+    </div>
   );
 }
 

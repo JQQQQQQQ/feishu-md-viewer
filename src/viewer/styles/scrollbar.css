@@ -33,31 +33,31 @@
   background: var(--feishu-scrollbar-track);
 }
 
-/* Directory navigation deliberately stays quiet until it is being used.
- * These selectors live after the global viewer rule so they also apply to
- * Shadow DOM injection, where the stylesheet order is the same. */
-.feishu-viewer .feishu-sidebar,
-.feishu-viewer .feishu-toc {
-  scrollbar-width: none;
+/* The sidebar is the directory's only scrollport. Its gutter remains 8px wide
+ * so restoring a retained VS Code Webview cannot shift the TOC horizontally;
+ * only the thumb paint changes while the directory is in use. */
+.feishu-viewer .feishu-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
 }
 
-.feishu-viewer .feishu-sidebar::-webkit-scrollbar,
-.feishu-viewer .feishu-toc::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+.feishu-viewer .feishu-sidebar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.feishu-viewer .feishu-sidebar::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 
 .feishu-viewer .feishu-sidebar:hover,
-.feishu-viewer .feishu-sidebar:focus-within,
-.feishu-viewer .feishu-sidebar:hover .feishu-toc,
-.feishu-viewer .feishu-sidebar:focus-within .feishu-toc {
-  scrollbar-width: thin;
+.feishu-viewer .feishu-sidebar:focus-within {
+  scrollbar-color: var(--feishu-scrollbar-thumb) var(--feishu-scrollbar-track);
 }
 
-.feishu-viewer .feishu-sidebar:hover::-webkit-scrollbar,
-.feishu-viewer .feishu-sidebar:focus-within::-webkit-scrollbar,
-.feishu-viewer .feishu-sidebar:hover .feishu-toc::-webkit-scrollbar,
-.feishu-viewer .feishu-sidebar:focus-within .feishu-toc::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.feishu-viewer .feishu-sidebar:hover::-webkit-scrollbar-thumb,
+.feishu-viewer .feishu-sidebar:focus-within::-webkit-scrollbar-thumb {
+  background: var(--feishu-scrollbar-thumb);
+  border: 2px solid transparent;
+  background-clip: content-box;
 }

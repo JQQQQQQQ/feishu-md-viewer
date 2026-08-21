@@ -30,8 +30,9 @@
   --feishu-code-number: #b85c00;
   --feishu-code-function: #1f66d1;
   --feishu-code-punctuation: #4e5969;
-  --feishu-inline-code-bg: #edf4ff;
-  --feishu-inline-code-text: #245bdb;
+  --feishu-inline-code-bg: #f0f1f3;
+  --feishu-inline-code-text: #3b4350;
+  --feishu-inline-code-border: #d0d3d8;
   --feishu-blockquote-bg: #f0f5ff;
   --feishu-blockquote-border: #3370ff;
   --feishu-table-header-bg: #f5f6f7;

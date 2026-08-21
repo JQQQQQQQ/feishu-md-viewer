@@ -379,8 +379,8 @@
 
 /* ===== TOC (Table of Contents) ===== */
 .feishu-toc {
-  height: 100%;
-  overflow-y: auto;
+  height: auto;
+  overflow: visible;
   padding: 8px 0;
 }
 

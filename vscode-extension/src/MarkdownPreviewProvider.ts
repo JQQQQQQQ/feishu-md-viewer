@@ -172,11 +172,15 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
     panelDisposeListener = panel.onDidDispose(disposeListeners);
     document.addDisposable(panelDisposeListener);
     messageListener = panel.webview.onDidReceiveMessage((message) => {
-      if (!isReadyMessage(message) || isReady) {
+      if (!isReadyMessage(message)) {
         return;
       }
 
       isReady = true;
+      // VS Code can destroy a hidden Webview and recreate it when its tab is
+      // shown again. The recreated frontend sends a new ready message, and it
+      // needs the latest document snapshot even though this provider was
+      // already ready for the previous frontend instance.
       sendLatestState();
       if (latestState?.type === 'document') {
         sendTheme(vscode.window.activeColorTheme);
