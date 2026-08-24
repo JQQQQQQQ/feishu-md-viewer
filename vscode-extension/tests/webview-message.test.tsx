@@ -5,6 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createWebviewHtml } from '../src/MarkdownPreviewProvider';
 import { WebviewPreview } from '../webview/entry';
+import { useViewerStore } from '../../src/viewer/store';
+import {
+  applyTableColumnWidths,
+  getTableFingerprintKey,
+  persistTableColumnWidths,
+  restorePersistedTableColumnWidths,
+} from '../../src/viewer/components/Markdown/FeishuTableColumnWidths';
 
 declare global {
   interface Window {
@@ -35,6 +42,13 @@ async function mountWebview(): Promise<void> {
 describe('VS Code Webview preview', () => {
   beforeEach(() => {
     postMessage.mockReset();
+    useViewerStore.setState({
+      theme: 'system',
+      fontSize: 15,
+      tocSmoothScrollEnabled: true,
+      contentAlignment: 'center',
+      settingsHydrated: false,
+    });
     window.acquireVsCodeApi = () => ({ postMessage });
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
@@ -85,6 +99,86 @@ describe('VS Code Webview preview', () => {
     expect(screen.getByRole('button', { name: /Theme:/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /TOC scroll:/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Decrease font size' })).toBeInTheDocument();
+  });
+
+  it('收到宿主全局设置后统一应用主题、字号、目录滚动和正文对齐', async () => {
+    await mountWebview();
+    sendWebviewMessage({
+      type: 'settings',
+      settings: {
+        theme: 'dark',
+        fontSize: 19,
+        tocSmoothScrollEnabled: false,
+        contentAlignment: 'left',
+      },
+    });
+    sendWebviewMessage({ type: 'document', text: '# 全局设置', version: 1 });
+
+    expect(await screen.findByRole('heading', { name: '全局设置' })).toBeInTheDocument();
+    expect(screen.getByRole('article')).toHaveClass('feishu-viewer--dark', 'feishu-viewer--content-left');
+    expect(screen.getByRole('button', { name: /TOC scroll: instant/ })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('19')).toBeInTheDocument();
+  });
+
+  it('用户修改全局设置后向宿主发送 settings 消息而不是只写入当前 Webview', async () => {
+    await mountWebview();
+    sendWebviewMessage({
+      type: 'settings',
+      settings: {
+        theme: 'light',
+        fontSize: 15,
+        tocSmoothScrollEnabled: true,
+        contentAlignment: 'center',
+      },
+    });
+    sendWebviewMessage({ type: 'document', text: '# 修改设置', version: 1 });
+    await screen.findByRole('heading', { name: '修改设置' });
+    postMessage.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Increase font size' }));
+
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'settings',
+      settings: {
+        theme: 'light',
+        fontSize: 16,
+        tocSmoothScrollEnabled: true,
+        contentAlignment: 'center',
+      },
+    });
+  });
+
+  it('接收宿主表格宽度快照并在调整后回传 table-width-update', async () => {
+    await mountWebview();
+    sendWebviewMessage({ type: 'document', text: '# 表格宽度', version: 1, documentKey: 'file:///table.md' });
+
+    const table = document.createElement('table');
+    const header = table.insertRow();
+    header.insertCell().textContent = 'Feature';
+    header.insertCell().textContent = 'Owner';
+    const body = table.insertRow();
+    body.insertCell().textContent = 'Markdown';
+    body.insertCell().textContent = 'Viewer';
+    const tableKey = getTableFingerprintKey(table);
+
+    sendWebviewMessage({
+      type: 'table-widths',
+      documentKey: 'file:///table.md',
+      widths: { [tableKey]: [180, 260] },
+    });
+    expect(restorePersistedTableColumnWidths(table)).toBe(true);
+    expect(table.rows[0].cells[0].style.width).toBe('180px');
+
+    applyTableColumnWidths(table, [200, 280]);
+    postMessage.mockClear();
+    persistTableColumnWidths(table);
+
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'table-width-update',
+      documentKey: 'file:///table.md',
+      tableKey,
+      widths: [200, 280],
+    });
   });
 
   it('忽略版本未递增的 document 消息', async () => {
@@ -176,7 +270,8 @@ describe('VS Code Webview preview', () => {
     }
   });
 
-  it('VS Code 仅触发窗口 blur/focus 时也显示恢复加载层', async () => {
+  it('VS Code 隐藏 Webview 但仅触发窗口 blur/focus 时也显示恢复加载层', async () => {
+    const originalVisibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
     const animationFrames: FrameRequestCallback[] = [];
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       animationFrames.push(callback);
@@ -187,21 +282,42 @@ describe('VS Code Webview preview', () => {
       act(() => callbacks.forEach((callback) => callback(timestamp)));
     };
 
+    try {
+      await mountWebview();
+      sendWebviewMessage({ type: 'document', text: '# 窗口切换', version: 1 });
+      const overlay = screen.getByTestId('vscode-resume-overlay');
+
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      fireEvent(window, new Event('blur'));
+      expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
+
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      fireEvent(window, new Event('focus'));
+      flushAnimationFrame(1);
+      flushAnimationFrame(2);
+
+      expect(overlay).not.toHaveClass('feishu-vscode-resume-overlay--visible');
+    } finally {
+      if (originalVisibility) {
+        Object.defineProperty(document, 'visibilityState', originalVisibility);
+      } else {
+        delete (document as { visibilityState?: unknown }).visibilityState;
+      }
+    }
+  });
+
+  it('右键打开 VS Code 上下文菜单时不会显示恢复加载层', async () => {
     await mountWebview();
-    sendWebviewMessage({ type: 'document', text: '# 窗口切换', version: 1 });
+    sendWebviewMessage({ type: 'document', text: '# 右键菜单', version: 1 });
     const overlay = screen.getByTestId('vscode-resume-overlay');
 
     fireEvent(window, new Event('blur'));
-    expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
-
-    fireEvent(window, new Event('focus'));
-    flushAnimationFrame(1);
-    flushAnimationFrame(2);
 
     expect(overlay).not.toHaveClass('feishu-vscode-resume-overlay--visible');
   });
 
   it('blur 后没有收到 focus 时也会自动结束恢复状态', async () => {
+    const originalVisibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
     vi.useFakeTimers();
 
     try {
@@ -209,6 +325,7 @@ describe('VS Code Webview preview', () => {
       sendWebviewMessage({ type: 'document', text: '# 无 focus 回调', version: 1 });
       const overlay = screen.getByTestId('vscode-resume-overlay');
 
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
       fireEvent(window, new Event('blur'));
       expect(overlay).toHaveClass('feishu-vscode-resume-overlay--visible');
 
@@ -216,6 +333,11 @@ describe('VS Code Webview preview', () => {
 
       expect(overlay).not.toHaveClass('feishu-vscode-resume-overlay--visible');
     } finally {
+      if (originalVisibility) {
+        Object.defineProperty(document, 'visibilityState', originalVisibility);
+      } else {
+        delete (document as { visibilityState?: unknown }).visibilityState;
+      }
       vi.useRealTimers();
     }
   });

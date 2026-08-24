@@ -1,3 +1,5 @@
+import type { TableIdentityRecord } from './FeishuTableIdentity';
+
 const STORAGE_PREFIX = 'feishu-md-viewer:table-column-widths:v1';
 const STORAGE_VERSION = 1;
 const MIN_STORED_WIDTH = 24;
@@ -6,6 +8,23 @@ interface PersistedTableWidths {
   version: 1;
   updatedAt: number;
   widths: number[];
+}
+
+export interface TableColumnWidthsBridge {
+  read(tableKey: string): number[] | null;
+  write(tableKey: string, widths: number[]): void;
+  readIdentities?: () => TableIdentityRecord[] | null;
+  writeIdentities?: (records: TableIdentityRecord[]) => void;
+}
+
+let tableColumnWidthsBridge: TableColumnWidthsBridge | undefined;
+
+export function setTableColumnWidthsBridge(bridge: TableColumnWidthsBridge | undefined): void {
+  tableColumnWidthsBridge = bridge;
+}
+
+export function getTableColumnWidthsBridge(): TableColumnWidthsBridge | undefined {
+  return tableColumnWidthsBridge;
 }
 
 function hashText(value: string): string {
@@ -40,8 +59,21 @@ function getTableFingerprint(table: HTMLTableElement): string {
   return `${getColumnCount(table)}\n${sample}`;
 }
 
+export function getTableFingerprintKey(table: HTMLTableElement): string {
+  return hashText(getTableFingerprint(table));
+}
+
+export function getTablePersistenceKey(table: HTMLTableElement): string {
+  const stableId = table.dataset.feishuTableId?.trim();
+  return stableId ? `stable:${stableId}` : getTableFingerprintKey(table);
+}
+
 export function getTableWidthStorageKey(table: HTMLTableElement): string {
   return `${STORAGE_PREFIX}:${getDocumentKey()}:${hashText(getTableFingerprint(table))}`;
+}
+
+function getStableTableWidthStorageKey(table: HTMLTableElement): string {
+  return `${STORAGE_PREFIX}:${getDocumentKey()}:${hashText(getTablePersistenceKey(table))}`;
 }
 
 function parseWidth(value: string): number | null {
@@ -86,8 +118,20 @@ export function applyTableColumnWidths(table: HTMLTableElement, widths: number[]
 }
 
 export function readPersistedTableColumnWidths(table: HTMLTableElement): number[] | null {
+  const stableTableKey = getTablePersistenceKey(table);
+  const legacyTableKey = getTableFingerprintKey(table);
+  if (tableColumnWidthsBridge) {
+    return tableColumnWidthsBridge.read(stableTableKey)
+      ?? (stableTableKey === legacyTableKey ? null : tableColumnWidthsBridge.read(legacyTableKey));
+  }
+
   try {
-    const raw = window.localStorage.getItem(getTableWidthStorageKey(table));
+    const storageKeys = stableTableKey === legacyTableKey
+      ? [getTableWidthStorageKey(table)]
+      : [getStableTableWidthStorageKey(table), getTableWidthStorageKey(table)];
+    const raw = storageKeys
+      .map((key) => window.localStorage.getItem(key))
+      .find((value): value is string => Boolean(value));
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<PersistedTableWidths>;
@@ -111,9 +155,17 @@ export function persistTableColumnWidths(table: HTMLTableElement): void {
   const widths = getTableColumnWidths(table);
   if (widths.every((width) => width < MIN_STORED_WIDTH)) return;
 
+  const tableKey = getTablePersistenceKey(table);
+  if (tableColumnWidthsBridge) {
+    tableColumnWidthsBridge.write(tableKey, widths);
+    return;
+  }
+
   try {
     window.localStorage.setItem(
-      getTableWidthStorageKey(table),
+      table.dataset.feishuTableId?.trim()
+        ? getStableTableWidthStorageKey(table)
+        : getTableWidthStorageKey(table),
       JSON.stringify({ version: STORAGE_VERSION, updatedAt: Date.now(), widths } satisfies PersistedTableWidths)
     );
   } catch {

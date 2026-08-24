@@ -1,14 +1,17 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyTableColumnWidths,
   getTableWidthStorageKey,
   persistTableColumnWidths,
   readPersistedTableColumnWidths,
   restorePersistedTableColumnWidths,
+  getTablePersistenceKey,
+  setTableColumnWidthsBridge,
 } from '@/viewer/components/Markdown/FeishuTableColumnWidths';
 
-function createTable(rows: string[][]): HTMLTableElement {
+function createTable(rows: string[][], tableId?: string): HTMLTableElement {
   const table = document.createElement('table');
+  if (tableId) table.dataset.feishuTableId = tableId;
   rows.forEach((cells) => {
     const row = table.insertRow();
     cells.forEach((text) => {
@@ -23,6 +26,26 @@ describe('FeishuTableColumnWidths', () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.history.replaceState(null, '', '/docs/table-test.md');
+    setTableColumnWidthsBridge(undefined);
+  });
+
+  it('使用 VS Code 宿主桥接保存和恢复列宽，不依赖 Webview localStorage', () => {
+    const table = createTable([
+      ['Feature', 'Owner'],
+      ['Markdown Rendering', 'Viewer'],
+    ]);
+    const read = vi.fn(() => [180, 260]);
+    const write = vi.fn();
+    setTableColumnWidthsBridge({ read, write });
+
+    expect(restorePersistedTableColumnWidths(table)).toBe(true);
+    expect(table.rows[0].cells[0].style.width).toBe('180px');
+
+    persistTableColumnWidths(table);
+
+    expect(read).toHaveBeenCalledWith(expect.any(String));
+    expect(write).toHaveBeenCalledWith(expect.any(String), [180, 260]);
+    expect(window.localStorage.length).toBe(0);
   });
 
   it('persists widths for the same document and table fingerprint', () => {
@@ -56,6 +79,56 @@ describe('FeishuTableColumnWidths', () => {
     ]);
 
     expect(readPersistedTableColumnWidths(otherTable)).toBeNull();
+  });
+
+  it('keeps widths when the same stable table changes its cell content', () => {
+    const table = createTable([
+      ['Feature', 'Owner'],
+      ['Markdown Rendering', 'Viewer'],
+    ], 'section-intro-table-1');
+    applyTableColumnWidths(table, [180, 260]);
+    persistTableColumnWidths(table);
+
+    const editedTable = createTable([
+      ['Updated feature name', 'New owner'],
+      ['Changed content', 'Still the same table'],
+      ['A new row', 'Added later'],
+    ], 'section-intro-table-1');
+
+    expect(getTablePersistenceKey(editedTable)).toBe(getTablePersistenceKey(table));
+    expect(readPersistedTableColumnWidths(editedTable)).toEqual([180, 260]);
+  });
+
+  it('does not reuse stable widths for another table with a different stable id', () => {
+    const table = createTable([
+      ['Feature', 'Owner'],
+      ['Markdown Rendering', 'Viewer'],
+    ], 'section-intro-table-1');
+    applyTableColumnWidths(table, [180, 260]);
+    persistTableColumnWidths(table);
+
+    const otherTable = createTable([
+      ['Feature', 'Owner'],
+      ['Markdown Rendering', 'Viewer'],
+    ], 'section-intro-table-2');
+
+    expect(readPersistedTableColumnWidths(otherTable)).toBeNull();
+  });
+
+  it('reads legacy fingerprint widths after a stable id is introduced', () => {
+    const legacyTable = createTable([
+      ['Feature', 'Owner'],
+      ['Markdown Rendering', 'Viewer'],
+    ]);
+    applyTableColumnWidths(legacyTable, [180, 260]);
+    persistTableColumnWidths(legacyTable);
+
+    const stableTable = createTable([
+      ['Feature', 'Owner'],
+      ['Markdown Rendering', 'Viewer'],
+    ], 'section-intro-table-1');
+
+    expect(readPersistedTableColumnWidths(stableTable)).toEqual([180, 260]);
   });
 
   it('applies widths to every cell in each stored column', () => {

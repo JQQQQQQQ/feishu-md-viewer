@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
 import { FeishuTable } from '@/viewer/components/Markdown/FeishuTable';
+import { setTableColumnWidthsBridge } from '@/viewer/components/Markdown/FeishuTableColumnWidths';
 
 function TableHarness() {
   return (
@@ -855,6 +856,29 @@ describe('FeishuTable selection', () => {
 
     fireEvent.mouseUp(document);
     expect(wrapper.classList.contains('feishu-table-wrapper--resizing')).toBe(false);
+  });
+
+  it('persists an in-progress resize when the webview hides before mouseup', () => {
+    const write = vi.fn();
+    setTableColumnWidthsBridge({ read: () => null, write });
+
+    try {
+      const { container } = render(<TableHarness />);
+      const table = getSourceTable(container);
+      const firstHeader = table.rows[0]?.cells[0] as HTMLTableCellElement;
+      vi.spyOn(firstHeader, 'getBoundingClientRect').mockReturnValue({
+        x: 0, y: 0, top: 0, left: 0, right: 120, bottom: 32, width: 120, height: 32,
+        toJSON: () => '',
+      });
+
+      fireEvent.mouseDown(firstHeader, { button: 0, clientX: 118, clientY: 16 });
+      fireEvent.mouseMove(document, { clientX: 160, clientY: 16 });
+      fireEvent(window, new Event('pagehide'));
+
+      expect(write).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining([162]));
+    } finally {
+      setTableColumnWidthsBridge(undefined);
+    }
   });
 
   it('auto-scrolls the native scrollport rather than the outer frame while resizing at an edge', () => {

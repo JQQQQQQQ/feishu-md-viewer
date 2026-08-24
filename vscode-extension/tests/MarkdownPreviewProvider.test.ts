@@ -80,6 +80,16 @@ function createProvider(): MarkdownPreviewProvider {
   return new MarkdownPreviewProvider(extensionUri);
 }
 
+function createSettingsStore(initial: unknown = undefined) {
+  let value = initial;
+  return {
+    get: vi.fn(() => value),
+    update: vi.fn(async (_key: string, nextValue: unknown) => {
+      value = nextValue;
+    }),
+  };
+}
+
 interface FakePanel {
   options: { retainContextWhenHidden?: boolean };
   webview: {
@@ -222,6 +232,7 @@ describe('MarkdownPreviewProvider', () => {
       type: 'document',
       text: '# 初始内容',
       version: 3,
+      documentKey: 'file:///guide.md',
     });
   });
 
@@ -243,7 +254,7 @@ describe('MarkdownPreviewProvider', () => {
     const resolving = provider.resolveCustomEditor(customDocument, panel, cancellationToken);
     panel.fireMessage({ type: 'ready' });
 
-    expect(panel.webview.postMessage).not.toHaveBeenCalled();
+    expect(panel.webview.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'document' }));
 
     finishOpening?.(sourceDocument);
     await resolving;
@@ -252,6 +263,7 @@ describe('MarkdownPreviewProvider', () => {
       type: 'document',
       text: '# 延迟打开的内容',
       version: 7,
+      documentKey: 'file:///guide.md',
     });
   });
 
@@ -281,6 +293,7 @@ describe('MarkdownPreviewProvider', () => {
       type: 'document',
       text: '# Webview 重建前的最新内容',
       version: 4,
+      documentKey: 'file:///guide.md',
     });
   });
 
@@ -309,6 +322,7 @@ describe('MarkdownPreviewProvider', () => {
       type: 'document',
       text: '# 新内容',
       version: 4,
+      documentKey: 'file:///guide.md',
     });
   });
 
@@ -332,11 +346,12 @@ describe('MarkdownPreviewProvider', () => {
 
     panel.fireMessage({ type: 'ready' });
 
-    expect(panel.webview.postMessage).toHaveBeenCalledTimes(2);
+    expect(panel.webview.postMessage).toHaveBeenCalledTimes(4);
     expect(panel.webview.postMessage).toHaveBeenCalledWith({
       type: 'document',
       text: '# 第三版',
       version: 3,
+      documentKey: 'file:///guide.md',
     });
   });
 
@@ -422,5 +437,152 @@ describe('MarkdownPreviewProvider', () => {
     expect(vscodeMock.workspace.onDidChangeTextDocument).not.toHaveBeenCalled();
     expect(panel.listenerDisposables).toHaveLength(2);
     expect(panel.listenerDisposables.every((disposable) => disposable.dispose.mock.calls.length === 1)).toBe(true);
+  });
+
+  it('ready 后向 Webview 发送扩展级全局预览设置', async () => {
+    vscodeMock.reset();
+    const settingsStore = createSettingsStore({
+      theme: 'dark',
+      fontSize: 19,
+      tocSmoothScrollEnabled: false,
+      contentAlignment: 'left',
+    });
+    const provider = new MarkdownPreviewProvider(extensionUri, settingsStore as never);
+    const sourceDocument = createDocument('# 全局设置');
+    vscodeMock.workspace.openTextDocument.mockResolvedValue(sourceDocument);
+    const customDocument = await provider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const panel = createPanel();
+
+    await provider.resolveCustomEditor(customDocument, panel, cancellationToken);
+    panel.fireMessage({ type: 'ready' });
+
+    expect(panel.webview.postMessage).toHaveBeenCalledWith({
+      type: 'settings',
+      settings: {
+        theme: 'dark',
+        fontSize: 19,
+        tocSmoothScrollEnabled: false,
+        contentAlignment: 'left',
+      },
+    });
+  });
+
+  it('一个预览页修改设置后持久化并同步到其他已打开预览页', async () => {
+    vscodeMock.reset();
+    const settingsStore = createSettingsStore();
+    const provider = new MarkdownPreviewProvider(extensionUri, settingsStore as never);
+    const sourceDocument = createDocument('# 文档一');
+    const secondDocument = createDocument('# 文档二', 1, 'file:///second.md');
+    vscodeMock.workspace.openTextDocument
+      .mockResolvedValueOnce(sourceDocument)
+      .mockResolvedValueOnce(secondDocument);
+    const first = await provider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const second = await provider.openCustomDocument(secondDocument.uri, customDocumentOpenContext, cancellationToken);
+    const firstPanel = createPanel();
+    const secondPanel = createPanel();
+
+    await provider.resolveCustomEditor(first, firstPanel, cancellationToken);
+    await provider.resolveCustomEditor(second, secondPanel, cancellationToken);
+    firstPanel.fireMessage({ type: 'ready' });
+    secondPanel.fireMessage({ type: 'ready' });
+    firstPanel.webview.postMessage.mockClear();
+    secondPanel.webview.postMessage.mockClear();
+
+    firstPanel.fireMessage({
+      type: 'settings',
+      settings: { theme: 'light', fontSize: 18, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
+    });
+
+    expect(settingsStore.update).toHaveBeenCalledWith('feishu-md-viewer.previewSettings', {
+      theme: 'light',
+      fontSize: 18,
+      tocSmoothScrollEnabled: true,
+      contentAlignment: 'center',
+    });
+    expect(firstPanel.webview.postMessage).toHaveBeenCalledWith({
+      type: 'settings',
+      settings: { theme: 'light', fontSize: 18, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
+    });
+    expect(secondPanel.webview.postMessage).toHaveBeenCalledWith({
+      type: 'settings',
+      settings: { theme: 'light', fontSize: 18, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
+    });
+  });
+
+  it('表格列宽按文档 URI 持久化，并在重新解析预览时恢复', async () => {
+    vscodeMock.reset();
+    const widthsStore = createSettingsStore();
+    const sourceDocument = createDocument('# 表格文档', 1, 'file:///table.md');
+    vscodeMock.workspace.openTextDocument.mockResolvedValue(sourceDocument);
+    const provider = new MarkdownPreviewProvider(extensionUri, widthsStore as never);
+    const customDocument = await provider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const panel = createPanel();
+
+    await provider.resolveCustomEditor(customDocument, panel, cancellationToken);
+    panel.fireMessage({ type: 'ready' });
+    panel.fireMessage({
+      type: 'table-width-update',
+      documentKey: 'file:///table.md',
+      tableKey: 'table-fingerprint-1',
+      widths: [180, 260],
+    });
+
+    expect(widthsStore.update).toHaveBeenCalledWith(
+      'feishu-md-viewer.tableColumnWidths',
+      expect.objectContaining({
+        version: 1,
+        documents: {
+          'file:///table.md': { 'table-fingerprint-1': [180, 260] },
+        },
+      }),
+    );
+
+    const reopenedProvider = new MarkdownPreviewProvider(extensionUri, widthsStore as never);
+    const reopenedDocument = await reopenedProvider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const reopenedPanel = createPanel();
+    await reopenedProvider.resolveCustomEditor(reopenedDocument, reopenedPanel, cancellationToken);
+    reopenedPanel.fireMessage({ type: 'ready' });
+
+    expect(reopenedPanel.webview.postMessage).toHaveBeenCalledWith({
+      type: 'table-widths',
+      documentKey: 'file:///table.md',
+      widths: { 'table-fingerprint-1': [180, 260] },
+    });
+  });
+
+  it('表格身份映射按文档 URI单独持久化并触发同文档预览同步', async () => {
+    vscodeMock.reset();
+    const identitiesStore = createSettingsStore();
+    const sourceDocument = createDocument('# 表格文档', 1, 'file:///identity-table.md');
+    vscodeMock.workspace.openTextDocument.mockResolvedValue(sourceDocument);
+    const provider = new MarkdownPreviewProvider(extensionUri, identitiesStore as never);
+    const customDocument = await provider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const panel = createPanel();
+
+    await provider.resolveCustomEditor(customDocument, panel, cancellationToken);
+    panel.fireMessage({ type: 'ready' });
+    panel.webview.postMessage.mockClear();
+    const identities = [{
+      id: 'table-original',
+      currentId: 'table-runtime',
+      headingPath: 'h2:1',
+      text: 'A B',
+      columnCount: 2,
+      ordinal: 0,
+    }];
+
+    panel.fireMessage({
+      type: 'table-identities-update',
+      documentKey: 'file:///identity-table.md',
+      identities,
+    });
+
+    expect(identitiesStore.update).toHaveBeenCalledWith(
+      'feishu-md-viewer.tableIdentities',
+      {
+        version: 1,
+        documents: { 'file:///identity-table.md': identities },
+      },
+    );
   });
 });

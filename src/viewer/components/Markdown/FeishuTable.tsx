@@ -249,6 +249,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
   const selectionRef = useRef<SelectionState | null>(null);
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
+  const hasPendingWidthPersistenceRef = useRef(false);
   const railDragRef = useRef<{ axis: RailSelection['axis']; anchor: number } | null>(null);
   const stopCellDragAutoScrollRef = useRef<() => void>(() => {});
   const dragStartYRef = useRef<number | null>(null);
@@ -487,6 +488,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       event.preventDefault();
       event.stopPropagation();
       isResizingRef.current = true;
+      hasPendingWidthPersistenceRef.current = true;
       wrapperRef.current?.classList.add('feishu-table-wrapper--resizing');
       isDraggingRef.current = false;
       dragStartYRef.current = null;
@@ -539,6 +541,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
         document.body.style.userSelect = '';
         wrapperRef.current?.classList.remove('feishu-table-wrapper--resizing');
         persistTableColumnWidths(table);
+        hasPendingWidthPersistenceRef.current = false;
         isResizingRef.current = false;
       };
 
@@ -677,6 +680,11 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
     restorePersistedTableColumnWidths(table);
     updateWideLayout();
+    const restoreExternalWidths = () => {
+      if (!restorePersistedTableColumnWidths(table)) return;
+      updateWideLayout();
+    };
+    window.addEventListener('feishu-table-widths-updated', restoreExternalWidths);
     const layoutFrame = typeof requestAnimationFrame === 'undefined'
       ? 0
       : requestAnimationFrame(updateWideLayout);
@@ -685,6 +693,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       return () => {
         if (layoutFrame !== 0) cancelAnimationFrame(layoutFrame);
         window.removeEventListener('resize', updateWideLayout);
+        window.removeEventListener('feishu-table-widths-updated', restoreExternalWidths);
       };
     }
 
@@ -699,9 +708,35 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
     return () => {
       if (layoutFrame !== 0) cancelAnimationFrame(layoutFrame);
-      observer.disconnect(); window.removeEventListener('resize', updateWideLayout);
+      observer.disconnect();
+      window.removeEventListener('resize', updateWideLayout);
+      window.removeEventListener('feishu-table-widths-updated', restoreExternalWidths);
     };
   }, [children, scheduleLeftRevealCloneRefresh, syncHorizontalScroll]);
+
+  useEffect(() => {
+    const table = tableRef.current;
+    if (!table) return undefined;
+
+    const persistPendingWidth = () => {
+      if (!hasPendingWidthPersistenceRef.current) return;
+      persistTableColumnWidths(table);
+      hasPendingWidthPersistenceRef.current = false;
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') persistPendingWidth();
+    };
+
+    window.addEventListener('pagehide', persistPendingWidth);
+    window.addEventListener('beforeunload', persistPendingWidth);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      persistPendingWidth();
+      window.removeEventListener('pagehide', persistPendingWidth);
+      window.removeEventListener('beforeunload', persistPendingWidth);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     const table = tableRef.current;

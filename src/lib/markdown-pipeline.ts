@@ -45,6 +45,16 @@ function isElement(node: HastNode): node is HastElement {
   return node.type === 'element' && typeof node.tagName === 'string';
 }
 
+function hashStableTableIdentity(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(36);
+}
+
 function getHeadingLevel(node: HastNode): number | null {
   if (!isElement(node)) return null;
   const match = /^h([1-6])$/.exec(node.tagName);
@@ -123,6 +133,48 @@ function rehypeNormalizeTaskCheckboxes() {
   return (tree: HastRoot) => visit(tree);
 }
 
+/**
+ * Give every Markdown table a document-local identity that does not depend on
+ * its cell contents. The nearest heading path is stable while a table is
+ * edited, while the ordinal disambiguates multiple tables in one section.
+ */
+function rehypeAssignTableIds() {
+  return (tree: HastRoot) => {
+    const headingCounts = new Map<number, number>();
+    const tableCounts = new Map<string, number>();
+    const headingPath: string[] = [];
+
+    const visit = (node: HastNode): void => {
+      if (isElement(node)) {
+        const headingLevel = getHeadingLevel(node);
+        if (headingLevel !== null) {
+          while (headingPath.length > 0) {
+            const currentLevel = Number.parseInt(headingPath[headingPath.length - 1]?.split(':', 1)[0] ?? '0', 10);
+            if (currentLevel < headingLevel) break;
+            headingPath.pop();
+          }
+
+          const occurrence = (headingCounts.get(headingLevel) ?? 0) + 1;
+          headingCounts.set(headingLevel, occurrence);
+          headingPath.push(`${headingLevel}:${occurrence}`);
+        } else if (node.tagName === 'table') {
+          const pathKey = headingPath.join('/') || 'root';
+          const tableOrdinal = (tableCounts.get(pathKey) ?? 0) + 1;
+          tableCounts.set(pathKey, tableOrdinal);
+          node.properties ??= {};
+          node.properties.dataFeishuTableId = `table-${hashStableTableIdentity(`${pathKey}:table-${tableOrdinal}`)}`;
+          node.properties.dataFeishuTablePath = pathKey;
+          node.properties.dataFeishuTableOrdinal = String(tableOrdinal);
+        }
+      }
+
+      node.children?.forEach(visit);
+    };
+
+    visit(tree);
+  };
+}
+
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
@@ -133,6 +185,7 @@ const processor = unified()
   .use(rehypeRaw)
   .use(rehypeSanitize, markdownHtmlSchema)
   .use(rehypeNormalizeTaskCheckboxes)
+  .use(rehypeAssignTableIds)
   .use(rehypeSectionHierarchy)
   .use(rehypeReact, {
     ...production,

@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PreviewRoot } from '../../src/viewer/PreviewRoot';
-import { useViewerStore, type ThemeMode } from '../../src/viewer/store';
+import { useViewerStore, type ContentAlignment, type ThemeMode } from '../../src/viewer/store';
+import {
+  setTableColumnWidthsBridge,
+  type TableColumnWidthsBridge,
+} from '../../src/viewer/components/Markdown/FeishuTableColumnWidths';
 import '../../src/viewer/styles/feishu-theme.css';
 import '../../src/viewer/styles/tailwind-output.css';
 import '../../src/viewer/styles/markdown.css';
@@ -18,6 +22,7 @@ interface DocumentMessage {
   type: 'document';
   text: string;
   version: number;
+  documentKey?: string;
 }
 
 interface ThemeMessage {
@@ -30,12 +35,53 @@ interface ErrorMessage {
   message: string;
 }
 
-type WebviewMessage = DocumentMessage | ThemeMessage | ErrorMessage;
+interface PreviewSettings {
+  theme: ThemeMode;
+  fontSize: number;
+  tocSmoothScrollEnabled: boolean;
+  contentAlignment: ContentAlignment;
+}
+
+interface SettingsMessage {
+  type: 'settings';
+  settings: PreviewSettings;
+}
+
+interface TableWidthsMessage {
+  type: 'table-widths';
+  documentKey: string;
+  widths: Record<string, number[]>;
+  identities?: TableIdentityRecord[];
+}
+
+interface TableWidthUpdateMessage {
+  type: 'table-width-update';
+  documentKey: string;
+  tableKey: string;
+  widths: number[];
+}
+
+interface TableIdentityRecord {
+  id: string;
+  currentId: string;
+  headingPath: string;
+  text: string;
+  columnCount: number;
+  ordinal: number;
+}
+
+interface TableIdentitiesUpdateMessage {
+  type: 'table-identities-update';
+  documentKey: string;
+  identities: TableIdentityRecord[];
+}
+
+type WebviewMessage = DocumentMessage | ThemeMessage | SettingsMessage | TableWidthsMessage | ErrorMessage;
+
+type WebviewOutgoingMessage = { type: 'ready' } | SettingsMessage | TableWidthUpdateMessage | TableIdentitiesUpdateMessage;
 
 interface VsCodeApi {
-  postMessage(message: { type: 'ready' }): void;
-  getState?: () => unknown;
-  setState?: (state: unknown) => unknown;
+  postMessage(message: WebviewOutgoingMessage): void;
 }
 
 declare global {
@@ -47,7 +93,18 @@ function isWebviewMessage(message: unknown): message is WebviewMessage {
     return false;
   }
 
-  const candidate = message as { type?: unknown; text?: unknown; version?: unknown; kind?: unknown; message?: unknown };
+  const candidate = message as {
+    type?: unknown;
+    text?: unknown;
+    version?: unknown;
+    documentKey?: unknown;
+    kind?: unknown;
+    message?: unknown;
+    settings?: unknown;
+    widths?: unknown;
+    tableKey?: unknown;
+    identities?: unknown;
+  };
   if (candidate.type === 'document') {
     return (
       typeof candidate.text === 'string'
@@ -55,11 +112,44 @@ function isWebviewMessage(message: unknown): message is WebviewMessage {
       && Number.isFinite(candidate.version)
       && Number.isInteger(candidate.version)
       && candidate.version >= 0
+      && (candidate.documentKey === undefined || typeof candidate.documentKey === 'string')
     );
   }
 
   if (candidate.type === 'theme') {
     return candidate.kind === 'light' || candidate.kind === 'dark';
+  }
+
+  if (candidate.type === 'settings' && typeof candidate.settings === 'object' && candidate.settings !== null) {
+    const settings = candidate.settings as Partial<PreviewSettings>;
+    return (
+      (settings.theme === 'light' || settings.theme === 'dark' || settings.theme === 'system')
+      && typeof settings.fontSize === 'number'
+      && Number.isFinite(settings.fontSize)
+      && typeof settings.tocSmoothScrollEnabled === 'boolean'
+      && (settings.contentAlignment === 'left' || settings.contentAlignment === 'center')
+    );
+  }
+
+  if (candidate.type === 'table-widths' && typeof candidate.documentKey === 'string' && typeof candidate.widths === 'object' && candidate.widths !== null) {
+    const validWidths = Object.values(candidate.widths as Record<string, unknown>).every((widths) => (
+      Array.isArray(widths)
+      && widths.every((width) => typeof width === 'number' && Number.isFinite(width))
+    ));
+    const validIdentities = candidate.identities === undefined || (
+      Array.isArray(candidate.identities)
+      && candidate.identities.every((record) => {
+        if (typeof record !== 'object' || record === null) return false;
+        const identity = record as Partial<TableIdentityRecord>;
+        return typeof identity.id === 'string'
+          && typeof identity.currentId === 'string'
+          && typeof identity.headingPath === 'string'
+          && typeof identity.text === 'string'
+          && typeof identity.columnCount === 'number'
+          && typeof identity.ordinal === 'number';
+      })
+    );
+    return validWidths && validIdentities;
   }
 
   return candidate.type === 'error' && typeof candidate.message === 'string';
@@ -76,9 +166,11 @@ export function WebviewPreview() {
   const storedTheme = useViewerStore((state) => state.theme);
   const fontSize = useViewerStore((state) => state.fontSize);
   const tocSmoothScrollEnabled = useViewerStore((state) => state.tocSmoothScrollEnabled);
+  const contentAlignment = useViewerStore((state) => state.contentAlignment);
   const setStoredTheme = useViewerStore((state) => state.setTheme);
   const setStoredFontSize = useViewerStore((state) => state.setFontSize);
   const setStoredSmoothScroll = useViewerStore((state) => state.setTocSmoothScrollEnabled);
+  const setStoredContentAlignment = useViewerStore((state) => state.setContentAlignment);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const [isResumeOverlayVisible, setIsResumeOverlayVisible] = useState(
     () => document.visibilityState === 'hidden',
@@ -87,7 +179,42 @@ export function WebviewPreview() {
   const resumeFrameRef = useRef<number>();
   const resumeFallbackTimerRef = useRef<number>();
   const vscodeApi = useMemo(() => getVsCodeApi(), []);
+  const tableWidthsRef = useRef<{ documentKey: string; widths: Record<string, number[]> }>({
+    documentKey: '',
+    widths: {},
+  });
+  const tableIdentitiesRef = useRef<{ documentKey: string; identities: TableIdentityRecord[]; ready: boolean }>({
+    documentKey: '',
+    identities: [],
+    ready: false,
+  });
+  const tableWidthsBridgeRef = useRef<TableColumnWidthsBridge>();
+  if (!tableWidthsBridgeRef.current) {
+    tableWidthsBridgeRef.current = {
+      read: (tableKey) => tableWidthsRef.current.widths[tableKey] ?? null,
+      write: (tableKey, widths) => {
+        const documentKey = tableWidthsRef.current.documentKey;
+        if (!vscodeApi || !documentKey) return;
+        vscodeApi.postMessage({ type: 'table-width-update', documentKey, tableKey, widths });
+      },
+      readIdentities: () => tableIdentitiesRef.current.ready
+        ? tableIdentitiesRef.current.identities
+        : null,
+      writeIdentities: (identities) => {
+        const documentKey = tableIdentitiesRef.current.documentKey;
+        if (!vscodeApi || !documentKey || !tableIdentitiesRef.current.ready) return;
+        tableIdentitiesRef.current.identities = identities;
+        vscodeApi.postMessage({ type: 'table-identities-update', documentKey, identities });
+      },
+    };
+  }
   const effectiveTheme = storedTheme === 'system' ? theme : storedTheme;
+
+  useEffect(() => {
+    if (!vscodeApi || !tableWidthsBridgeRef.current) return undefined;
+    setTableColumnWidthsBridge(tableWidthsBridgeRef.current);
+    return () => setTableColumnWidthsBridge(undefined);
+  }, [vscodeApi]);
 
   useEffect(() => {
     const themedElements = [
@@ -154,8 +281,16 @@ export function WebviewPreview() {
         finishResume();
       }
     };
-    const handleWindowBlur = () => beginResume();
-    const handleWindowFocus = () => finishResume();
+    // A VS Code context menu also causes the Webview window to blur while the
+    // document remains visible. Do not cover the page with the resume spinner
+    // for that transient native-menu blur; only use the fallback when VS Code
+    // has actually hidden the Webview and no visibilitychange event arrived.
+    const handleWindowBlur = () => {
+      if (document.visibilityState === 'hidden') beginResume();
+    };
+    const handleWindowFocus = () => {
+      if (document.visibilityState !== 'hidden') finishResume();
+    };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
@@ -170,32 +305,12 @@ export function WebviewPreview() {
   }, []);
 
   useEffect(() => {
-    const state = vscodeApi?.getState?.() as { settings?: {
-      theme?: ThemeMode;
-      fontSize?: number;
-      tocSmoothScrollEnabled?: boolean;
-    } } | undefined;
-    const settings = state?.settings;
-    if (!settings) {
-      setSettingsHydrated(true);
-      return;
-    }
-    if (settings.theme === 'light' || settings.theme === 'dark' || settings.theme === 'system') {
-      setStoredTheme(settings.theme);
-    }
-    if (typeof settings.fontSize === 'number') setStoredFontSize(settings.fontSize);
-    if (typeof settings.tocSmoothScrollEnabled === 'boolean') {
-      setStoredSmoothScroll(settings.tocSmoothScrollEnabled);
-    }
-    setSettingsHydrated(true);
-  }, [setStoredFontSize, setStoredSmoothScroll, setStoredTheme, vscodeApi]);
-
-  useEffect(() => {
     if (!settingsHydrated) return;
-    vscodeApi?.setState?.({
-      settings: { theme: storedTheme, fontSize, tocSmoothScrollEnabled },
+    vscodeApi?.postMessage({
+      type: 'settings',
+      settings: { theme: storedTheme, fontSize, tocSmoothScrollEnabled, contentAlignment },
     });
-  }, [fontSize, settingsHydrated, storedTheme, tocSmoothScrollEnabled, vscodeApi]);
+  }, [contentAlignment, fontSize, settingsHydrated, storedTheme, tocSmoothScrollEnabled, vscodeApi]);
 
   useEffect(() => {
     vscodeApi?.postMessage({ type: 'ready' });
@@ -208,6 +323,15 @@ export function WebviewPreview() {
       }
 
       if (event.data.type === 'document') {
+        tableWidthsRef.current = {
+          documentKey: event.data.documentKey ?? '',
+          widths: {},
+        };
+        tableIdentitiesRef.current = {
+          documentKey: event.data.documentKey ?? '',
+          identities: [],
+          ready: false,
+        };
         setDocumentState((current) => {
           if (current && event.data.version <= current.version) {
             return current;
@@ -219,8 +343,30 @@ export function WebviewPreview() {
         return;
       }
 
+      if (event.data.type === 'table-widths') {
+        if (event.data.documentKey !== tableWidthsRef.current.documentKey) return;
+        tableWidthsRef.current.widths = event.data.widths;
+        tableIdentitiesRef.current = {
+          documentKey: event.data.documentKey,
+          identities: event.data.identities ?? [],
+          ready: true,
+        };
+        window.dispatchEvent(new Event('feishu-table-widths-updated'));
+        window.dispatchEvent(new Event('feishu-table-identities-updated'));
+        return;
+      }
+
       if (event.data.type === 'theme') {
         setTheme(event.data.kind);
+        return;
+      }
+
+      if (event.data.type === 'settings') {
+        setStoredTheme(event.data.settings.theme);
+        setStoredFontSize(event.data.settings.fontSize);
+        setStoredSmoothScroll(event.data.settings.tocSmoothScrollEnabled);
+        setStoredContentAlignment(event.data.settings.contentAlignment);
+        setSettingsHydrated(true);
         return;
       }
 
@@ -229,7 +375,7 @@ export function WebviewPreview() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [setStoredContentAlignment, setStoredFontSize, setStoredSmoothScroll, setStoredTheme]);
 
   if (error) {
     return (

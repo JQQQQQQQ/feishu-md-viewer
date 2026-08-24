@@ -71,6 +71,28 @@ describe('markdown-pipeline', () => {
       expect(container.querySelector('.feishu-table__cell')).not.toBeNull();
     });
 
+    it('assigns stable ids to table blocks so content edits do not change their width key', () => {
+      const first = render(parseMarkdown(`## Data
+
+| A | B |
+| --- | --- |
+| 1 | 2 |`));
+      const firstTableId = first.container.querySelector('.feishu-table__scrollport table')?.getAttribute('data-feishu-table-id');
+      first.unmount();
+
+      const edited = render(parseMarkdown(`## Data
+
+| Changed A | Changed B |
+| --- | --- |
+| 10 | 20 |
+| 30 | 40 |`));
+      const editedTableId = edited.container.querySelector('.feishu-table__scrollport table')?.getAttribute('data-feishu-table-id');
+
+      expect(firstTableId).toBeTruthy();
+      expect(editedTableId).toBe(firstTableId);
+      edited.unmount();
+    });
+
     it('copies a selected table column as tabular text', () => {
       const md = `| A | B |
 | --- | --- |

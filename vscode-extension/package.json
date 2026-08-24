@@ -2,7 +2,7 @@
   "name": "feishu-md-viewer-vscode",
   "displayName": "Feishu Markdown Viewer",
   "publisher": "JQQQQQQQ",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "private": true,
   "engines": {
     "vscode": "^1.93.0"

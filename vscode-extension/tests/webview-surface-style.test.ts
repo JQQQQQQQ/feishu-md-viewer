@@ -12,7 +12,7 @@ describe('VS Code Webview 阅读表面', () => {
     expect(stylesheet).toContain('.feishu-vscode-webview .feishu-app-shell');
     expect(stylesheet).toContain('background-color: var(--feishu-bg-content)');
     expect(stylesheet).toContain('.feishu-vscode-webview--dark');
-    expect(stylesheet).toContain('background-color: #1a1a1a');
+    expect(stylesheet).toContain('background-color: #242424');
     expect(stylesheet).not.toContain('.feishu-vscode-webview--resume-stable');
     expect(stylesheet).not.toContain('.feishu-sidebar {\n  background-color: var(--feishu-bg-content)');
   });
@@ -60,7 +60,13 @@ describe('VS Code Webview 阅读表面', () => {
     );
 
     expect(stylesheet).toMatch(
-      /html\[data-feishu-vscode-theme="dark"\],\s*body\[data-feishu-vscode-theme="dark"\],\s*#webview-root\[data-feishu-vscode-theme="dark"\]\s*\{[^}]*background-color:\s*#1a1a1a;/,
+      /html\[data-feishu-vscode-theme="dark"\],\s*body\[data-feishu-vscode-theme="dark"\],\s*#webview-root\[data-feishu-vscode-theme="dark"\]\s*\{[^}]*background-color:\s*#242424;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.feishu-vscode-webview--dark\s*\{[^}]*background-color:\s*#242424;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.feishu-vscode-webview--dark \.feishu-app-shell,\s*\.feishu-vscode-webview--dark \.feishu-viewer__page\s*\{[^}]*background-color:\s*#242424;/,
     );
     expect(stylesheet).toMatch(
       /\.feishu-vscode-webview--dark \.feishu-code-block\s*\{[^}]*background-color:\s*#2d2d2d;/,
