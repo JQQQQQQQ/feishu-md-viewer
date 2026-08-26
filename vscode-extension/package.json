@@ -2,7 +2,7 @@
   "name": "feishu-md-viewer-vscode",
   "displayName": "Feishu Markdown Viewer",
   "publisher": "JQQQQQQQ",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "private": true,
   "engines": {
     "vscode": "^1.93.0"
@@ -15,7 +15,7 @@
     "commands": [
       {
         "command": "feishu-md-viewer.reopenWithTextEditor",
-        "title": "使用原生文本编辑器重新打开"
+        "title": "\u4f7f\u7528\u539f\u751f\u6587\u672c\u7f16\u8f91\u5668\u91cd\u65b0\u6253\u5f00"
       }
     ],
     "customEditors": [

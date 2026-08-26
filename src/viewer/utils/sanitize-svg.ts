@@ -33,8 +33,17 @@ function countLikelyNodeLabels(svgText: string): number {
   return classMatches + textMatches;
 }
 
-export function sanitizeMermaidSvg(svg: string): string {
-  const expanded = expandMermaidSvgBounds(svg);
+export interface SanitizeMermaidSvgOptions {
+  /** The MermaidBlock path expands the SVG before rendering it. Previewing a
+   * serialized DOM node must skip that second geometry expansion. */
+  expandBounds?: boolean;
+}
+
+export function sanitizeMermaidSvg(
+  svg: string,
+  options: SanitizeMermaidSvgOptions = {},
+): string {
+  const expanded = options.expandBounds === false ? svg : expandMermaidSvgBounds(svg);
   const originalLabelCount = countLikelyNodeLabels(expanded);
 
   const sanitized = DOMPurify.sanitize(expanded, {

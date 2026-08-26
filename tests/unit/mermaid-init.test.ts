@@ -32,8 +32,19 @@ describe('mermaid-init', () => {
         securityLevel: 'strict',
         startOnLoad: false,
         htmlLabels: true,
+        theme: 'base',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         fontSize: 14,
+        themeVariables: expect.objectContaining({
+          primaryColor: '#eef4ff',
+          primaryBorderColor: '#8fb1ff',
+          primaryTextColor: '#1f2329',
+          lineColor: '#5b7cff',
+        }),
+        flowchart: expect.objectContaining({
+          curve: 'basis',
+          padding: 24,
+        }),
       }),
     );
   });

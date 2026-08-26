@@ -25,11 +25,6 @@ function clampZoom(value: number): number {
   return Math.min(4, Math.max(0.25, value));
 }
 
-function getWheelZoomStep(deltaY: number): number {
-  const direction = deltaY > 0 ? -1 : 1;
-  return direction * Math.min(0.03, Math.max(0.008, Math.abs(deltaY) / 24000));
-}
-
 function parseSvgLength(value: string | null): number | null {
   if (!value) return null;
   const match = value.match(/^(\d+(?:\.\d+)?)(px)?$/);
@@ -71,7 +66,10 @@ function getFitZoom(canvas: HTMLDivElement, size: SvgSize): number {
 export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) {
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
-  const safeSvg = useMemo(() => sanitizeMermaidSvg(svg), [svg]);
+  // The source SVG comes from the already-rendered MermaidBlock. It has
+  // already had its bounds expanded once; expanding it again shifts the
+  // viewBox and makes preview edges/nodes appear offset from the document.
+  const safeSvg = useMemo(() => sanitizeMermaidSvg(svg, { expandBounds: false }), [svg]);
   const previewSize = useMemo(() => getSvgPreviewSize(safeSvg), [safeSvg]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef<DragState | null>(null);
@@ -114,31 +112,6 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     requestAnimationFrame(() => {
       const canvas = canvasRef.current;
       if (canvas) centerCanvas(canvas);
-    });
-  }, []);
-
-  const handleWheel = useCallback((event: WheelEvent) => {
-    event.preventDefault();
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    const scrollX = canvas.scrollLeft + mouseX;
-    const scrollY = canvas.scrollTop + mouseY;
-
-    setZoom((current) => {
-      const next = clampZoom(Number((current + getWheelZoomStep(event.deltaY)).toFixed(3)));
-      const zoomRatio = next / current;
-
-      requestAnimationFrame(() => {
-        canvas.scrollLeft = scrollX * zoomRatio - mouseX;
-        canvas.scrollTop = scrollY * zoomRatio - mouseY;
-      });
-
-      return next;
     });
   }, []);
 
@@ -189,14 +162,6 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
-    return () => canvas.removeEventListener('wheel', handleWheel);
-  }, [handleWheel]);
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {
@@ -271,6 +236,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
         <div
           className={`mermaid-preview-canvas${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
           ref={canvasRef}
+          onWheel={(event) => event.stopPropagation()}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDrag}

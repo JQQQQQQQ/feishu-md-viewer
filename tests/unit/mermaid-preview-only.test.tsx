@@ -47,6 +47,23 @@ describe('Mermaid 预览专用工具栏', () => {
     expect(screen.getByRole('dialog', { name: 'Mermaid diagram preview' })).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Zoom in Mermaid preview' })).not.toBeNull();
   });
+
+  it('滚轮只保留原生画布滚动，不改变预览缩放', () => {
+    renderToolbar();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Mermaid diagram' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Mermaid diagram preview' });
+    const canvas = dialog.querySelector('.mermaid-preview-canvas');
+    const zoomLabel = dialog.querySelector('.mermaid-preview-toolbar__zoom');
+    expect(canvas).not.toBeNull();
+    expect(zoomLabel?.textContent).toBe('100%');
+
+    const event = new WheelEvent('wheel', { deltaY: 120, cancelable: true });
+    canvas?.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(zoomLabel?.textContent).toBe('100%');
+  });
 });
 
 describe('Mermaid 预览版源码写回清理', () => {

@@ -99,7 +99,10 @@ export function MermaidBlock({ code, index }: MermaidBlockProps) {
           </pre>
         </>
       ) : svg ? (
-        <div dangerouslySetInnerHTML={{ __html: svg }} />
+        <div
+          className="feishu-mermaid__diagram"
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
       ) : (
         <span>{shouldRender ? '渲染中...' : '即将渲染...'}</span>
       )}

@@ -68,27 +68,27 @@ async function loadMermaid(): Promise<MermaidAPI> {
       htmlLabels: true,
       theme: 'base',
       themeVariables: {
-        primaryColor: '#f5f0e6',
-        primaryBorderColor: '#333',
-        primaryTextColor: '#333',
-        secondaryColor: '#fdf6e3',
-        tertiaryColor: '#fff8e6',
-        lineColor: '#333',
+        primaryColor: '#eef4ff',
+        primaryBorderColor: '#8fb1ff',
+        primaryTextColor: '#1f2329',
+        secondaryColor: '#f2f7ff',
+        tertiaryColor: '#f7f9fc',
+        lineColor: '#5b7cff',
         fontSize: `${MERMAID_FONT_SIZE}px`,
         fontFamily: MERMAID_FONT_FAMILY,
       },
       flowchart: {
         useMaxWidth: true,
         curve: 'basis',
-        padding: 40,
-        nodeSpacing: 50,
-        rankSpacing: 60,
+        padding: 24,
+        nodeSpacing: 42,
+        rankSpacing: 52,
       },
       sequence: {
         useMaxWidth: true,
       },
       block: {
-        padding: 24,
+        padding: 20,
       },
     });
     mermaidInstance = mermaid;

@@ -1041,7 +1041,7 @@
 /* Mermaid */
 .feishu-mermaid {
   margin: 1.5em 0;
-  padding: 56px 24px 24px;
+  padding: 44px 20px 20px;
   background-color: var(--feishu-bg-content);
   border: 1px solid var(--feishu-border-lighter);
   border-radius: var(--feishu-radius);
@@ -1057,6 +1057,15 @@
   overflow: visible;
 }
 
+/* Mermaid injects the SVG inside a plain wrapper div. Give that wrapper a
+ * stable full-width centering context so diagrams with different viewBoxes
+ * (including negative padding) share the same visual alignment. */
+.feishu-mermaid__diagram {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
 .feishu-mermaid svg foreignObject p,
 .mermaid-preview-zoom svg foreignObject p {
   margin: 0;
@@ -1069,7 +1078,86 @@
 .mermaid-preview-zoom svg foreignObject div,
 .mermaid-preview-zoom svg foreignObject span,
 .mermaid-preview-zoom svg .nodeLabel {
-  color: #1f2329;
+  color: var(--feishu-mermaid-node-text);
+}
+
+.feishu-mermaid svg .node rect,
+.mermaid-preview-zoom svg .node rect,
+.feishu-mermaid svg .node polygon,
+.mermaid-preview-zoom svg .node polygon,
+.feishu-mermaid svg .node circle,
+.mermaid-preview-zoom svg .node circle,
+.feishu-mermaid svg .node ellipse,
+.mermaid-preview-zoom svg .node ellipse {
+  fill: var(--feishu-mermaid-node-bg) !important;
+  stroke: var(--feishu-mermaid-node-border) !important;
+}
+
+.feishu-mermaid svg text,
+.mermaid-preview-zoom svg text,
+.feishu-mermaid svg .messageText,
+.mermaid-preview-zoom svg .messageText,
+.feishu-mermaid svg .labelText,
+.mermaid-preview-zoom svg .labelText {
+  fill: var(--feishu-mermaid-node-text) !important;
+}
+
+.feishu-mermaid svg rect.actor,
+.mermaid-preview-zoom svg rect.actor,
+.feishu-mermaid svg rect.labelBox,
+.mermaid-preview-zoom svg rect.labelBox,
+.feishu-mermaid svg rect.note,
+.mermaid-preview-zoom svg rect.note,
+.feishu-mermaid svg rect.activation0,
+.mermaid-preview-zoom svg rect.activation0,
+.feishu-mermaid svg rect.activation1,
+.mermaid-preview-zoom svg rect.activation1 {
+  fill: var(--feishu-mermaid-node-bg) !important;
+  stroke: var(--feishu-mermaid-node-border) !important;
+}
+
+/* Connection lines: only stroke, never fill. Mermaid ships .flowchart-link
+ * with fill: none; if a theme override paints fill onto the line element
+ * (directly or via inheritance) the open path renders as a thick filled band
+ * in the Webview. Forcing fill: none keeps the line a thin stroked curve. */
+.feishu-mermaid svg .edgePath .path,
+.mermaid-preview-zoom svg .edgePath .path,
+.feishu-mermaid svg .flowchart-link,
+.mermaid-preview-zoom svg .flowchart-link {
+  stroke: var(--feishu-mermaid-edge) !important;
+  fill: none !important;
+  stroke-width: 1.5px;
+}
+
+/* Arrow markers are closed shapes; both stroke and fill are required so the
+ * triangle is visible. */
+.feishu-mermaid svg marker path,
+.mermaid-preview-zoom svg marker path {
+  stroke: var(--feishu-mermaid-edge) !important;
+  fill: var(--feishu-mermaid-edge) !important;
+}
+
+/* Mermaid 11 declares arrow markers with markerWidth=8 markerHeight=8 and
+ * markerUnits=userSpaceOnUse. When the diagram viewBox scales up to fit the
+ * panel, those 8 user units become oversized triangles. Cap the rendered size
+ * so the arrow stays proportional to the line. */
+.feishu-mermaid svg marker,
+.mermaid-preview-zoom svg marker {
+  marker-width: 6;
+  marker-height: 6;
+}
+
+.feishu-mermaid svg .edgeLabel rect,
+.mermaid-preview-zoom svg .edgeLabel rect,
+.feishu-mermaid svg .labelBkg,
+.mermaid-preview-zoom svg .labelBkg {
+  fill: var(--feishu-mermaid-edge-label-bg) !important;
+}
+
+.feishu-mermaid svg .cluster rect,
+.mermaid-preview-zoom svg .cluster rect {
+  fill: var(--feishu-mermaid-cluster-bg) !important;
+  stroke: var(--feishu-mermaid-cluster-border) !important;
 }
 
 .feishu-mermaid--loading {

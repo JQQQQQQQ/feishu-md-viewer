@@ -44,6 +44,16 @@ describe('expandMermaidSvgBounds', () => {
 });
 
 describe('sanitizeMermaidSvg', () => {
+  it('can sanitize an already-expanded diagram without expanding its geometry again', () => {
+    const alreadyExpanded = '<svg width="184" height="78" viewBox="-42 -14 184 78"><path d="M0 0 L100 50" /></svg>';
+
+    const result = sanitizeMermaidSvg(alreadyExpanded, { expandBounds: false });
+
+    expect(result).toContain('width="184"');
+    expect(result).toContain('height="78"');
+    expect(result).toContain('viewBox="-42 -14 184 78"');
+  });
+
   it('removes executable SVG content after expanding bounds', () => {
     const result = sanitizeMermaidSvg(
       '<svg width="100" height="50" viewBox="0 0 100 50" onload="alert(1)"><script>alert(1)</script><text>Start</text></svg>',

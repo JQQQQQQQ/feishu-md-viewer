@@ -1,7 +1,7 @@
 /* ===== Mermaid Toolbar ===== */
 .mermaid-toolbar-wrapper {
   position: relative;
-  margin: 1.5em 0;
+  margin: 1.25em 0;
 }
 
 .mermaid-toolbar-wrapper > .feishu-mermaid {
@@ -16,7 +16,7 @@
   display: flex;
   gap: 6px;
   padding: 4px;
-  background-color: rgba(255, 255, 255, 0.92);
+  background-color: color-mix(in srgb, var(--feishu-bg-content) 92%, transparent);
   border: 1px solid var(--feishu-border-lighter);
   border-radius: var(--feishu-radius-sm);
   box-shadow: 0 4px 14px rgba(31, 35, 41, 0.08);
@@ -71,14 +71,17 @@
   justify-content: center;
   padding: 32px;
   background: rgba(15, 23, 42, 0.42);
+  overscroll-behavior: contain;
 }
 
 .mermaid-preview-dialog {
   display: flex;
   flex-direction: column;
-  width: min(1120px, 100%);
-  height: min(780px, 100%);
+  width: min(1120px, calc(100vw - 64px));
+  height: min(780px, calc(100vh - 64px));
+  max-height: calc(100vh - 64px);
   min-height: 320px;
+  box-sizing: border-box;
   overflow: hidden;
   background: var(--feishu-bg-content);
   border: 1px solid var(--feishu-border-light);
@@ -179,15 +182,17 @@
 
 .mermaid-preview-canvas {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 40px;
   cursor: grab;
   user-select: none;
-  background:
-    linear-gradient(90deg, rgba(31, 35, 41, 0.04) 1px, transparent 1px),
-    linear-gradient(rgba(31, 35, 41, 0.04) 1px, transparent 1px),
-    var(--feishu-bg-page);
-  background-size: 24px 24px;
+  /* Keep the preview surface consistent with the in-document Mermaid card.
+   * The canvas still provides pan/zoom, but should not introduce a second
+   * visual language (grid/page background) for the same diagram. */
+  background: var(--feishu-bg-content);
 }
 
 .mermaid-preview-canvas--dragging {
@@ -204,7 +209,16 @@
 }
 
 .mermaid-preview-zoom {
-  transform-origin: top left;
+  /* Center the transform around the diagram's layout box. This keeps the
+   * initial fit and every button zoom anchored to the same visual center. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  box-sizing: border-box;
+  background: var(--feishu-bg-content);
+  border: 1px solid var(--feishu-border-lighter);
+  border-radius: var(--feishu-radius);
 }
 
 .mermaid-preview-zoom svg {
@@ -223,6 +237,12 @@
 
   .mermaid-preview-overlay {
     padding: 12px;
+  }
+
+  .mermaid-preview-dialog {
+    width: min(1120px, calc(100vw - 24px));
+    height: min(780px, calc(100vh - 24px));
+    max-height: calc(100vh - 24px);
   }
 
   .mermaid-preview-canvas {
