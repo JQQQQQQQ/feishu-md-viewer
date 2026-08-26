@@ -6,7 +6,7 @@
 
 **Architecture:** 使用 Node 发布脚本编排既有 Vitest、类型检查、Chrome/VS Code 构建和产物校验；使用 Playwright 挂载已构建的 Chrome 扩展，在临时 `file://` Markdown 文件上覆盖真实浏览器关键路径；VS Code 使用现有 Provider/Webview 自动测试加产物检查，真实 VS Code GUI 通过中文人工验收清单完成。
 
-**Tech Stack:** React 18, TypeScript 5, Vite 5, Vitest, Playwright Test, fflate, Node.js 20/22, GitHub Actions, VS Code Custom Editor。
+**Tech Stack:** React 18, TypeScript 5, Vite 5, Vitest, Playwright Test, Node.js 20/22, GitHub Actions, VS Code Custom Editor。
 
 **Spec:** `docs/superpowers/specs/2026-08-26-release-quality-e2e-design.md`
 
@@ -27,8 +27,7 @@
 **Files:**
 - Create: `scripts/release/check-artifacts.mjs`
 - Create: `tests/unit/release-artifacts.test.ts`
-- Modify: `package.json`（增加 `check:artifacts` 脚本和 `fflate` 开发依赖）
-- Modify: `pnpm-lock.yaml`
+- Modify: `package.json`（增加 `check:artifacts` 脚本）
 
 **Interfaces:**
 - Produces `inspectArtifacts(options): ArtifactReport`，其中 `options.rootDir` 为仓库根目录，`options.chromeDistDir` 默认 `dist`，`options.vscodeDir` 默认 `vscode-extension`，`options.vsixPath` 可选。
@@ -74,15 +73,13 @@ Expected: FAIL，提示 `scripts/release/check-artifacts.mjs` 或 `inspectArtifa
 
 - [ ] **Step 3: 实现最小产物检查器**
 
-运行 `pnpm add -D fflate`，使用纯 JavaScript ZIP 读取器避免依赖宿主机的 `unzip` 命令。
-
 实现以下检查：
 
 ```js
 export async function inspectArtifacts({ rootDir, chromeDistDir = 'dist', vscodeDir = 'vscode-extension', vsixPath } = {}) {
   // 读取并校验 JSON、入口文件、HTML 相对资源和版本号。
   // 读取 JS 入口文本，检查 Chrome 入口不含 vscode API，VS Code Webview 不含 chrome.*。
-  // 传入 vsixPath 时使用 fflate.unzipSync 扫描 ZIP 条目，不解压覆盖工作区。
+  // 传入 vsixPath 时使用 Node Buffer 扫描 ZIP 中央目录，不解压覆盖工作区。
   return { ok: errors.length === 0, errors, warnings, checks };
 }
 ```

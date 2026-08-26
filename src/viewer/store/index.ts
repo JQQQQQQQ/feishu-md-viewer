@@ -5,6 +5,11 @@ const FONT_SIZE_MAX = 24;
 const FONT_SIZE_DEFAULT = 15;
 let settingsRevision = 0;
 
+interface ChromeStorageArea {
+  get: (keys: string | string[]) => Promise<Record<string, unknown>>;
+  set: (items: Record<string, unknown>) => Promise<void>;
+}
+
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ContentAlignment = 'left' | 'center';
 export type LocalFileRefreshMode = 'prompt' | 'auto';
@@ -69,12 +74,18 @@ function currentSettings(state: SettingsSlice): PersistedSettings {
 
 async function persistSettings(settings: PersistedSettings): Promise<void> {
   try {
-    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      await chrome.storage.local.set({ viewerSettings: settings });
-    }
+    const storage = getChromeStorage();
+    if (storage) await storage.set({ viewerSettings: settings });
   } catch {
     // Storage may not be available in all contexts.
   }
+}
+
+function getChromeStorage(): ChromeStorageArea | undefined {
+  const runtimeGlobal = globalThis as typeof globalThis & {
+    chrome?: { storage?: { local?: ChromeStorageArea } };
+  };
+  return runtimeGlobal.chrome?.storage?.local;
 }
 
 export const useViewerStore = create<ViewerStore>((set, get) => ({
@@ -161,8 +172,9 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
     if (get().settingsHydrated) return;
     const loadRevision = settingsRevision;
     try {
-      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-        const result = await chrome.storage.local.get('viewerSettings');
+      const storage = getChromeStorage();
+      if (storage) {
+        const result = await storage.get('viewerSettings');
         const settings = result['viewerSettings'] as Partial<PersistedSettings> | undefined;
         if (settings) {
           if (settingsRevision !== loadRevision || get().settingsHydrated) return;
