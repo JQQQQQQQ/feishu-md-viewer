@@ -1,0 +1,15 @@
+interface:
+  display_name: Feishu Style Mermaid
+  short_description: 生成飞书文档风格、自动语义分类配色的精美 Mermaid 流程图
+  brand_color: '#3370FF'
+  default_prompt: Use $feishu-style-mermaid to turn this process into a polished,
+    color-classified Mermaid diagram.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true
