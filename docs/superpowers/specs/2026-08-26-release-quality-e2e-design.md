@@ -99,10 +99,10 @@ scripts/release/check-artifacts.mjs
 - VS Code Webview 的 `index.html`、JavaScript 和 CSS 资源存在，HTML 引用路径可解析。
 - Chrome 构建入口不包含 VS Code API 导入。
 - VS Code Webview 构建入口不包含 `chrome.*` 运行时依赖。
-- Chrome Manifest、根 `package.json` 和 VS Code `package.json` 的版本号格式有效。
+- Chrome Manifest、根 `package.json` 和 VS Code `package.json` 的版本号格式有效；Chrome 与 VS Code 可以使用独立版本号。
 - 生成的 VSIX 文件存在，且压缩包内包含宿主入口、Webview 入口和必要资源。
 
-版本号不要求每次提交都自动递增，但发布检查必须阻止空版本、非法版本和两个扩展包版本不一致。
+版本号不要求每次提交都自动递增，但发布检查必须阻止空版本、非法版本，以及同一平台的源配置、构建产物和发布包版本不一致。发布报告同时记录 Chrome 和 VS Code 的版本号。
 
 ## 5. 浏览器 E2E 设计
 
