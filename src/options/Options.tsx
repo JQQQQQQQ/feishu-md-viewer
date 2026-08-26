@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { LocalFileRefreshMode } from '../viewer/store';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 type ContentAlignment = 'left' | 'center';
@@ -8,6 +9,7 @@ interface Settings {
   fontSize: number;
   tocSmoothScrollEnabled: boolean;
   contentAlignment: ContentAlignment;
+  localFileRefreshMode: LocalFileRefreshMode;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -15,6 +17,7 @@ const DEFAULT_SETTINGS: Settings = {
   fontSize: 15,
   tocSmoothScrollEnabled: true,
   contentAlignment: 'center',
+  localFileRefreshMode: 'prompt',
 };
 
 const FONT_SIZE_MIN = 12;
@@ -39,6 +42,7 @@ export function Options() {
             fontSize: stored.fontSize ?? DEFAULT_SETTINGS.fontSize,
             tocSmoothScrollEnabled: stored.tocSmoothScrollEnabled ?? DEFAULT_SETTINGS.tocSmoothScrollEnabled,
             contentAlignment: stored.contentAlignment === 'left' ? 'left' : 'center',
+            localFileRefreshMode: stored.localFileRefreshMode === 'auto' ? 'auto' : 'prompt',
           });
         }
       }
@@ -80,6 +84,12 @@ export function Options() {
 
   const handleContentAlignmentChange = useCallback((contentAlignment: ContentAlignment) => {
     const newSettings = { ...settings, contentAlignment };
+    setSettings(newSettings);
+    void saveSettings(newSettings);
+  }, [settings, saveSettings]);
+
+  const handleLocalFileRefreshModeChange = useCallback((localFileRefreshMode: LocalFileRefreshMode) => {
+    const newSettings = { ...settings, localFileRefreshMode };
     setSettings(newSettings);
     void saveSettings(newSettings);
   }, [settings, saveSettings]);
@@ -212,6 +222,33 @@ export function Options() {
                 style={styles.radioInput}
               />
               <span style={styles.radioText}>正文靠左</span>
+            </label>
+          </div>
+        </section>
+
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>本地文件更新</h2>
+          <p style={styles.description}>选择浏览器打开本地 Markdown 文件发生变化时的处理方式。</p>
+          <div style={styles.radioGroup} role="radiogroup" aria-label="本地文件更新方式">
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="local-file-refresh-mode"
+                checked={settings.localFileRefreshMode === 'prompt'}
+                onChange={() => handleLocalFileRefreshModeChange('prompt')}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>提示后手动刷新</span>
+            </label>
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="local-file-refresh-mode"
+                checked={settings.localFileRefreshMode === 'auto'}
+                onChange={() => handleLocalFileRefreshModeChange('auto')}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>自动刷新</span>
             </label>
           </div>
         </section>

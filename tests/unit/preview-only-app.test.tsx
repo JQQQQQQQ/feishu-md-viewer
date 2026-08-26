@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 
 import { App } from '@/viewer/App';
 import { useViewerStore } from '@/viewer/store';
@@ -121,6 +122,15 @@ describe('预览专用 App 入口', () => {
 
     expect(article.classList.contains('feishu-viewer--content-left')).toBe(true);
     expect(article.classList.contains('feishu-viewer--content-center')).toBe(false);
+  });
+
+  it('本地文件更新时显示非打断式局部刷新提示', () => {
+    const onRefresh = vi.fn();
+    render(<App markdown={DOCUMENT} source="file" contentUpdateAvailable onRefreshContent={onRefresh} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Markdown 文件已更新');
+    fireEvent.click(screen.getByRole('button', { name: '立即刷新' }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
 });

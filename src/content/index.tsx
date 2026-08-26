@@ -1,7 +1,11 @@
 import { getActiveAdapter } from './adapters';
+import { FileAdapter } from './adapters/file-adapter';
 import { injectViewerContainer, injectStyles } from './injector';
+import { createLocalFileChangeMonitor, type LocalFileChangeMonitor } from './file-change-monitor';
+import { capturePreviewViewport, restorePreviewViewport } from './preview-viewport';
 import { createRoot } from 'react-dom/client';
 import { App } from '../viewer/App';
+import { useViewerStore } from '../viewer/store';
 import feishuTheme from '../viewer/styles/feishu-theme.css?inline';
 import markdownStyles from '../viewer/styles/markdown.css?inline';
 import layoutStyles from '../viewer/styles/layout.css?inline';
@@ -43,7 +47,12 @@ async function main(): Promise<void> {
   if (!adapter) return;
 
   const content = await adapter.getContent();
-  if (!content) return;
+  if (content === null) return;
+
+  // Hydrate the persisted mode before starting the polling loop. Otherwise a
+  // fast first poll can observe the store's default `prompt` value even when
+  // the user selected automatic replacement in the options page.
+  await useViewerStore.getState().loadSettings();
 
   const source = adapter.name as 'file' | 'github' | 'gitlab';
 
@@ -59,7 +68,95 @@ async function main(): Promise<void> {
   injectStyles(shadowRoot, printStyles);
 
   const root = createRoot(mountPoint);
-  root.render(<App markdown={content} source={source} />);
+  let currentContent = content;
+  let contentUpdateAvailable = false;
+  let contentUpdateRefreshing = false;
+  let monitor: LocalFileChangeMonitor | undefined;
+
+  const handleStorageChanged = (
+    changes: { [key: string]: chrome.storage.StorageChange },
+    areaName: string,
+  ) => {
+    if (areaName !== 'local') return;
+    const newSettings = changes.viewerSettings?.newValue as { localFileRefreshMode?: unknown } | undefined;
+    if (!newSettings) return;
+
+    // The options page runs in a separate JS context. Sync only the setting
+    // needed by the already-open content page without persisting it again.
+    useViewerStore.setState({
+      localFileRefreshMode: newSettings.localFileRefreshMode === 'auto' ? 'auto' : 'prompt',
+      settingsHydrated: true,
+    });
+  };
+
+  const renderApp = () => {
+    root.render(
+      <App
+        markdown={currentContent}
+        source={source}
+        contentUpdateAvailable={contentUpdateAvailable}
+        contentUpdateRefreshing={contentUpdateRefreshing}
+        onRefreshContent={source === 'file' ? refreshContent : undefined}
+      />,
+    );
+  };
+
+  const refreshContent = async (detectedContent?: string) => {
+    if (!(adapter instanceof FileAdapter) || contentUpdateRefreshing) return;
+
+    // Capture before the asynchronous file read so a short read delay cannot
+    // turn a user's scroll into the new restore position.
+    const viewport = capturePreviewViewport(shadowRoot);
+    contentUpdateRefreshing = true;
+    renderApp();
+    const nextContent = detectedContent ?? await adapter.getFreshContent();
+    if (nextContent !== null) {
+      const contentChanged = nextContent !== currentContent;
+      currentContent = nextContent;
+      contentUpdateAvailable = false;
+      monitor?.setBaseline(nextContent);
+      renderApp();
+
+      if (contentChanged) {
+        const restore = () => restorePreviewViewport(shadowRoot, viewport);
+        if (typeof window.requestAnimationFrame === 'function') {
+          window.requestAnimationFrame(restore);
+        } else {
+          restore();
+        }
+      }
+    }
+
+    contentUpdateRefreshing = false;
+    renderApp();
+  };
+
+  renderApp();
+
+  if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+    chrome.storage.onChanged.addListener(handleStorageChanged);
+    window.addEventListener('beforeunload', () => {
+      chrome.storage.onChanged.removeListener(handleStorageChanged);
+    }, { once: true });
+  }
+
+  if (adapter instanceof FileAdapter) {
+    monitor = createLocalFileChangeMonitor({
+      initialContent: content,
+      readCurrent: () => adapter.getFreshContent(),
+      onChanged: (nextContent) => {
+        if (useViewerStore.getState().localFileRefreshMode === 'auto') {
+          void refreshContent(nextContent);
+          return;
+        }
+
+        contentUpdateAvailable = true;
+        renderApp();
+      },
+    });
+    monitor.start();
+    window.addEventListener('beforeunload', monitor.stop, { once: true });
+  }
 }
 
 main();

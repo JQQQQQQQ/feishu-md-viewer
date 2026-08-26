@@ -7,6 +7,7 @@ let settingsRevision = 0;
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ContentAlignment = 'left' | 'center';
+export type LocalFileRefreshMode = 'prompt' | 'auto';
 
 interface DocumentSlice {
   content: string;
@@ -27,6 +28,7 @@ interface SettingsSlice {
   fontSize: number;
   tocSmoothScrollEnabled: boolean;
   contentAlignment: ContentAlignment;
+  localFileRefreshMode: LocalFileRefreshMode;
   /** 本次阅读会话的设置已完成首次加载，后续不再用旧存储覆盖用户选择。 */
   settingsHydrated: boolean;
 }
@@ -45,6 +47,7 @@ interface Actions {
   decreaseFontSize: () => void;
   setTocSmoothScrollEnabled: (enabled: boolean) => void;
   setContentAlignment: (alignment: ContentAlignment) => void;
+  setLocalFileRefreshMode: (mode: LocalFileRefreshMode) => void;
   loadSettings: () => Promise<void>;
 }
 
@@ -60,6 +63,7 @@ function currentSettings(state: SettingsSlice): PersistedSettings {
     fontSize: state.fontSize,
     tocSmoothScrollEnabled: state.tocSmoothScrollEnabled,
     contentAlignment: state.contentAlignment,
+    localFileRefreshMode: state.localFileRefreshMode,
   };
 }
 
@@ -84,6 +88,7 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
   fontSize: FONT_SIZE_DEFAULT,
   tocSmoothScrollEnabled: true,
   contentAlignment: 'center',
+  localFileRefreshMode: 'prompt',
   settingsHydrated: false,
 
   initDocument: (content: string) => {
@@ -146,6 +151,12 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
     void persistSettings(currentSettings({ ...get(), contentAlignment }));
   },
 
+  setLocalFileRefreshMode: (localFileRefreshMode: LocalFileRefreshMode) => {
+    settingsRevision += 1;
+    set({ localFileRefreshMode, settingsHydrated: true });
+    void persistSettings(currentSettings({ ...get(), localFileRefreshMode }));
+  },
+
   loadSettings: async () => {
     if (get().settingsHydrated) return;
     const loadRevision = settingsRevision;
@@ -160,6 +171,7 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
             fontSize: clampFontSize(settings.fontSize ?? FONT_SIZE_DEFAULT),
             tocSmoothScrollEnabled: settings.tocSmoothScrollEnabled ?? true,
             contentAlignment: settings.contentAlignment === 'left' ? 'left' : 'center',
+            localFileRefreshMode: settings.localFileRefreshMode === 'auto' ? 'auto' : 'prompt',
             // 兼容旧数据：无论存储值为何，都从阅读态启动。
             mode: 'read',
             settingsHydrated: true,

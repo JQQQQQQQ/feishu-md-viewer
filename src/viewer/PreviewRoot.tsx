@@ -11,6 +11,9 @@ export interface PreviewRootProps {
   source: PageSource;
   themeOverride?: ThemeMode;
   settingsEnabled?: boolean;
+  contentUpdateAvailable?: boolean;
+  contentUpdateRefreshing?: boolean;
+  onRefreshContent?: () => void;
 }
 
 function extractTitle(markdown: string): string {
@@ -36,6 +39,9 @@ export function PreviewRoot({
   source,
   themeOverride,
   settingsEnabled = false,
+  contentUpdateAvailable = false,
+  contentUpdateRefreshing = false,
+  onRefreshContent,
 }: PreviewRootProps) {
   const storedTheme = useViewerStore((s) => s.theme);
   const fontSize = useViewerStore((s) => s.fontSize);
@@ -66,6 +72,9 @@ export function PreviewRoot({
           title={title}
           tocItems={tocItems}
           settingsEnabled={settingsEnabled}
+          contentUpdateAvailable={contentUpdateAvailable}
+          contentUpdateRefreshing={contentUpdateRefreshing}
+          onRefreshContent={onRefreshContent}
         >
           <div className="feishu-viewer__page" data-mode="read">
             <div className="feishu-viewer__content" data-mode="read">

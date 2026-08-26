@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
 import type { TOCItem } from '../../hooks/useTOC';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
+import { ContentUpdateNotice } from '../Common/ContentUpdateNotice';
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'feishu-md-viewer-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 260;
@@ -32,6 +33,9 @@ interface AppShellProps {
   tocItems: TOCItem[];
   children: ReactNode;
   settingsEnabled?: boolean;
+  contentUpdateAvailable?: boolean;
+  contentUpdateRefreshing?: boolean;
+  onRefreshContent?: () => void;
 }
 
 function resolveStableDrawerMode(mediaMatches: boolean): boolean | null {
@@ -162,6 +166,9 @@ export function AppShell({
   tocItems,
   children,
   settingsEnabled = true,
+  contentUpdateAvailable = false,
+  contentUpdateRefreshing = false,
+  onRefreshContent,
 }: AppShellProps) {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -256,6 +263,12 @@ export function AppShell({
         onToggleSidebar={handleToggleSidebar}
         settingsEnabled={settingsEnabled}
       />
+      {contentUpdateAvailable && onRefreshContent && (
+        <ContentUpdateNotice
+          onRefresh={onRefreshContent}
+          isRefreshing={contentUpdateRefreshing}
+        />
+      )}
       <div className="feishu-app-shell__body">
         <Sidebar
           isOpen={sidebarOpen}

@@ -14,6 +14,7 @@ describe('预览版 ViewerStore', () => {
       fontSize: 15,
       tocSmoothScrollEnabled: true,
       contentAlignment: 'center',
+      localFileRefreshMode: 'prompt',
       settingsHydrated: false,
     });
   });
@@ -42,6 +43,7 @@ describe('预览版 ViewerStore', () => {
         fontSize: 15,
         tocSmoothScrollEnabled: true,
         contentAlignment: 'center',
+        localFileRefreshMode: 'prompt',
       },
     });
   });
@@ -68,5 +70,27 @@ describe('预览版 ViewerStore', () => {
     await useViewerStore.getState().loadSettings();
 
     expect(useViewerStore.getState().contentAlignment).toBe('center');
+  });
+
+  it('持久化本地文件更新方式并兼容未知值', async () => {
+    const set = vi.fn().mockResolvedValue(undefined);
+    const get = vi.fn().mockResolvedValue({
+      viewerSettings: { localFileRefreshMode: 'auto' },
+    });
+    vi.stubGlobal('chrome', { storage: { local: { get, set } } });
+
+    await useViewerStore.getState().loadSettings();
+    expect(useViewerStore.getState().localFileRefreshMode).toBe('auto');
+
+    useViewerStore.getState().setLocalFileRefreshMode('prompt');
+    expect(set).toHaveBeenLastCalledWith({
+      viewerSettings: {
+        theme: 'system',
+        fontSize: 15,
+        tocSmoothScrollEnabled: true,
+        contentAlignment: 'center',
+        localFileRefreshMode: 'prompt',
+      },
+    });
   });
 });

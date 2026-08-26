@@ -4,6 +4,7 @@
  */
 
 import { isAllowedUrl } from '@/shared/utils/url-validation';
+import { readLocalFileContent } from './file-content-reader';
 
 const CONTEXT_MENU_ID = 'open-in-feishu-viewer';
 
@@ -113,6 +114,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ success: true });
       setTimeout(() => chrome.runtime.reload(), 100);
       break;
+    }
+
+    case 'READ_FILE_CONTENT': {
+      const url = msg.url;
+      if (!url || !url.startsWith('file://') || !isAllowedUrl(url)) {
+        sendResponse({ content: null });
+        break;
+      }
+
+      void readLocalFileContent(url).then((content) => {
+        sendResponse({ content });
+      });
+      return true;
     }
 
     default:
