@@ -71,6 +71,11 @@ async function main(): Promise<void> {
   let currentContent = content;
   let contentUpdateAvailable = false;
   let contentUpdateRefreshing = false;
+  // Keep the content delivered by the change monitor. A second file read
+  // triggered by the manual button can briefly return an empty response while
+  // Chromium is updating a file:// document; using the observed snapshot is
+  // both fresher and avoids clearing a working preview.
+  let pendingContent: string | null = null;
   let monitor: LocalFileChangeMonitor | undefined;
 
   const handleStorageChanged = (
@@ -109,10 +114,11 @@ async function main(): Promise<void> {
     const viewport = capturePreviewViewport(shadowRoot);
     contentUpdateRefreshing = true;
     renderApp();
-    const nextContent = detectedContent ?? await adapter.getFreshContent();
-    if (nextContent !== null) {
+    const nextContent = detectedContent ?? pendingContent ?? await adapter.getFreshContent();
+    if (typeof nextContent === 'string' && nextContent.trim().length > 0) {
       const contentChanged = nextContent !== currentContent;
       currentContent = nextContent;
+      pendingContent = null;
       contentUpdateAvailable = false;
       monitor?.setBaseline(nextContent);
       renderApp();
@@ -145,6 +151,7 @@ async function main(): Promise<void> {
       initialContent: content,
       readCurrent: () => adapter.getFreshContent(),
       onChanged: (nextContent) => {
+        pendingContent = nextContent;
         if (useViewerStore.getState().localFileRefreshMode === 'auto') {
           void refreshContent(nextContent);
           return;

@@ -77,3 +77,5 @@ TMPDIR=/tmp npm test -- --run vscode-extension/tests
 npx tsc -p vscode-extension/tsconfig.json --noEmit
 pnpm build:vscode
 ```
+
+发布前请按仓库根目录的 [发布前验收清单](../docs/release-acceptance.md) 完成自动门禁和 Windows 原生 VS Code 手工验收。自动化测试覆盖 Provider、Webview 和构建产物；真实 VS Code 界面、主题、表格复制及 Mermaid 加载仍需在干净 Profile 中复核。

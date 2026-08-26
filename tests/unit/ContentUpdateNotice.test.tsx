@@ -13,5 +13,6 @@ describe('ContentUpdateNotice', () => {
     fireEvent.click(screen.getByRole('button', { name: '立即刷新' }));
 
     expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(onRefresh).toHaveBeenCalledWith();
   });
 });

@@ -13,3 +13,5 @@ AGENTS.md
 tmp/
 tmp_patch_windows_build.*
 el.hidden*
+playwright-report/
+test-results/

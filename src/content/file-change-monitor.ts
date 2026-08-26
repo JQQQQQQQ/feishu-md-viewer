@@ -39,7 +39,12 @@ export function createLocalFileChangeMonitor({
         checking = true;
         try {
           const current = await readCurrent();
-          if (typeof current === 'string' && current !== baseline && !changePending) {
+          if (
+            typeof current === 'string'
+            && current.trim().length > 0
+            && current !== baseline
+            && !changePending
+          ) {
             changePending = true;
             onChanged(current);
           }
