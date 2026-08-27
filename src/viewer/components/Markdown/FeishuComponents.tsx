@@ -6,6 +6,7 @@ import {
   type HTMLAttributes,
   type ImgHTMLAttributes,
   type InputHTMLAttributes,
+  type MouseEvent,
   type VideoHTMLAttributes,
   type ReactElement,
   type ReactNode,
@@ -91,6 +92,25 @@ function getCalloutContent(children: ReactNode): { type: CalloutType; children: 
   return { type, children: nextChildren };
 }
 
+function scrollToInternalAnchor(event: MouseEvent<HTMLAnchorElement>): void {
+  const href = event.currentTarget.getAttribute('href') ?? '';
+  if (!href.startsWith('#')) return;
+
+  event.preventDefault();
+  let targetId = href.slice(1);
+  try {
+    targetId = decodeURIComponent(targetId);
+  } catch {
+    // Keep the raw fragment if it is malformed; it simply will not match an id.
+  }
+  const root = event.currentTarget.getRootNode() as Document | ShadowRoot;
+  const target = Array.from(root.querySelectorAll<HTMLElement>('[id]'))
+    .find((element) => element.id === targetId);
+  if (target && typeof target.scrollIntoView === 'function') {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
 function FeishuBlockquote({ children, ...props }: HTMLAttributes<HTMLElement> & { children?: ReactNode }) {
   const callout = getCalloutContent(children);
   if (!callout) {
@@ -162,10 +182,19 @@ export const feishuComponents: ComponentMap = {
     <td {...props} className={mergeClassName('feishu-table__cell', className)}>{children}</td>
   ),
   blockquote: FeishuBlockquote,
-  a: ({ children, ...props }) => {
-    const href = (props as { href?: string }).href;
+  a: ({ children, className, ...props }) => {
+    const anchorProps = props as { href?: string; target?: string; rel?: string };
+    const href = anchorProps.href;
+    const isInternal = typeof href === 'string' && href.startsWith('#');
     return (
-      <a className="feishu-link" href={href} target="_blank" rel="noopener noreferrer" {...props}>
+      <a
+        {...props}
+        className={mergeClassName('feishu-link', className)}
+        href={href}
+        target={isInternal ? undefined : (anchorProps.target ?? '_blank')}
+        rel={isInternal ? undefined : (anchorProps.rel ?? 'noopener noreferrer')}
+        onClick={isInternal ? scrollToInternalAnchor : undefined}
+      >
         {children}
       </a>
     );

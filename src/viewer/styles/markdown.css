@@ -310,6 +310,61 @@
   line-height: var(--feishu-line-height);
 }
 
+/* GitHub README presentation HTML */
+.feishu-details {
+  margin: 1em 0;
+  padding: 0 14px;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: var(--feishu-radius);
+  background: color-mix(in srgb, var(--feishu-bg-content) 96%, var(--feishu-bg-page));
+}
+
+.feishu-summary {
+  margin: 0 -14px;
+  padding: 10px 14px;
+  color: var(--feishu-text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.feishu-summary::marker {
+  color: var(--feishu-brand-primary);
+}
+
+.feishu-details[open] > .feishu-summary {
+  border-bottom: 1px solid var(--feishu-border-lighter);
+}
+
+.feishu-picture {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.feishu-kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 2px 6px;
+  border: 1px solid var(--feishu-border-light);
+  border-bottom-width: 2px;
+  border-radius: var(--feishu-radius-sm);
+  background: var(--feishu-inline-code-bg, var(--feishu-code-bg));
+  color: var(--feishu-inline-code-text, var(--feishu-code-text));
+  font-family: var(--feishu-font-mono);
+  font-size: 0.86em;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.feishu-video {
+  display: block;
+  max-width: 100%;
+  margin: 1em auto;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: var(--feishu-radius);
+  background: var(--feishu-code-bg);
+}
+
 /* GFM task lists: keep preview checkboxes readable against both light and dark surfaces. */
 .feishu-markdown-body .feishu-task-checkbox {
   width: 16px;
