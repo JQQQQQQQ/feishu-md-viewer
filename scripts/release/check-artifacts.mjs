@@ -1,4 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
+import { inflateRawSync } from 'node:zlib';
 import { isAbsolute, join, normalize, relative, resolve } from 'node:path';
 
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
@@ -80,6 +81,54 @@ function listZipEntries(buffer) {
   }
 
   return entries;
+}
+
+export function readZipEntry(buffer, targetName) {
+  const endOffset = findZipEndOfCentralDirectory(buffer);
+  if (endOffset < 0) return null;
+
+  const entryCount = buffer.readUInt16LE(endOffset + 10);
+  const directorySize = buffer.readUInt32LE(endOffset + 12);
+  const directoryOffset = buffer.readUInt32LE(endOffset + 16);
+  const directoryEnd = Math.min(buffer.length, directoryOffset + directorySize);
+  let offset = directoryOffset;
+
+  for (let index = 0; index < entryCount && offset + 46 <= directoryEnd; index += 1) {
+    if (buffer.readUInt32LE(offset) !== ZIP_CENTRAL_DIRECTORY_ENTRY) break;
+    const compressionMethod = buffer.readUInt16LE(offset + 10);
+    const compressedSize = buffer.readUInt32LE(offset + 20);
+    const fileNameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const localHeaderOffset = buffer.readUInt32LE(offset + 42);
+    const fileNameStart = offset + 46;
+    const fileNameEnd = fileNameStart + fileNameLength;
+    if (fileNameEnd > directoryEnd) break;
+
+    const fileName = buffer.subarray(fileNameStart, fileNameEnd).toString('utf8');
+    if (fileName === targetName) {
+      if (localHeaderOffset + 30 > buffer.length || buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) return null;
+      const localFileNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+      const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
+      const dataStart = localHeaderOffset + 30 + localFileNameLength + localExtraLength;
+      const dataEnd = dataStart + compressedSize;
+      if (dataEnd > buffer.length) return null;
+      const compressed = buffer.subarray(dataStart, dataEnd);
+      if (compressionMethod === 0) return compressed.toString('utf8');
+      if (compressionMethod === 8) {
+        try {
+          return inflateRawSync(compressed).toString('utf8');
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    offset = fileNameEnd + extraLength + commentLength;
+  }
+
+  return null;
 }
 
 function createReport() {
@@ -208,10 +257,14 @@ async function checkVsix(report, vsixPath, expectedVersion) {
 
   const packageEntry = entries.includes('extension/package.json');
   if (packageEntry && expectedVersion) {
-    const buffer = await readFile(vsixPath);
-    const versionText = buffer.toString('utf8');
-    addCheck(report, 'VSIX 版本', versionText.includes(`"version":"${expectedVersion}"`) || versionText.includes(`"version": "${expectedVersion}"`),
-      `期望版本 ${expectedVersion}`);
+    let packageJson = null;
+    try {
+      packageJson = JSON.parse(readZipEntry(await readFile(vsixPath), 'extension/package.json') ?? '');
+    } catch {
+      packageJson = null;
+    }
+    addCheck(report, 'VSIX 版本', packageJson?.version === expectedVersion,
+      packageJson?.version === expectedVersion ? `版本 ${expectedVersion}` : `期望版本 ${expectedVersion}`);
   }
 }
 

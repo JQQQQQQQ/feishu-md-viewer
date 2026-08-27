@@ -4,6 +4,10 @@
   "publisher": "JQQQQQQQ",
   "version": "0.1.6",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JQQQQQQQ/feishu-md-viewer.git"
+  },
   "engines": {
     "vscode": "^1.93.0"
   },

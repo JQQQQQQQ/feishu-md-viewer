@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import packageJson from '../../vscode-extension/package.json';
 
 import { buildReleaseAssets } from '../../scripts/release/package-release.mjs';
 
@@ -22,6 +23,13 @@ async function createFixture(): Promise<string> {
 }
 
 describe('buildReleaseAssets', () => {
+  it('VS Code 扩展声明仓库地址以支持 vsce 解析 README 链接', () => {
+    expect(packageJson.repository).toEqual({
+      type: 'git',
+      url: 'https://github.com/JQQQQQQQ/feishu-md-viewer.git',
+    });
+  });
+
   it('按两端版本生成固定资产路径并调用构建命令', async () => {
     const rootDir = await createFixture();
     const runCommand = vi.fn().mockResolvedValue({ code: 0, output: '' });

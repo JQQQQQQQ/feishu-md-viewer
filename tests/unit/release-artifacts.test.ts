@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { inspectArtifacts } from '../../scripts/release/check-artifacts.mjs';
+import { inspectArtifacts, readZipEntry } from '../../scripts/release/check-artifacts.mjs';
 
 const tempRoots: string[] = [];
 
@@ -64,6 +64,14 @@ async function createArtifactFixture(): Promise<string> {
 }
 
 describe('inspectArtifacts', () => {
+  it('可以读取压缩 VSIX 中的 package.json 条目', () => {
+    const vsix = Buffer.from(
+      'UEsDBBQAAAAIADBGG11YzICSFQAAABMAAAAWAAAAZXh0ZW5zaW9uL3BhY2thZ2UuanNvbqtWKkstKs7Mz1OyUjLQM9QzU6oFAFBLAQIUAxQAAAAIADBGG11YzICSFQAAABMAAAAWAAAAAAAAAAAAAACAAQAAAABleHRlbnNpb24vcGFja2FnZS5qc29uUEsFBgAAAAABAAEARAAAAEkAAAAAAA==',
+      'base64',
+    );
+    expect(readZipEntry(vsix, 'extension/package.json')).toBe('{"version":"0.1.6"}');
+  });
+
   it('检查 Chrome Manifest、VS Code 入口和 HTML 引用资源', async () => {
     const rootDir = await createArtifactFixture();
 
