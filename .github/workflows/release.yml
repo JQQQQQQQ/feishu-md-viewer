@@ -14,13 +14,16 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      RELEASE_DIR: ${{ runner.temp }}/feishu-md-viewer-release
-      METADATA_PATH: ${{ runner.temp }}/feishu-md-viewer-release-metadata.json
-      NOTES_PATH: ${{ runner.temp }}/feishu-md-viewer-release-notes.md
     steps:
       - name: Checkout tagged source
         uses: actions/checkout@v4
+
+      - name: Initialize release paths
+        shell: bash
+        run: |
+          echo "RELEASE_DIR=$RUNNER_TEMP/feishu-md-viewer-release" >> "$GITHUB_ENV"
+          echo "METADATA_PATH=$RUNNER_TEMP/feishu-md-viewer-release-metadata.json" >> "$GITHUB_ENV"
+          echo "NOTES_PATH=$RUNNER_TEMP/feishu-md-viewer-release-notes.md" >> "$GITHUB_ENV"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -49,8 +52,6 @@ jobs:
         run: npm run package:release -- --tag "$GITHUB_REF_NAME" --output "$RELEASE_DIR" --notes "$NOTES_PATH"
 
       - name: Validate release assets
-        env:
-          METADATA_PATH: ${{ runner.temp }}/feishu-md-viewer-release-metadata.json
         run: |
           CHROME_ZIP="$(node -p "require(process.env.METADATA_PATH).chromeZip")"
           VSCODE_VSIX="$(node -p "require(process.env.METADATA_PATH).vscodeVsix")"

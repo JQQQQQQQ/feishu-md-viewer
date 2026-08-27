@@ -17,4 +17,11 @@ describe('release workflow', () => {
     expect(yaml).toContain('npm run check:artifacts');
     expect(yaml.indexOf('npm run check:artifacts')).toBeLessThan(yaml.indexOf('gh release create'));
   });
+
+  it('在 Step 中初始化 Runner 临时路径，避免 Job 级 runner 上下文导致工作流无 Job 失败', async () => {
+    const yaml = await readFile('.github/workflows/release.yml', 'utf8');
+    expect(yaml).toContain('name: Initialize release paths');
+    expect(yaml).toContain('echo "RELEASE_DIR=$RUNNER_TEMP/feishu-md-viewer-release" >> "$GITHUB_ENV"');
+    expect(yaml).not.toMatch(/jobs:\s*\n\s+release:[\s\S]*?env:\s*\n(?:\s+\S.*\n)*?\s+RELEASE_DIR:\s*\$\{\{\s*runner\.temp/);
+  });
 });
