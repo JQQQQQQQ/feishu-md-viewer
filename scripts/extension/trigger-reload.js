@@ -1,12 +1,23 @@
 async page => {
-  const testUrl = 'https://github.com/JQQQQQQQ/feishu-md-viewer/blob/main/test-e2e.md';
   const source = 'feishu-md-viewer-devtools';
   const requestId = String(Date.now());
 
-  await page.goto(testUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(document.querySelector('#feishu-md-viewer-host')), null, { timeout: 20000 });
+  let target = page;
+  for (const candidate of page.context().pages()) {
+    if (candidate.url().startsWith('chrome-extension://')) continue;
+    try {
+      if (await candidate.locator('#feishu-md-viewer-host').count()) {
+        target = candidate;
+        break;
+      }
+    } catch {
+      // 标签页可能在切换过程中关闭，继续检查其他候选页。
+    }
+  }
 
-  const result = await page.evaluate(({ source, requestId }) => new Promise((resolve) => {
+  await target.waitForFunction(() => Boolean(document.querySelector('#feishu-md-viewer-host')), null, { timeout: 5000 });
+
+  const result = await target.evaluate(({ source, requestId }) => new Promise((resolve) => {
     const timeout = window.setTimeout(() => {
       window.removeEventListener('message', handleMessage);
       resolve({ success: false, error: 'Timed out waiting for extension reload acknowledgement.' });
@@ -29,8 +40,8 @@ async page => {
     window.postMessage({ source, type: 'RELOAD_EXTENSION', requestId }, '*');
   }), { source, requestId });
 
-  await page.waitForTimeout(1200);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(document.querySelector('#feishu-md-viewer-host')), null, { timeout: 20000 });
-  return result;
+  await target.waitForTimeout(1200);
+  await target.reload({ waitUntil: 'domcontentloaded' });
+  await target.waitForFunction(() => Boolean(document.querySelector('#feishu-md-viewer-host')), null, { timeout: 20000 });
+  return { ...result, url: target.url() };
 }

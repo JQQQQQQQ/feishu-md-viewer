@@ -17,6 +17,7 @@
     "verify:release": "node scripts/release/verify-release.mjs",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
+    "extension:reload": "node scripts/extension/reload-extension.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx --max-warnings 0",

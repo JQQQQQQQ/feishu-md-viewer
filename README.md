@@ -163,6 +163,20 @@ pnpm build
 
 构建产物位于根目录的 `dist/`，可以在 Chrome 的扩展管理页通过“加载已解压的扩展”安装。
 
+如果 Chrome 中已经加载的是本地解压版扩展，可以在构建后自动重载当前预览页：
+
+```powershell
+.\scripts\extension\reload-extension.cmd
+```
+
+不重新构建、只快速重载：
+
+```powershell
+.\scripts\extension\reload-extension.cmd --no-build
+```
+
+完整前置条件和故障排查见 [`docs/extension-reload.md`](docs/extension-reload.md)。
+
 ### 构建 VS Code 扩展
 
 ```bash
