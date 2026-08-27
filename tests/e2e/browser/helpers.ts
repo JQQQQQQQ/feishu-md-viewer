@@ -14,11 +14,19 @@ export interface TempMarkdownFixture {
   cleanup: () => Promise<void>;
 }
 
-export async function createTempMarkdownFixture(initialContent?: string): Promise<TempMarkdownFixture> {
+export async function createTempMarkdownFixture(
+  initialContent?: string,
+  fixtureName: 'all-markdown-features' | 'markdown-compatibility' = 'all-markdown-features',
+): Promise<TempMarkdownFixture> {
   const directory = await mkdtemp(join(tmpdir(), 'feishu-md-viewer-e2e-'));
   const filePath = join(directory, 'fixture.md');
   const content = initialContent ?? await readFile(
-    join(projectRoot, 'tests/e2e/fixtures/all-markdown-features.md'),
+    join(
+      projectRoot,
+      fixtureName === 'markdown-compatibility'
+        ? 'test-markdown-compatibility.md'
+        : 'tests/e2e/fixtures/all-markdown-features.md',
+    ),
     'utf8',
   );
   await writeFile(filePath, content, 'utf8');

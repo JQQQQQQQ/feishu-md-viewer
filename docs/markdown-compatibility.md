@@ -1,6 +1,6 @@
 # GitHub Markdown 兼容性矩阵
 
-本文档是 `test-markdown-compatibility.md` 的验收记录。只有完成对应的自动化测试和 Chrome / VS Code 实际检查后，项目才可以将状态更新为 `PASS`。
+本文档是 `test-markdown-compatibility.md` 的验收记录。只有完成对应的自动化测试和 Chrome / VS Code 实际检查后，项目才可以将状态更新为 `PASS`。自动化覆盖包括 `tests/unit/markdown-html-compatibility.test.tsx`、`tests/unit/markdown-resource-resolver.test.ts` 和浏览器 E2E 的“GitHub README 常见 HTML 结构和相对链接可安全预览”用例。
 
 状态定义：
 
@@ -57,3 +57,12 @@
 | --- | --- | --- | --- | --- |
 | 待验收 | - | BLOCKED | BLOCKED | P0/P1 实现完成后填写 |
 
+## 本地自动化命令
+
+```bash
+TMPDIR=/tmp npx vitest run tests/unit/markdown-compatibility-doc.test.ts tests/unit/markdown-resource-resolver.test.ts tests/unit/markdown-html-compatibility.test.tsx
+npm run build
+TMPDIR=/tmp npx playwright test tests/e2e/browser/preview.spec.ts -g "GitHub README 常见"
+```
+
+Linux 本地浏览器 E2E 需要 headed Chromium 和可用的 X Server；在 CI 中使用 `xvfb-run`。如果运行环境无法启动带扩展的浏览器，保持矩阵为 `BLOCKED`，不要将单元测试结果冒充 Chrome / VS Code 实机验收。

@@ -197,6 +197,8 @@ pnpm verify:release
 
 - [发布前验收清单](docs/release-acceptance.md)
 - [发布验收报告](docs/release-report.md)
+- [GitHub Markdown 兼容性矩阵](docs/markdown-compatibility.md)
+- [GitHub Markdown 综合测试文档](test-markdown-compatibility.md)
 
 ### 自动发布
 
@@ -227,6 +229,7 @@ Chrome 扩展和 VS Code 扩展使用独立版本号：
 - VS Code 原生界面手工验收需要在 Windows VS Code 的干净 Profile 中补充完成。
 - 浏览器扩展的完整 Playwright E2E 在 Linux 本地运行时需要可用的 X Server；CI 已配置 `xvfb-run`。
 - `test-e2e.md` 是用于覆盖 Markdown、表格、Mermaid、刷新和错误降级场景的综合测试文档。
+- `test-markdown-compatibility.md` 专门覆盖 GitHub README 常见的 HTML 展示标签、相对资源、内部锚点和降级场景；对应结果记录在[兼容性矩阵](docs/markdown-compatibility.md)。
 
 ## 许可证
 

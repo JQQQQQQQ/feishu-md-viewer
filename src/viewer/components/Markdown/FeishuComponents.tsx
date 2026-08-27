@@ -214,6 +214,9 @@ export const feishuComponents: ComponentMap = {
     <kbd {...props} className={mergeClassName('feishu-kbd', className)}>{children}</kbd>
   ),
   video: (({ children, className, ...props }: VideoHTMLAttributes<HTMLVideoElement>) => (
+    // README videos frequently omit caption tracks; preserve the source's
+    // native fallback rather than fabricating an empty subtitle resource.
+    // eslint-disable-next-line jsx-a11y/media-has-caption
     <video {...props} className={mergeClassName('feishu-video', className)}>{children}</video>
   )) as ComponentType<HTMLAttributes<HTMLElement>>,
   hr: () => <hr className="feishu-divider" />,

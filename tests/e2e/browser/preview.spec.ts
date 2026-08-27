@@ -8,6 +8,32 @@ import {
 } from './helpers';
 
 test.describe('浏览器 Markdown 预览', () => {
+  test('GitHub README 常见 HTML 结构和相对链接可安全预览', async () => {
+    const fixture = await createTempMarkdownFixture(undefined, 'markdown-compatibility');
+    const context = await createBrowserContext();
+    try {
+      const page = await context.newPage();
+      await page.goto(fixture.url, { waitUntil: 'domcontentloaded' });
+      await waitForViewer(page);
+
+      const article = viewerLocator(page, '[role="article"]');
+      await expect(article).toContainText('GitHub Markdown 兼容性测试文档');
+      await expect(viewerLocator(page, 'details')).toHaveCount(2);
+      await expect(viewerLocator(page, 'picture source')).toHaveCount(2);
+      await expect(viewerLocator(page, 'kbd')).toHaveCount(2);
+      await expect(viewerLocator(page, 'video')).toHaveCount(1);
+      await expect(viewerLocator(page, '.feishu-table:not(.feishu-table--sticky-clone):not(.feishu-table--left-reveal-clone)')).toHaveCount(2);
+      await expect(viewerLocator(page, 'a[href^="file:"]')).toHaveCount(3);
+
+      const internalLink = viewerLocator(page, 'a').filter({ hasText: '跳到内部锚点' });
+      await internalLink.click();
+      await expect(viewerLocator(page, '#internal-anchor')).toBeInViewport();
+    } finally {
+      await context.close();
+      await fixture.cleanup();
+    }
+  });
+
   test('本地 Markdown 文件进入 Feishu 预览', async () => {
     const fixture = await createTempMarkdownFixture();
     const context = await createBrowserContext();
