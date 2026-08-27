@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_DIR: ${{ runner.temp }}/feishu-md-viewer-release
+      METADATA_PATH: ${{ runner.temp }}/feishu-md-viewer-release-metadata.json
+      NOTES_PATH: ${{ runner.temp }}/feishu-md-viewer-release-notes.md
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate release metadata
+        run: node scripts/release/release-metadata.mjs --tag "$GITHUB_REF_NAME" --output "$METADATA_PATH" --notes "$NOTES_PATH"
+
+      - name: Install Playwright Chromium
+        run: npm run test:e2e:install
+
+      - name: Run release quality gate with browser E2E
+        run: xvfb-run -a env TMPDIR=/tmp RUN_E2E=1 npm run verify:release
+
+      - name: Package Chrome ZIP and VS Code VSIX
+        run: npm run package:release -- --tag "$GITHUB_REF_NAME" --output "$RELEASE_DIR" --notes "$NOTES_PATH"
+
+      - name: Validate release assets
+        env:
+          METADATA_PATH: ${{ runner.temp }}/feishu-md-viewer-release-metadata.json
+        run: |
+          CHROME_ZIP="$(node -p "require(process.env.METADATA_PATH).chromeZip")"
+          VSCODE_VSIX="$(node -p "require(process.env.METADATA_PATH).vscodeVsix")"
+          test -s "$RELEASE_DIR/$CHROME_ZIP"
+          test -s "$RELEASE_DIR/$VSCODE_VSIX"
+          unzip -Z1 "$RELEASE_DIR/$CHROME_ZIP" | grep -Fx 'manifest.json'
+          VSIX_PATH="$RELEASE_DIR/$VSCODE_VSIX" npm run check:artifacts
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CHROME_ZIP="$(node -p "require(process.env.METADATA_PATH).chromeZip")"
+          VSCODE_VSIX="$(node -p "require(process.env.METADATA_PATH).vscodeVsix")"
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "Feishu Markdown Viewer $GITHUB_REF_NAME" \
+            --notes-file "$NOTES_PATH" \
+            "$RELEASE_DIR/$CHROME_ZIP" \
+            "$RELEASE_DIR/$VSCODE_VSIX"
+
+      - name: Upload release diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-diagnostics-${{ github.ref_name }}
+          path: |
+            ${{ runner.temp }}/feishu-md-viewer-release-metadata.json
+            ${{ runner.temp }}/feishu-md-viewer-release-notes.md
+            playwright-report/
+            test-results/
+            ${{ runner.temp }}/feishu-md-viewer-release/
+          if-no-files-found: ignore
