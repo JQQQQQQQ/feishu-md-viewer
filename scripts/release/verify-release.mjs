@@ -3,12 +3,12 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
 const BASE_STEPS = [
-  ['单元测试', 'npm', ['test', '--', '--run']],
   ['类型检查', 'npm', ['run', 'typecheck']],
   ['Chrome 构建', 'npm', ['run', 'build']],
   ['VS Code 构建', 'npm', ['run', 'build:vscode']],
   ['VS Code 产物验证', 'npm', ['run', 'verify:vscode']],
   ['发布产物检查', 'npm', ['run', 'check:artifacts']],
+  ['单元测试', 'npm', ['test', '--', '--run']],
 ];
 
 function npmExecutable() {

@@ -10,12 +10,12 @@ describe('runReleaseVerification', () => {
 
     expect(report.ok).toBe(true);
     expect(report.steps.map((step) => step.name)).toEqual([
-      '单元测试',
       '类型检查',
       'Chrome 构建',
       'VS Code 构建',
       'VS Code 产物验证',
       '发布产物检查',
+      '单元测试',
       '浏览器 E2E',
     ]);
     expect(report.steps.at(-1)).toMatchObject({ status: 'skipped' });
@@ -31,7 +31,7 @@ describe('runReleaseVerification', () => {
 
     expect(report.ok).toBe(false);
     expect(report.steps[1]).toMatchObject({
-      name: '类型检查',
+      name: 'Chrome 构建',
       status: 'failed',
       output: 'type error',
     });
