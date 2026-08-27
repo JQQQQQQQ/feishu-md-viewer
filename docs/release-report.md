@@ -2,14 +2,14 @@
 
 ## 报告信息
 
-| 字段 | 值 |
-| --- | --- |
-| 验收日期 | 2026-08-26 |
-| 基线提交 | `55f61d6e192c3d7a8f3bd428271b11eb7022b894` |
-| Chrome 项目版本 | `0.1.0`（Manifest `1.0.0`） |
-| VS Code 扩展版本 | `0.1.6` |
-| Node 验证环境 | Node.js 22.22.2，Playwright 1.62.1 |
-| 浏览器运行方式 | headed Chromium，临时文件 Fixture |
+| 字段             | 值                                         |
+| ---------------- | ------------------------------------------ |
+| 验收日期         | 2026-08-26                                 |
+| 基线提交         | `55f61d6e192c3d7a8f3bd428271b11eb7022b894` |
+| Chrome 项目版本  | `0.1.0`（Manifest `1.0.0`）                |
+| VS Code 扩展版本 | `0.1.6`                                    |
+| Node 验证环境    | Node.js 22.22.2，Playwright 1.62.1         |
+| 浏览器运行方式   | headed Chromium，临时文件 Fixture          |
 
 ## 自动化测试结果
 
@@ -21,15 +21,15 @@ TMPDIR=/tmp RUN_E2E=1 E2E_HEADLESS=0 npm run verify:release
 
 结果：PASS。
 
-| 阶段 | 结果 | 耗时 | 说明 |
-| --- | --- | ---: | --- |
-| 单元测试 | PASS | 7858 ms | 51 个测试文件，386 个测试通过 |
-| 类型检查 | PASS | 3039 ms | `tsc --noEmit` |
-| Chrome 构建 | PASS | 15890 ms | 输出根目录 `dist/` |
-| VS Code 构建 | PASS | 14302 ms | 输出 `vscode-extension/out/` 和 `vscode-extension/dist/` |
-| VS Code 产物验证 | PASS | 210 ms | 构建目录隔离、资源路径和入口检查通过 |
-| 发布产物检查 | PASS | 224 ms | Manifest、版本、资源引用和跨端 API 检查通过 |
-| 浏览器 E2E | PASS | 24616 ms | 8/8 场景通过 |
+| 阶段             | 结果 |     耗时 | 说明                                                     |
+| ---------------- | ---- | -------: | -------------------------------------------------------- |
+| 单元测试         | PASS |  7858 ms | 51 个测试文件，386 个测试通过                            |
+| 类型检查         | PASS |  3039 ms | `tsc --noEmit`                                           |
+| Chrome 构建      | PASS | 15890 ms | 输出根目录 `dist/`                                       |
+| VS Code 构建     | PASS | 14302 ms | 输出 `vscode-extension/out/` 和 `vscode-extension/dist/` |
+| VS Code 产物验证 | PASS |   210 ms | 构建目录隔离、资源路径和入口检查通过                     |
+| 发布产物检查     | PASS |   224 ms | Manifest、版本、资源引用和跨端 API 检查通过              |
+| 浏览器 E2E       | PASS | 24616 ms | 8/8 场景通过                                             |
 
 额外执行的 `npm run lint` 当前为 BLOCKED：仓库已有表格选择轨道和 Mermaid 弹窗上的 `jsx-a11y` 交互元素规则错误（`FeishuTable.tsx`、`MermaidPreviewModal.tsx`），本次未为发布验收掩盖或扩大修复范围；该命令未纳入本次 `verify:release` 固定门禁。
 
@@ -77,4 +77,19 @@ Fixture：`tests/e2e/fixtures/all-markdown-features.md`，每个场景使用临�
 ## 未解决阻塞项
 
 1. Windows 原生 VS Code GUI 验收尚未执行，发布前必须补齐并把结果写回 `docs/release-acceptance.md`。
-2. 本工作区的 `.git` 目录当前是只读的，`git commit` 在创建 `.git/index.lock` 时失败；代码和报告已生成，但需要在可写 Git 工作区执行提交。
+
+## 自动发布工作流验证（2026-08-27）
+
+本次新增的标签发布工作流和打包链路已完成本地验证：
+
+| 项目                | 结果 | 说明                                                                                                          |
+| ------------------- | ---- | ------------------------------------------------------------------------------------------------------------- |
+| 发布元数据聚焦测试  | PASS | 8 项，覆盖标签格式、Chrome 版本一致性、双端资产命名和 Release 说明                                            |
+| 发布打包聚焦测试    | PASS | 5 项，覆盖 Chrome ZIP、VSIX、无 `zip` 命令的 Python 回退、无 `pnpm` 命令的 Corepack 回退和 VS Code 仓库元数据 |
+| 发布工作流静态测试  | PASS | 2 项，确认标签触发、最小权限、E2E 和最终资产检查顺序                                                          |
+| 发布文档测试        | PASS | 1 项，确认发布命令和失败边界文档完整                                                                          |
+| 全量单元测试        | PASS | 55 个测试文件，403 项通过                                                                                     |
+| 本地打包演练        | PASS | 生成 Chrome ZIP（约 1.0 MB）和 VSIX（约 1.0 MB）                                                              |
+| VSIX 内容与版本检查 | PASS | 27 个 ZIP 条目，版本 `0.1.6` 与 VS Code package.json 一致                                                     |
+
+本地演练使用 `v0.1.0` 作为已存在版本，只生成 `/tmp/feishu-release-smoke/` 下的临时文件，没有调用 `gh release create`，也没有修改已有 GitHub Release。GitHub Actions 发布时使用 Ubuntu Runner 自带的 `zip` 和 `pnpm/action-setup`，缺少命令的本地回退不会影响 CI 主路径。
