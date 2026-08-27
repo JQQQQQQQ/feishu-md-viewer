@@ -53,4 +53,42 @@ describe('buildReleaseAssets', () => {
     })).rejects.toThrow(/构建|打包/);
     expect(runCommand).toHaveBeenCalledTimes(1);
   });
+
+  it('运行器没有 zip 命令时使用 Python 标准库创建 Chrome ZIP', async () => {
+    const rootDir = await createFixture();
+    const runCommand = vi.fn()
+      .mockResolvedValueOnce({ code: 0, output: '' })
+      .mockResolvedValueOnce({ code: 1, output: 'spawn zip ENOENT' })
+      .mockResolvedValueOnce({ code: 0, output: '' })
+      .mockResolvedValueOnce({ code: 0, output: '' })
+      .mockResolvedValueOnce({ code: 0, output: '' });
+
+    await buildReleaseAssets({
+      rootDir,
+      outputDir: join(rootDir, 'release-assets'),
+      tag: 'v1.2.3',
+      runCommand,
+    });
+
+    expect(runCommand).toHaveBeenCalledWith('python3', expect.arrayContaining(['-c', expect.stringContaining('zipfile')]), expect.objectContaining({ cwd: join(rootDir, 'dist') }));
+  });
+
+  it('运行器没有 pnpm 命令时使用 Corepack 调用 pnpm 打包 VSIX', async () => {
+    const rootDir = await createFixture();
+    const runCommand = vi.fn()
+      .mockResolvedValueOnce({ code: 0, output: '' })
+      .mockResolvedValueOnce({ code: 0, output: '' })
+      .mockResolvedValueOnce({ code: 0, output: '' })
+      .mockResolvedValueOnce({ code: 1, output: 'spawn pnpm ENOENT' })
+      .mockResolvedValueOnce({ code: 0, output: '' });
+
+    await buildReleaseAssets({
+      rootDir,
+      outputDir: join(rootDir, 'release-assets'),
+      tag: 'v1.2.3',
+      runCommand,
+    });
+
+    expect(runCommand).toHaveBeenCalledWith('corepack', expect.arrayContaining(['pnpm', 'dlx', '@vscode/vsce', 'package']), expect.objectContaining({ cwd: join(rootDir, 'vscode-extension') }));
+  });
 });

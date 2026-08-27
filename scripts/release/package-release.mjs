@@ -33,6 +33,37 @@ async function runChecked(command, args, options, run) {
   return result;
 }
 
+async function createChromeZip(zipPath, distDir, run) {
+  const zipArgs = ['-r', zipPath, '.'];
+  const zipResult = await run('zip', zipArgs, { cwd: distDir, env: process.env });
+  if (zipResult.code === 0) return;
+
+  if (!/ENOENT|not found|不存在/i.test(zipResult.output ?? '')) {
+    throw new Error(`构建或打包失败：zip ${zipArgs.join(' ')}\n${zipResult.output ?? ''}`);
+  }
+
+  const pythonScript = [
+    'import os, sys, zipfile',
+    'output = sys.argv[1]',
+    'with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:',
+    '    for root, _, files in os.walk("."):',
+    '        for name in files:',
+    '            path = os.path.join(root, name)',
+    '            archive.write(path, os.path.relpath(path, "."))',
+  ].join('\n');
+  await runChecked('python3', ['-c', pythonScript, zipPath], { cwd: distDir, env: process.env }, run);
+}
+
+async function packageVsix(vsixPath, vscodeDir, run) {
+  const args = ['dlx', '@vscode/vsce', 'package', '--no-dependencies', '--out', vsixPath];
+  const pnpmResult = await run(executable('pnpm'), args, { cwd: vscodeDir, env: process.env });
+  if (pnpmResult.code === 0) return;
+  if (!/ENOENT|not found|不存在/i.test(pnpmResult.output ?? '')) {
+    throw new Error(`构建或打包失败：${[executable('pnpm'), ...args].join(' ')}\n${pnpmResult.output ?? ''}`);
+  }
+  await runChecked('corepack', ['pnpm', ...args], { cwd: vscodeDir, env: process.env }, run);
+}
+
 export async function buildReleaseAssets({
   rootDir = process.cwd(),
   outputDir,
@@ -56,14 +87,9 @@ export async function buildReleaseAssets({
   ]);
 
   await runChecked(executable('npm'), ['run', 'build'], { cwd: root, env: process.env }, commandRunner);
-  await runChecked('zip', ['-r', chromeZipPath, '.'], { cwd: join(root, 'dist'), env: process.env }, commandRunner);
+  await createChromeZip(chromeZipPath, join(root, 'dist'), commandRunner);
   await runChecked(executable('npm'), ['run', 'build:vscode'], { cwd: root, env: process.env }, commandRunner);
-  await runChecked(
-    executable('pnpm'),
-    ['dlx', '@vscode/vsce', 'package', '--no-dependencies', '--out', vscodeVsixPath],
-    { cwd: join(root, 'vscode-extension'), env: process.env },
-    commandRunner,
-  );
+  await packageVsix(vscodeVsixPath, join(root, 'vscode-extension'), commandRunner);
 
   return { metadata, chromeZipPath, vscodeVsixPath };
 }
