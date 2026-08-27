@@ -149,6 +149,19 @@ pnpm verify:release
 - [发布前验收清单](docs/release-acceptance.md)
 - [发布验收报告](docs/release-report.md)
 
+### 自动发布
+
+仓库已配置 GitHub Actions 标签发布工作流。准备发布时，先在提交中更新根目录 Chrome 项目版本，并按需更新 `vscode-extension/package.json` 的 VS Code 版本，然后提交这些版本变更：
+
+```bash
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+推送标签后，GitHub Actions 会自动执行完整质量门禁、浏览器 E2E、Chrome ZIP 和 VSIX 打包，并在门禁通过后创建同名 GitHub Release。Chrome 标签版本必须与根 `package.json` 版本一致；VS Code 使用独立版本号，两个安装包会显示在同一个 Release 中。
+
+不需要手动上传构建产物。请在 GitHub Actions 页面确认工作流通过，再从 Release 下载两个安装包。标签格式错误、版本不一致、测试失败或打包失败都会阻止正式 Release；已有 Release 不会被覆盖。完整规则见[自动发布指南](docs/release-automation.md)。
+
 ## 版本说明
 
 Chrome 扩展和 VS Code 扩展使用独立版本号：
