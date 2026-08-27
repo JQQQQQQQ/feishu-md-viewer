@@ -13,6 +13,7 @@
     "verify:vscode": "node scripts/vscode/verify-preview-build.mjs",
     "check:artifacts": "node scripts/release/check-artifacts.mjs",
     "release:metadata": "node scripts/release/release-metadata.mjs",
+    "package:release": "node scripts/release/package-release.mjs",
     "verify:release": "node scripts/release/verify-release.mjs",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
