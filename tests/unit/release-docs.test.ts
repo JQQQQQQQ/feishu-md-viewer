@@ -12,4 +12,20 @@ describe('release documentation', () => {
     expect(guide).toContain('不会覆盖已有 Release');
     expect(guide).toContain('Windows 原生 VS Code');
   });
+
+  it('为当前稳定版本提供变更记录和可执行的反馈入口', async () => {
+    const [changelog, bugTemplate, featureTemplate] = await Promise.all([
+      readFile('CHANGELOG.md', 'utf8'),
+      readFile('.github/ISSUE_TEMPLATE/bug_report.yml', 'utf8'),
+      readFile('.github/ISSUE_TEMPLATE/feature_request.yml', 'utf8'),
+    ]);
+
+    expect(changelog).toContain('## [0.1.1]');
+    expect(changelog).toContain('Chrome 扩展');
+    expect(changelog).toContain('VS Code');
+    expect(bugTemplate).toContain('复现步骤');
+    expect(bugTemplate).toContain('运行环境');
+    expect(featureTemplate).toContain('问题背景');
+    expect(featureTemplate).toContain('期望方案');
+  });
 });
