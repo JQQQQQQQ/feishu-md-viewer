@@ -8,18 +8,30 @@ import rehypeReact from 'rehype-react';
 import * as prod from 'react/jsx-runtime';
 import { feishuComponents } from '../viewer/components/Markdown/FeishuComponents';
 import { resetMermaidRenderCounter } from '../viewer/components/Markdown/CodeBlock/CodeBlock';
+import type { MarkdownSourceContext } from './markdown-resource-resolver';
+import { resolveMarkdownSrcSet, resolveMarkdownUrl } from './markdown-resource-resolver';
 import type { ReactElement } from 'react';
 
 const production = { Fragment: prod.Fragment, jsx: prod.jsx, jsxs: prod.jsxs };
 
 const markdownHtmlSchema = {
   ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames ?? []),
+    'video',
+  ],
   attributes: {
     ...defaultSchema.attributes,
     // remark-gfm emits `checked` for completed task-list inputs.  The
     // GitHub-style default schema permits only the checkbox type/disabled
     // attributes, so preserve this harmless boolean explicitly.
     input: [...(defaultSchema.attributes?.input ?? []), 'checked'],
+    details: [...(defaultSchema.attributes?.details ?? []), 'open'],
+    source: [...(defaultSchema.attributes?.source ?? []), 'src', 'srcSet', 'sizes', 'media', 'type'],
+    img: [...(defaultSchema.attributes?.img ?? []), 'srcSet', 'sizes', 'loading', 'decoding', 'width', 'height'],
+    video: ['src', 'poster', 'preload', 'controls', 'playsInline', 'width', 'height'],
+    a: [...(defaultSchema.attributes?.a ?? []), 'download', 'target', 'rel'],
+    div: [...(defaultSchema.attributes?.div ?? []), 'align'],
   },
 };
 
@@ -133,6 +145,45 @@ function rehypeNormalizeTaskCheckboxes() {
   return (tree: HastRoot) => visit(tree);
 }
 
+function rehypeResolveMarkdownResources() {
+  return (tree: HastRoot, file: { data?: Record<string, unknown> }) => {
+    const context = file.data?.markdownSourceContext as MarkdownSourceContext | undefined;
+    if (!context) return;
+
+    const visit = (node: HastNode): void => {
+      if (isElement(node)) {
+        const properties = node.properties;
+        if (properties) {
+          const assetAttributes: Record<string, string[]> = {
+            img: ['src', 'srcSet'],
+            source: ['src', 'srcSet'],
+            video: ['src', 'poster'],
+          };
+          for (const attribute of assetAttributes[node.tagName] ?? []) {
+            const value = properties[attribute];
+            if (typeof value !== 'string') continue;
+            const resolved = attribute === 'srcSet'
+              ? resolveMarkdownSrcSet(value, context)
+              : resolveMarkdownUrl(value, context, 'asset');
+            if (resolved) properties[attribute] = resolved;
+            else delete properties[attribute];
+          }
+
+          if (node.tagName === 'a' && typeof properties.href === 'string') {
+            const resolved = resolveMarkdownUrl(properties.href, context, 'link');
+            if (resolved) properties.href = resolved;
+            else delete properties.href;
+          }
+        }
+      }
+
+      node.children?.forEach(visit);
+    };
+
+    visit(tree);
+  };
+}
+
 /**
  * Give every Markdown table a document-local identity that does not depend on
  * its cell contents. The nearest heading path is stable while a table is
@@ -185,6 +236,7 @@ const processor = unified()
   .use(rehypeRaw)
   .use(rehypeSanitize, markdownHtmlSchema)
   .use(rehypeNormalizeTaskCheckboxes)
+  .use(rehypeResolveMarkdownResources)
   .use(rehypeAssignTableIds)
   .use(rehypeSectionHierarchy)
   .use(rehypeReact, {
@@ -192,10 +244,13 @@ const processor = unified()
     components: feishuComponents,
   });
 
-export function parseMarkdown(content: string): ReactElement {
+export function parseMarkdown(content: string, sourceContext?: MarkdownSourceContext): ReactElement {
   // Keep Mermaid block indices stable for each parse round.
   resetMermaidRenderCounter();
-  const file = processor.processSync(content);
+  const file = processor.processSync({
+    value: content,
+    data: { markdownSourceContext: sourceContext },
+  });
   return file.result as ReactElement;
 }
 

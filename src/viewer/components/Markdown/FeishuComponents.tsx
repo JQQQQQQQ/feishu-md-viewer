@@ -6,8 +6,10 @@ import {
   type HTMLAttributes,
   type ImgHTMLAttributes,
   type InputHTMLAttributes,
+  type VideoHTMLAttributes,
   type ReactElement,
   type ReactNode,
+  type SourceHTMLAttributes,
 } from 'react';
 import { CircleAlert, Info, Lightbulb, Sparkles, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { FeishuHeading } from './Heading';
@@ -169,5 +171,21 @@ export const feishuComponents: ComponentMap = {
     );
   },
   img: FeishuImage as ComponentType<ImgHTMLAttributes<HTMLImageElement>>,
+  details: ({ children, className, ...props }) => (
+    <details {...props} className={mergeClassName('feishu-details', className)}>{children}</details>
+  ),
+  summary: ({ children, className, ...props }) => (
+    <summary {...props} className={mergeClassName('feishu-summary', className)}>{children}</summary>
+  ),
+  picture: ({ children, className, ...props }) => (
+    <picture {...props} className={mergeClassName('feishu-picture', className)}>{children}</picture>
+  ),
+  source: ((props: SourceHTMLAttributes<HTMLSourceElement>) => <source {...props} />) as ComponentType<HTMLAttributes<HTMLElement>>,
+  kbd: ({ children, className, ...props }) => (
+    <kbd {...props} className={mergeClassName('feishu-kbd', className)}>{children}</kbd>
+  ),
+  video: (({ children, className, ...props }: VideoHTMLAttributes<HTMLVideoElement>) => (
+    <video {...props} className={mergeClassName('feishu-video', className)}>{children}</video>
+  )) as ComponentType<HTMLAttributes<HTMLElement>>,
   hr: () => <hr className="feishu-divider" />,
 };
