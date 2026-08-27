@@ -1,7 +1,7 @@
 node_modules
 dist/
 vscode-extension/out/
-release/
+/release/
 *.tsbuildinfo
 
 # AI 工具本地配置
