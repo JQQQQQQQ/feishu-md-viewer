@@ -5,10 +5,12 @@ import { MarkdownReadView } from './components/Markdown/MarkdownReadView';
 import { AppShell } from './components/Layout/AppShell';
 import { useTOC } from './hooks/useTOC';
 import { useViewerStore, type ThemeMode } from './store';
+import type { MarkdownSourceContext } from '../lib/markdown-resource-resolver';
 
 export interface PreviewRootProps {
   markdown: string;
   source: PageSource;
+  sourceContext?: MarkdownSourceContext;
   themeOverride?: ThemeMode;
   settingsEnabled?: boolean;
   contentUpdateAvailable?: boolean;
@@ -37,6 +39,7 @@ function getThemeClass(theme: ThemeMode): string {
 export function PreviewRoot({
   markdown,
   source,
+  sourceContext,
   themeOverride,
   settingsEnabled = false,
   contentUpdateAvailable = false,
@@ -78,7 +81,7 @@ export function PreviewRoot({
         >
           <div className="feishu-viewer__page" data-mode="read">
             <div className="feishu-viewer__content" data-mode="read">
-              <MarkdownReadView content={markdown} />
+              <MarkdownReadView content={markdown} sourceContext={sourceContext} />
             </div>
           </div>
         </AppShell>

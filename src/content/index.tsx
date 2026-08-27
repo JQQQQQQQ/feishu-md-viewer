@@ -14,6 +14,7 @@ import mermaidStyles from '../viewer/styles/mermaid.css?inline';
 import tailwindStyles from '../viewer/styles/tailwind-output.css?inline';
 import darkThemeStyles from '../viewer/styles/dark-theme.css?inline';
 import printStyles from '../viewer/styles/print.css?inline';
+import { createMarkdownSourceContext } from '../lib/markdown-resource-resolver';
 
 const DEV_MESSAGE_SOURCE = 'feishu-md-viewer-devtools';
 
@@ -55,6 +56,7 @@ async function main(): Promise<void> {
   await useViewerStore.getState().loadSettings();
 
   const source = adapter.name as 'file' | 'github' | 'gitlab';
+  const sourceContext = createMarkdownSourceContext(source, window.location.href);
 
   const { shadowRoot, mountPoint } = injectViewerContainer();
 
@@ -99,6 +101,7 @@ async function main(): Promise<void> {
       <App
         markdown={currentContent}
         source={source}
+        sourceContext={sourceContext}
         contentUpdateAvailable={contentUpdateAvailable}
         contentUpdateRefreshing={contentUpdateRefreshing}
         onRefreshContent={source === 'file' ? refreshContent : undefined}

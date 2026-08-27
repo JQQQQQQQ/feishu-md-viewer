@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PreviewRoot } from '../../src/viewer/PreviewRoot';
+import { createMarkdownSourceContext, type MarkdownSourceContext } from '../../src/lib/markdown-resource-resolver';
 import { useViewerStore, type ContentAlignment, type ThemeMode } from '../../src/viewer/store';
 import {
   setTableColumnWidthsBridge,
@@ -23,6 +24,12 @@ interface DocumentMessage {
   text: string;
   version: number;
   documentKey?: string;
+  sourceContext?: {
+    source: 'file';
+    runtime: 'vscode-webview';
+    documentUrl: string;
+    contentUrl: string;
+  };
 }
 
 interface ThemeMessage {
@@ -98,6 +105,7 @@ function isWebviewMessage(message: unknown): message is WebviewMessage {
     text?: unknown;
     version?: unknown;
     documentKey?: unknown;
+    sourceContext?: unknown;
     kind?: unknown;
     message?: unknown;
     settings?: unknown;
@@ -106,6 +114,15 @@ function isWebviewMessage(message: unknown): message is WebviewMessage {
     identities?: unknown;
   };
   if (candidate.type === 'document') {
+    const sourceContext = candidate.sourceContext;
+    const validSourceContext = sourceContext === undefined || (
+      typeof sourceContext === 'object'
+      && sourceContext !== null
+      && (sourceContext as { source?: unknown }).source === 'file'
+      && (sourceContext as { runtime?: unknown }).runtime === 'vscode-webview'
+      && typeof (sourceContext as { documentUrl?: unknown }).documentUrl === 'string'
+      && typeof (sourceContext as { contentUrl?: unknown }).contentUrl === 'string'
+    );
     return (
       typeof candidate.text === 'string'
       && typeof candidate.version === 'number'
@@ -113,6 +130,7 @@ function isWebviewMessage(message: unknown): message is WebviewMessage {
       && Number.isInteger(candidate.version)
       && candidate.version >= 0
       && (candidate.documentKey === undefined || typeof candidate.documentKey === 'string')
+      && validSourceContext
     );
   }
 
@@ -160,7 +178,11 @@ function getVsCodeApi(): VsCodeApi | undefined {
 }
 
 export function WebviewPreview() {
-  const [documentState, setDocumentState] = useState<{ text: string; version: number }>();
+  const [documentState, setDocumentState] = useState<{
+    text: string;
+    version: number;
+    sourceContext?: DocumentMessage['sourceContext'];
+  }>();
   const [theme, setTheme] = useState<ThemeKind>('light');
   const [error, setError] = useState<string>();
   const storedTheme = useViewerStore((state) => state.theme);
@@ -337,7 +359,11 @@ export function WebviewPreview() {
             return current;
           }
 
-          return { text: event.data.text, version: event.data.version };
+          return {
+            text: event.data.text,
+            version: event.data.version,
+            sourceContext: event.data.sourceContext,
+          };
         });
         setError(undefined);
         return;
@@ -377,6 +403,17 @@ export function WebviewPreview() {
     return () => window.removeEventListener('message', handleMessage);
   }, [setStoredContentAlignment, setStoredFontSize, setStoredSmoothScroll, setStoredTheme]);
 
+  const sourceContext: MarkdownSourceContext | undefined = useMemo(() => {
+    const context = documentState?.sourceContext;
+    if (!context) return undefined;
+    return createMarkdownSourceContext(
+      context.source,
+      context.documentUrl,
+      context.contentUrl,
+      context.runtime,
+    );
+  }, [documentState?.sourceContext]);
+
   if (error) {
     return (
       <section role="alert" aria-live="assertive">
@@ -409,6 +446,7 @@ export function WebviewPreview() {
         key={documentState.version}
         markdown={documentState.text}
         source="file"
+        sourceContext={sourceContext}
         themeOverride={storedTheme === 'system' ? theme : undefined}
         settingsEnabled
       />

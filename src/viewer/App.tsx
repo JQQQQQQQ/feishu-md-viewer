@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { type PageSource } from '../content/detector';
 import { PreviewRoot } from './PreviewRoot';
 import { useViewerStore } from './store';
+import type { MarkdownSourceContext } from '../lib/markdown-resource-resolver';
 
 interface AppProps {
   markdown: string;
   source: PageSource;
+  sourceContext?: MarkdownSourceContext;
   contentUpdateAvailable?: boolean;
   contentUpdateRefreshing?: boolean;
   onRefreshContent?: () => void;
@@ -14,6 +16,7 @@ interface AppProps {
 export function App({
   markdown,
   source,
+  sourceContext,
   contentUpdateAvailable = false,
   contentUpdateRefreshing = false,
   onRefreshContent,
@@ -29,6 +32,7 @@ export function App({
     <PreviewRoot
       markdown={markdown}
       source={source}
+      sourceContext={sourceContext}
       settingsEnabled={true}
       contentUpdateAvailable={contentUpdateAvailable}
       contentUpdateRefreshing={contentUpdateRefreshing}

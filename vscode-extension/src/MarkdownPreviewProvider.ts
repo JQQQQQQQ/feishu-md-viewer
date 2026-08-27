@@ -37,6 +37,12 @@ interface DocumentMessage {
   text: string;
   version: number;
   documentKey: string;
+  sourceContext: {
+    source: 'file';
+    runtime: 'vscode-webview';
+    documentUrl: string;
+    contentUrl: string;
+  };
 }
 
 interface ThemeMessage {
@@ -115,7 +121,7 @@ export function createWebviewHtml(webview: vscode.Webview, extensionUri: vscode.
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; media-src ${webview.cspSource} https: data:; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
     <link rel="stylesheet" href="${styleUri}" />
     <title>Feishu Markdown Preview</title>
   </head>
@@ -409,9 +415,18 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
     panel: vscode.WebviewPanel,
     _token: vscode.CancellationToken,
   ): Promise<void> {
+    const documentDirectory = document.uri.fsPath
+      ? vscode.Uri.file(document.uri.fsPath.slice(0, Math.max(
+        document.uri.fsPath.lastIndexOf('/'),
+        document.uri.fsPath.lastIndexOf('\\'),
+      )))
+      : undefined;
     panel.webview.options = {
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'dist')],
+      localResourceRoots: [
+        vscode.Uri.joinPath(this.extensionUri, 'dist'),
+        ...(documentDirectory ? [documentDirectory] : []),
+      ],
     };
     panel.webview.html = createWebviewHtml(panel.webview, this.extensionUri);
 
@@ -423,6 +438,12 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
     let latestState: WebviewStateMessage | undefined;
     let panelDisposeListener: vscode.Disposable;
     const documentKey = document.uri.toString();
+    const sourceContext = {
+      source: 'file' as const,
+      runtime: 'vscode-webview' as const,
+      documentUrl: documentKey,
+      contentUrl: panel.webview.asWebviewUri(document.uri).toString(),
+    };
     const sendSettings = (settings?: PreviewSettings) => {
       if (!isReady || isDisposed) {
         return;
@@ -565,6 +586,7 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
         text: latestText,
         version: latestVersion,
         documentKey,
+        sourceContext,
       };
       const documentUri = document.uri.toString();
 
@@ -580,6 +602,7 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
           text: latestText,
           version: latestVersion,
           documentKey,
+          sourceContext,
         };
         sendLatestState();
       });

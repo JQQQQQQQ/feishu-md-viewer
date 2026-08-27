@@ -233,6 +233,12 @@ describe('MarkdownPreviewProvider', () => {
       text: '# 初始内容',
       version: 3,
       documentKey: 'file:///guide.md',
+      sourceContext: {
+        source: 'file',
+        runtime: 'vscode-webview',
+        documentUrl: 'file:///guide.md',
+        contentUrl: 'vscode-webview-resource://preview/guide.md',
+      },
     });
   });
 
@@ -264,6 +270,12 @@ describe('MarkdownPreviewProvider', () => {
       text: '# 延迟打开的内容',
       version: 7,
       documentKey: 'file:///guide.md',
+      sourceContext: {
+        source: 'file',
+        runtime: 'vscode-webview',
+        documentUrl: 'file:///guide.md',
+        contentUrl: 'vscode-webview-resource://preview/guide.md',
+      },
     });
   });
 
@@ -294,6 +306,12 @@ describe('MarkdownPreviewProvider', () => {
       text: '# Webview 重建前的最新内容',
       version: 4,
       documentKey: 'file:///guide.md',
+      sourceContext: {
+        source: 'file',
+        runtime: 'vscode-webview',
+        documentUrl: 'file:///guide.md',
+        contentUrl: 'vscode-webview-resource://preview/guide.md',
+      },
     });
   });
 
@@ -323,6 +341,12 @@ describe('MarkdownPreviewProvider', () => {
       text: '# 新内容',
       version: 4,
       documentKey: 'file:///guide.md',
+      sourceContext: {
+        source: 'file',
+        runtime: 'vscode-webview',
+        documentUrl: 'file:///guide.md',
+        contentUrl: 'vscode-webview-resource://preview/guide.md',
+      },
     });
   });
 
@@ -352,6 +376,12 @@ describe('MarkdownPreviewProvider', () => {
       text: '# 第三版',
       version: 3,
       documentKey: 'file:///guide.md',
+      sourceContext: {
+        source: 'file',
+        runtime: 'vscode-webview',
+        documentUrl: 'file:///guide.md',
+        contentUrl: 'vscode-webview-resource://preview/guide.md',
+      },
     });
   });
 

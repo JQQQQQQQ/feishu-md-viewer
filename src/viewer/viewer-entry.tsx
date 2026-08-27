@@ -6,6 +6,7 @@
 import { createRoot } from 'react-dom/client';
 import { useState, useEffect, useCallback } from 'react';
 import { App } from './App';
+import { createMarkdownSourceContext } from '../lib/markdown-resource-resolver';
 import { LoadingState } from './components/Common/LoadingState';
 import { ErrorState } from './components/Common/ErrorState';
 import './styles/feishu-theme.css';
@@ -128,7 +129,13 @@ function ViewerPage() {
 
   const source = getSourceFromUrl(targetUrl);
 
-  return <App markdown={content} source={source} />;
+  return (
+    <App
+      markdown={content}
+      source={source}
+      sourceContext={createMarkdownSourceContext(source, targetUrl)}
+    />
+  );
 }
 
 const rootElement = document.getElementById('viewer-root');

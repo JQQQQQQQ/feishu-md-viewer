@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { parseMarkdown } from '../../../lib/markdown-pipeline';
+import type { MarkdownSourceContext } from '../../../lib/markdown-resource-resolver';
 import {
   areTableIdentityRecordsEqual,
   getTableIdentityCandidate,
@@ -11,10 +12,11 @@ import {
 
 interface MarkdownReadViewProps {
   content: string;
+  sourceContext?: MarkdownSourceContext;
 }
 
-export function MarkdownReadView({ content }: MarkdownReadViewProps) {
-  const rendered = useMemo(() => parseMarkdown(content), [content]);
+export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewProps) {
+  const rendered = useMemo(() => parseMarkdown(content, sourceContext), [content, sourceContext]);
   const rootRef = useRef<HTMLDivElement>(null);
   const tableIdentityRecordsRef = useRef<TableIdentityRecord[] | null>(null);
   if (tableIdentityRecordsRef.current === null) {

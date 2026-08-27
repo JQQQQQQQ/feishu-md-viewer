@@ -16,11 +16,13 @@ declare module 'vscode' {
   }
 
   export interface Uri {
+    readonly fsPath?: string;
     toString(): string;
   }
 
   export namespace Uri {
     function joinPath(base: Uri, ...pathSegments: string[]): Uri;
+    function file(path: string): Uri;
   }
 
   export interface TextDocument {
