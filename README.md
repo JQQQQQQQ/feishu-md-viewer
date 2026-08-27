@@ -44,9 +44,9 @@
 
 ### Chrome 扩展
 
-从 [GitHub Release v0.1.0](https://github.com/JQQQQQQQ/feishu-md-viewer/releases/tag/v0.1.0) 下载：
+从 [GitHub Release v0.1.1](https://github.com/JQQQQQQQ/feishu-md-viewer/releases/tag/v0.1.1) 下载：
 
-[下载 Chrome 扩展](https://github.com/JQQQQQQQ/feishu-md-viewer/releases/download/v0.1.0/feishu-md-viewer-chrome-0.1.0.zip)
+[下载 Chrome 扩展](https://github.com/JQQQQQQQ/feishu-md-viewer/releases/download/v0.1.1/feishu-md-viewer-chrome-0.1.1.zip)
 
 安装步骤：
 
@@ -60,7 +60,7 @@
 
 当前 VS Code 扩展版本为 `0.1.6`，从 Release 下载：
 
-[下载 VS Code 扩展](https://github.com/JQQQQQQQ/feishu-md-viewer/releases/download/v0.1.0/feishu-md-viewer-vscode-0.1.6.vsix)
+[下载 VS Code 扩展](https://github.com/JQQQQQQQ/feishu-md-viewer/releases/download/v0.1.1/feishu-md-viewer-vscode-0.1.6.vsix)
 
 安装方式：
 
@@ -168,7 +168,7 @@ Chrome 扩展和 VS Code 扩展使用独立版本号：
 
 | 产品         | 当前版本 |
 | ------------ | -------- |
-| Chrome 扩展  | `0.1.0`  |
+| Chrome 扩展  | `0.1.1`  |
 | VS Code 扩展 | `0.1.6`  |
 
 两个版本会在同一个 GitHub Release 中发布，但安装包、版本号和发布节奏可以独立演进。
