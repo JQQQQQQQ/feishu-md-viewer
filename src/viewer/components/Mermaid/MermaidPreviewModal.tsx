@@ -74,26 +74,40 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const previewSize = useMemo(() => getSvgPreviewSize(safeSvg), [safeSvg]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const toolbarHideTimerRef = useRef<number | null>(null);
+  const toolbarHasFocusRef = useRef(false);
+  const applyingInitialToolbarFocusRef = useRef(false);
+  const pointerOverToolbarRef = useRef(false);
+  const pointerOverHitAreaRef = useRef(false);
 
-  const showToolbar = useCallback((_reason?: 'pointer' | 'keyboard' | 'focus') => {
+  const clearToolbarHideTimer = useCallback(() => {
     if (toolbarHideTimerRef.current !== null) {
       window.clearTimeout(toolbarHideTimerRef.current);
       toolbarHideTimerRef.current = null;
     }
-    setToolbarVisible(true);
   }, []);
 
+  const toolbarHasFocus = useCallback(() => toolbarHasFocusRef.current, []);
+
+  const showToolbar = useCallback((_reason?: 'pointer' | 'keyboard' | 'focus') => {
+    clearToolbarHideTimer();
+    setToolbarVisible(true);
+  }, [clearToolbarHideTimer]);
+
   const scheduleToolbarHide = useCallback(() => {
-    if (toolbarHideTimerRef.current !== null) {
-      window.clearTimeout(toolbarHideTimerRef.current);
+    clearToolbarHideTimer();
+    if (toolbarHasFocus() || pointerOverToolbarRef.current || pointerOverHitAreaRef.current) {
+      return;
     }
     toolbarHideTimerRef.current = window.setTimeout(() => {
       toolbarHideTimerRef.current = null;
-      setToolbarVisible(false);
+      if (!toolbarHasFocus() && !pointerOverToolbarRef.current && !pointerOverHitAreaRef.current) {
+        setToolbarVisible(false);
+      }
     }, 180);
-  }, []);
+  }, [clearToolbarHideTimer, toolbarHasFocus]);
 
   const setZoomFromCenter = useCallback((nextZoom: number) => {
     const canvas = canvasRef.current;
@@ -136,6 +150,27 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     });
   }, []);
 
+  const cancelDrag = useCallback((resetDraggingState = true) => {
+    const canvas = canvasRef.current;
+    const dragState = dragStateRef.current;
+
+    if (canvas && dragState && canvas.hasPointerCapture(dragState.pointerId)) {
+      canvas.releasePointerCapture(dragState.pointerId);
+    }
+    dragStateRef.current = null;
+    if (resetDraggingState) setIsDragging(false);
+  }, []);
+
+  const cleanupPreviewInteraction = useCallback((resetDraggingState = true) => {
+    cancelDrag(resetDraggingState);
+    clearToolbarHideTimer();
+  }, [cancelDrag, clearToolbarHideTimer]);
+
+  const closePreview = useCallback(() => {
+    cleanupPreviewInteraction();
+    onClose();
+  }, [cleanupPreviewInteraction, onClose]);
+
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
 
@@ -165,15 +200,10 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
 
   const stopDrag = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const dragState = dragStateRef.current;
-    const canvas = canvasRef.current;
-    if (!dragState || !canvas || event.pointerId !== dragState.pointerId) return;
+    if (!dragState || event.pointerId !== dragState.pointerId) return;
 
-    if (canvas.hasPointerCapture(event.pointerId)) {
-      canvas.releasePointerCapture(event.pointerId);
-    }
-    dragStateRef.current = null;
-    setIsDragging(false);
-  }, []);
+    cancelDrag();
+  }, [cancelDrag]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -181,21 +211,21 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
 
       event.preventDefault();
       event.stopPropagation();
-      onClose();
+      closePreview();
     };
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [onClose]);
+  }, [closePreview]);
 
-  useEffect(() => () => {
-    if (toolbarHideTimerRef.current !== null) {
-      window.clearTimeout(toolbarHideTimerRef.current);
-    }
-  }, []);
+  useEffect(() => () => cleanupPreviewInteraction(false), [cleanupPreviewInteraction]);
 
   useEffect(() => {
-    const frameId = requestAnimationFrame(() => closeButtonRef.current?.focus());
+    const frameId = requestAnimationFrame(() => {
+      applyingInitialToolbarFocusRef.current = true;
+      closeButtonRef.current?.focus();
+      applyingInitialToolbarFocusRef.current = false;
+    });
     return () => cancelAnimationFrame(frameId);
   }, []);
 
@@ -214,7 +244,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       aria-modal="true"
       aria-label="Mermaid diagram preview"
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) closePreview();
       }}
     >
       <div className="mermaid-preview-dialog">
@@ -247,14 +277,37 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
         </div>
         <div
           className="mermaid-preview-bottom-hit-area"
-          onPointerEnter={() => showToolbar('pointer')}
-          onPointerLeave={scheduleToolbarHide}
+          onPointerEnter={() => {
+            pointerOverHitAreaRef.current = true;
+            showToolbar('pointer');
+          }}
+          onPointerLeave={() => {
+            pointerOverHitAreaRef.current = false;
+            scheduleToolbarHide();
+          }}
         />
         <div
+          ref={toolbarRef}
           className={`mermaid-preview-toolbar mermaid-preview-toolbar--${toolbarVisible ? 'visible' : 'hidden'}`}
-          onPointerEnter={() => showToolbar('pointer')}
-          onPointerLeave={scheduleToolbarHide}
-          onFocus={() => showToolbar('focus')}
+          onPointerEnter={() => {
+            pointerOverToolbarRef.current = true;
+            showToolbar('pointer');
+          }}
+          onPointerLeave={() => {
+            pointerOverToolbarRef.current = false;
+            scheduleToolbarHide();
+          }}
+          onFocus={() => {
+            if (!applyingInitialToolbarFocusRef.current) {
+              toolbarHasFocusRef.current = true;
+            }
+            showToolbar('focus');
+          }}
+          onBlur={(event) => {
+            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+            toolbarHasFocusRef.current = false;
+            scheduleToolbarHide();
+          }}
           onKeyDown={() => showToolbar('keyboard')}
         >
           <span className="mermaid-preview-toolbar__title">Mermaid 预览</span>
@@ -300,7 +353,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
             className="mermaid-preview-toolbar__close"
             type="button"
             aria-label="Close Mermaid preview"
-            onClick={onClose}
+            onClick={closePreview}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
