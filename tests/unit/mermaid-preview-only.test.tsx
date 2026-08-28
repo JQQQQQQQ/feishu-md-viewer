@@ -116,10 +116,23 @@ describe('Mermaid 预览专用工具栏', () => {
     const releasePointerCapture = vi.fn();
     const hasPointerCapture = vi.fn(() => true);
     Object.assign(canvas, { setPointerCapture, releasePointerCapture, hasPointerCapture });
+    let scrollLeft = 200;
+    let scrollTop = 200;
+    Object.defineProperties(canvas, {
+      clientWidth: { configurable: true, value: 200 },
+      clientHeight: { configurable: true, value: 160 },
+      scrollWidth: { configurable: true, value: 800 },
+      scrollHeight: { configurable: true, value: 600 },
+      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
+      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+    });
     const normalDown = createEvent.pointerDown(canvas, { button: 0, pointerId: 1, clientX: 10, clientY: 10 });
     fireEvent(canvas, normalDown);
     expect(normalDown.defaultPrevented).toBe(false);
     expect(setPointerCapture).not.toHaveBeenCalled();
+    fireEvent.pointerMove(canvas, { pointerId: 1, clientX: 50, clientY: 60 });
+    expect(canvas.scrollLeft).toBe(200);
+    expect(canvas.scrollTop).toBe(200);
     expect(canvas).not.toHaveClass('mermaid-preview-canvas--space-pan');
     fireEvent.keyDown(window, { key: ' ' });
     expect(canvas).toHaveClass('mermaid-preview-canvas--space-pan');
@@ -128,6 +141,9 @@ describe('Mermaid 预览专用工具栏', () => {
     expect(spaceDown.defaultPrevented).toBe(true);
     expect(setPointerCapture).toHaveBeenCalledWith(2);
     expect(canvas).toHaveClass('mermaid-preview-canvas--dragging');
+    fireEvent.pointerMove(canvas, { pointerId: 2, clientX: 50, clientY: 60 });
+    expect(canvas.scrollLeft).toBe(160);
+    expect(canvas.scrollTop).toBe(150);
     fireEvent.pointerUp(canvas, { button: 0, pointerId: 2 });
     expect(releasePointerCapture).toHaveBeenCalledWith(2);
     expect(canvas).not.toHaveClass('mermaid-preview-canvas--dragging');
@@ -141,9 +157,12 @@ describe('Mermaid 预览专用工具栏', () => {
     const zoomLabel = screen.getByRole('dialog').querySelector('.mermaid-preview-toolbar__zoom');
     const zoomBefore = zoomLabel?.textContent;
     const scrollLeftBefore = canvas.scrollLeft;
+    const scrollTopBefore = canvas.scrollTop;
+    fireEvent.wheel(canvas, { deltaY: 80, shiftKey: false });
+    expect(canvas.scrollTop).toBe(scrollTopBefore + 80);
+    expect(zoomLabel?.textContent).toBe(zoomBefore);
     fireEvent.wheel(canvas, { deltaY: 80, shiftKey: true });
     expect(canvas.scrollLeft).toBeGreaterThan(scrollLeftBefore);
-    fireEvent.wheel(canvas, { deltaY: 80, shiftKey: false });
     expect(zoomLabel?.textContent).toBe(zoomBefore);
     vi.useRealTimers();
   });
