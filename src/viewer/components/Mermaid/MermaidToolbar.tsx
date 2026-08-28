@@ -20,6 +20,7 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSvg, setPreviewSvg] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const previewButtonRef = useRef<HTMLButtonElement>(null);
 
   const getSvgElement = useCallback((): SVGElement | null => {
     if (!containerRef.current) return null;
@@ -44,6 +45,7 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
 
   const handleClosePreview = useCallback(() => {
     setIsPreviewOpen(false);
+    requestAnimationFrame(() => previewButtonRef.current?.focus());
   }, []);
 
   const handleExportSvg = useCallback(() => {
@@ -97,6 +99,7 @@ export function MermaidToolbar({ code, blockIndex, children }: MermaidToolbarPro
     <div className="mermaid-toolbar-wrapper" ref={containerRef} data-mermaid-block-index={blockIndex}>
       <div className="mermaid-toolbar">
         <button
+          ref={previewButtonRef}
           className="mermaid-toolbar__preview-btn"
           onClick={handleOpenPreview}
           type="button"

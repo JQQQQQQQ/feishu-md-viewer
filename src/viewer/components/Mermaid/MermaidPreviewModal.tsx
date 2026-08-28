@@ -72,6 +72,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const safeSvg = useMemo(() => sanitizeMermaidSvg(svg, { expandBounds: false }), [svg]);
   const previewSize = useMemo(() => getSvgPreviewSize(safeSvg), [safeSvg]);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dragStateRef = useRef<DragState | null>(null);
 
   const setZoomFromCenter = useCallback((nextZoom: number) => {
@@ -164,6 +165,11 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   }, [onClose]);
 
   useEffect(() => {
+    const frameId = requestAnimationFrame(() => closeButtonRef.current?.focus());
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
     const frameId = requestAnimationFrame(() => {
       fitToCanvas();
     });
@@ -177,12 +183,8 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       role="dialog"
       aria-modal="true"
       aria-label="Mermaid diagram preview"
-      onMouseDown={onClose}
     >
-      <div
-        className="mermaid-preview-dialog"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
+      <div className="mermaid-preview-dialog">
         <div className="mermaid-preview-toolbar">
           <span className="mermaid-preview-toolbar__title">Mermaid 预览</span>
           <div className="mermaid-preview-toolbar__actions" aria-label="Mermaid preview controls">
@@ -223,6 +225,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
             {Math.round(zoom * 100)}%
           </span>
           <button
+            ref={closeButtonRef}
             className="mermaid-preview-toolbar__close"
             type="button"
             aria-label="Close Mermaid preview"

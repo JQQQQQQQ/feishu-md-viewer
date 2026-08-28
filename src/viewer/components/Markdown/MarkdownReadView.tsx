@@ -9,6 +9,7 @@ import {
   readPersistedTableIdentities,
   type TableIdentityRecord,
 } from './FeishuTableIdentity';
+import { ImagePreviewProvider } from './ImagePreview';
 
 interface MarkdownReadViewProps {
   content: string;
@@ -33,7 +34,9 @@ export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewPro
         tableIdentityRecordsRef.current = persisted;
       }
 
-      const tables = Array.from(root.querySelectorAll<HTMLTableElement>('.feishu-table__scrollport > table'));
+      const tables = Array.from(
+        root.querySelectorAll<HTMLTableElement>('.feishu-table__scrollport > table'),
+      );
       const candidates = tables
         .map(getTableIdentityCandidate)
         .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
@@ -53,7 +56,9 @@ export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewPro
       // this after the early return would leave reopened tables on new IDs and
       // prevent their persisted widths from being found.
       matched.forEach((record) => {
-        const table = tables.find((candidate) => candidate.dataset.feishuTableId === record.currentId);
+        const table = tables.find(
+          (candidate) => candidate.dataset.feishuTableId === record.currentId,
+        );
         if (table) table.dataset.feishuTableId = record.id;
       });
 
@@ -81,8 +86,10 @@ export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewPro
   }, [rendered]);
 
   return (
-    <div ref={rootRef} className="feishu-markdown-body">
-      {rendered}
-    </div>
+    <ImagePreviewProvider>
+      <div ref={rootRef} className="feishu-markdown-body">
+        {rendered}
+      </div>
+    </ImagePreviewProvider>
   );
 }

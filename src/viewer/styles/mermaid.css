@@ -70,23 +70,27 @@
   align-items: center;
   justify-content: center;
   padding: 32px;
-  background: rgba(15, 23, 42, 0.42);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(8px);
+  animation: mermaid-preview-fade-in 180ms ease-out both;
+  isolation: isolate;
   overscroll-behavior: contain;
 }
 
 .mermaid-preview-dialog {
   display: flex;
   flex-direction: column;
-  width: min(1120px, calc(100vw - 64px));
-  height: min(780px, calc(100vh - 64px));
+  width: min(1160px, calc(100vw - 64px));
+  height: min(800px, calc(100vh - 64px));
   max-height: calc(100vh - 64px);
   min-height: 320px;
   box-sizing: border-box;
   overflow: hidden;
   background: var(--feishu-bg-content);
   border: 1px solid var(--feishu-border-light);
-  border-radius: var(--feishu-radius);
-  box-shadow: 0 18px 48px rgba(31, 35, 41, 0.22);
+  border-radius: 14px;
+  box-shadow: 0 28px 90px rgba(15, 23, 42, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  animation: mermaid-preview-panel-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .mermaid-preview-toolbar {
@@ -94,10 +98,10 @@
   align-items: center;
   gap: 12px;
   flex: 0 0 auto;
-  min-height: 44px;
-  padding: 0 12px 0 16px;
+  min-height: 48px;
+  padding: 0 12px 0 18px;
   border-bottom: 1px solid var(--feishu-border-lighter);
-  background: var(--feishu-table-header-bg);
+  background: color-mix(in srgb, var(--feishu-bg-content) 94%, var(--feishu-brand-primary) 6%);
 }
 
 .mermaid-preview-toolbar__title {
@@ -105,6 +109,17 @@
   color: var(--feishu-text-primary);
   font-size: var(--feishu-font-size-base);
   font-weight: 600;
+}
+
+.mermaid-preview-toolbar__title::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--feishu-brand-primary);
+  content: '';
+  vertical-align: 1px;
 }
 
 .mermaid-preview-toolbar__zoom {
@@ -192,7 +207,9 @@
   /* Keep the preview surface consistent with the in-document Mermaid card.
    * The canvas still provides pan/zoom, but should not introduce a second
    * visual language (grid/page background) for the same diagram. */
-  background: var(--feishu-bg-content);
+  background: var(--feishu-bg-page);
+  background-image: radial-gradient(color-mix(in srgb, var(--feishu-border-light) 48%, transparent) 0.7px, transparent 0.7px);
+  background-size: 18px 18px;
 }
 
 .mermaid-preview-canvas--dragging {
@@ -219,6 +236,7 @@
   background: var(--feishu-bg-content);
   border: 1px solid var(--feishu-border-lighter);
   border-radius: var(--feishu-radius);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
 }
 
 .mermaid-preview-zoom svg {
@@ -247,5 +265,22 @@
 
   .mermaid-preview-canvas {
     padding: 24px;
+  }
+}
+
+@keyframes mermaid-preview-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mermaid-preview-panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mermaid-preview-overlay,
+  .mermaid-preview-dialog {
+    animation: none;
   }
 }
