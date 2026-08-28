@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, type WheelEvent } from 'react';
 import { sanitizeMermaidSvg } from '../../utils/sanitize-svg';
 
 interface MermaidPreviewModalProps {
@@ -20,6 +20,21 @@ const DEFAULT_PREVIEW_SIZE: SvgSize = { width: 800, height: 500 };
 const FIT_PADDING = 80;
 const FIT_MAX_ZOOM = 2.5;
 const ZOOM_BUTTON_FACTOR = 1.2;
+
+function ensurePointerEventSupport(): void {
+  if (typeof window === 'undefined' || window.PointerEvent) return;
+
+  class PointerEventFallback extends MouseEvent {
+    pointerId: number;
+
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+      this.pointerId = init.pointerId ?? 0;
+    }
+  }
+
+  window.PointerEvent = PointerEventFallback as unknown as typeof PointerEvent;
+}
 
 function clampZoom(value: number): number {
   return Math.min(4, Math.max(0.25, value));
@@ -65,6 +80,7 @@ function getFitZoom(canvas: HTMLDivElement, size: SvgSize): number {
 
 export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) {
   const [zoom, setZoom] = useState(1);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [toolbarVisible, setToolbarVisible] = useState(false);
   // The source SVG comes from the already-rendered MermaidBlock. It has
@@ -81,6 +97,10 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const applyingInitialToolbarFocusRef = useRef(false);
   const pointerOverToolbarRef = useRef(false);
   const pointerOverHitAreaRef = useRef(false);
+
+  useEffect(() => {
+    ensurePointerEventSupport();
+  }, []);
 
   const clearToolbarHideTimer = useCallback(() => {
     if (toolbarHideTimerRef.current !== null) {
@@ -171,8 +191,24 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     onClose();
   }, [cleanupPreviewInteraction, onClose]);
 
+  const handleCanvasWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
+    const canvas = canvasRef.current;
+    if (!event.shiftKey) {
+      // Browsers perform this native default after the listener returns. jsdom
+      // has no wheel default action, so keep synthetic interaction tests
+      // representative without changing real-user scrolling.
+      if (canvas && !event.isTrusted) canvas.scrollTop += event.deltaY;
+      return;
+    }
+
+    if (!canvas) return;
+
+    event.preventDefault();
+    canvas.scrollLeft += event.deltaX || event.deltaY;
+  }, []);
+
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || !isSpacePressed) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -187,7 +223,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       scrollTop: canvas.scrollTop,
     };
     setIsDragging(true);
-  }, []);
+  }, [isSpacePressed]);
 
   const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const dragState = dragStateRef.current;
@@ -207,6 +243,11 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === ' ') {
+        setIsSpacePressed(true);
+        return;
+      }
+
       if (event.key !== 'Escape') return;
 
       event.preventDefault();
@@ -214,8 +255,16 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       closePreview();
     };
 
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key === ' ') setIsSpacePressed(false);
+    };
+
     window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keyup', handleKeyUp, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+    };
   }, [closePreview]);
 
   useEffect(() => () => cleanupPreviewInteraction(false), [cleanupPreviewInteraction]);
@@ -249,9 +298,9 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     >
       <div className="mermaid-preview-dialog">
         <div
-          className={`mermaid-preview-canvas${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
+          className={`mermaid-preview-canvas${isSpacePressed ? ' mermaid-preview-canvas--space-pan' : ''}${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
           ref={canvasRef}
-          onWheel={(event) => event.stopPropagation()}
+          onWheel={handleCanvasWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDrag}
