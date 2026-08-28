@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MermaidPreviewModal } from '@/viewer/components/Mermaid/MermaidPreviewModal';
 import { MermaidToolbar } from '@/viewer/components/Mermaid/MermaidToolbar';
 
 const SOURCE = 'flowchart LR\n  A --> B';
@@ -31,6 +32,48 @@ function renderToolbar() {
       </div>
     </MermaidToolbar>,
   );
+}
+
+function deferAnimationFrames() {
+  const callbacks = new Map<number, FrameRequestCallback>();
+  let frameId = 0;
+
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    frameId += 1;
+    callbacks.set(frameId, callback);
+    return frameId;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+    callbacks.delete(id);
+  });
+
+  return {
+    flush() {
+      const pending = [...callbacks.entries()];
+      callbacks.clear();
+      pending.forEach(([, callback]) => callback(0));
+    },
+    pending() {
+      return callbacks.size;
+    },
+  };
+}
+
+function stubCanvasLayout(width: number, height: number, scrollWidth: number, scrollHeight: number) {
+  return [
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function () {
+      return this.classList.contains('mermaid-preview-canvas') ? width : 0;
+    }),
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function () {
+      return this.classList.contains('mermaid-preview-canvas') ? height : 0;
+    }),
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(function () {
+      return this.classList.contains('mermaid-preview-canvas') ? scrollWidth : 0;
+    }),
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function () {
+      return this.classList.contains('mermaid-preview-canvas') ? scrollHeight : 0;
+    }),
+  ];
 }
 
 describe('Mermaid 预览专用工具栏', () => {
@@ -83,6 +126,83 @@ describe('Mermaid 预览专用工具栏', () => {
 
     expect(event.defaultPrevented).toBe(false);
     expect(zoomLabel?.textContent).toBe('100%');
+  });
+
+  it('首次布局前隐藏画布，使用 viewBox 计算宽图 D2 缩放并从安全起点显示', () => {
+    const frames = deferAnimationFrames();
+    stubCanvasLayout(400, 300, 1000, 700);
+    render(
+      <MermaidPreviewModal
+        svg={'<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    let scrollLeft = 160;
+    let scrollTop = 80;
+    Object.defineProperties(canvas, {
+      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
+      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+    });
+
+    expect(canvas).toHaveAttribute('aria-busy', 'true');
+    act(() => frames.flush());
+
+    expect(canvas).not.toHaveAttribute('aria-busy');
+    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({ width: 'max(100%, 900px)' });
+    expect(scrollLeft).toBe(0);
+    expect(scrollTop).toBe(0);
+  });
+
+  it('在初始布局帧前点击适应也会完成定位并显示最终画布', () => {
+    const frames = deferAnimationFrames();
+    stubCanvasLayout(400, 300, 1000, 700);
+    render(
+      <MermaidPreviewModal
+        svg={'<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    expect(canvas).toHaveAttribute('aria-busy', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fit Mermaid preview to window' }));
+    act(() => frames.flush());
+
+    expect(canvas).not.toHaveAttribute('aria-busy');
+  });
+
+  it('100% 恢复实际尺寸后在一个可取消的布局帧内回到宽图安全起点', () => {
+    const frames = deferAnimationFrames();
+    stubCanvasLayout(400, 300, 1240, 800);
+    render(
+      <MermaidPreviewModal
+        svg={'<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    let scrollLeft = 0;
+    let scrollTop = 0;
+    Object.defineProperties(canvas, {
+      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
+      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+    });
+    act(() => frames.flush());
+    scrollLeft = 320;
+    scrollTop = 120;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Mermaid preview to actual size' }));
+
+    expect(frames.pending()).toBe(1);
+    expect(scrollLeft).toBe(320);
+    expect(scrollTop).toBe(120);
+    act(() => frames.flush());
+    expect(scrollLeft).toBe(0);
+    expect(scrollTop).toBe(0);
   });
 
   it('默认隐藏底部工具栏，热区或工具栏键盘操作显示且不改变画布布局', () => {

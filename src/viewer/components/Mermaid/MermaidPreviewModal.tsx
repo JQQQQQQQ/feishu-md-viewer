@@ -16,6 +16,7 @@ interface DragState {
   scrollLeft: number;
   scrollTop: number;
 }
+type ScrollPositioner = (canvas: HTMLDivElement) => void;
 const DEFAULT_PREVIEW_SIZE: SvgSize = { width: 800, height: 500 };
 const FIT_PADDING = 80;
 const FIT_MAX_ZOOM = 2.5;
@@ -64,8 +65,19 @@ function getFitZoom(canvas: HTMLDivElement, size: SvgSize): number {
   return clampZoom(Math.min(FIT_MAX_ZOOM, availableWidth / size.width, availableHeight / size.height));
 }
 
+function needsSafeStart(canvas: HTMLDivElement, size: SvgSize): boolean {
+  return size.width > Math.max(1, canvas.clientWidth - FIT_PADDING)
+    || size.height > Math.max(1, canvas.clientHeight - FIT_PADDING);
+}
+
+function resetCanvasToSafeStart(canvas: HTMLDivElement): void {
+  canvas.scrollLeft = 0;
+  canvas.scrollTop = 0;
+}
+
 export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) {
   const [zoom, setZoom] = useState(1);
+  const [isViewportReady, setIsViewportReady] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [toolbarVisible, setToolbarVisible] = useState(false);
@@ -83,6 +95,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const applyingInitialToolbarFocusRef = useRef(false);
   const pointerOverToolbarRef = useRef(false);
   const pointerOverHitAreaRef = useRef(false);
+  const scrollSyncFrameRef = useRef<number | null>(null);
 
   const clearToolbarHideTimer = useCallback(() => {
     if (toolbarHideTimerRef.current !== null) {
@@ -92,6 +105,28 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   }, []);
 
   const toolbarHasFocus = useCallback(() => toolbarHasFocusRef.current, []);
+
+  const cancelScrollSync = useCallback(() => {
+    if (scrollSyncFrameRef.current !== null) {
+      cancelAnimationFrame(scrollSyncFrameRef.current);
+      scrollSyncFrameRef.current = null;
+    }
+  }, []);
+
+  const syncScrollBounds = useCallback((position: ScrollPositioner, afterSync?: () => void) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    cancelScrollSync();
+    scrollSyncFrameRef.current = requestAnimationFrame(() => {
+      scrollSyncFrameRef.current = null;
+      const activeCanvas = canvasRef.current;
+      if (!activeCanvas) return;
+
+      position(activeCanvas);
+      afterSync?.();
+    });
+  }, [cancelScrollSync]);
 
   const showToolbar = useCallback((_reason?: 'pointer' | 'keyboard' | 'focus') => {
     clearToolbarHideTimer();
@@ -127,30 +162,51 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       const next = clampZoom(Number(nextZoom.toFixed(3)));
       const zoomRatio = next / current;
 
-      requestAnimationFrame(() => {
+      syncScrollBounds(() => {
         canvas.scrollLeft = scrollX * zoomRatio - centerX;
         canvas.scrollTop = scrollY * zoomRatio - centerY;
       });
 
       return next;
     });
-  }, []);
+  }, [syncScrollBounds]);
 
   const fitToCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     setZoom(Number(getFitZoom(canvas, previewSize).toFixed(3)));
-    requestAnimationFrame(() => centerCanvas(canvas));
-  }, [previewSize]);
+    syncScrollBounds(needsSafeStart(canvas, previewSize) ? resetCanvasToSafeStart : centerCanvas, () => {
+      setIsViewportReady(true);
+    });
+  }, [previewSize, syncScrollBounds]);
 
   const resetToActualSize = useCallback(() => {
+    const canvas = canvasRef.current;
     setZoom(1);
-    requestAnimationFrame(() => {
-      const canvas = canvasRef.current;
-      if (canvas) centerCanvas(canvas);
+    if (!canvas) return;
+
+    syncScrollBounds(needsSafeStart(canvas, previewSize) ? resetCanvasToSafeStart : centerCanvas, () => {
+      setIsViewportReady(true);
     });
-  }, []);
+  }, [previewSize, syncScrollBounds]);
+
+  const applyInitialViewport = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const hasMeasurableViewport = canvas.clientWidth > 0 && canvas.clientHeight > 0;
+    const requiresSafeStart = hasMeasurableViewport && needsSafeStart(canvas, previewSize);
+    const fitZoom = hasMeasurableViewport ? getFitZoom(canvas, previewSize) : 1;
+    const d2Zoom = requiresSafeStart && previewSize.width > canvas.clientWidth - FIT_PADDING
+      ? clampZoom(Math.max(0.75, fitZoom))
+      : fitZoom;
+
+    setZoom(Number(d2Zoom.toFixed(3)));
+    syncScrollBounds(requiresSafeStart ? resetCanvasToSafeStart : centerCanvas, () => {
+      setIsViewportReady(true);
+    });
+  }, [previewSize, syncScrollBounds]);
 
   const cancelDrag = useCallback((resetDraggingState = true) => {
     const canvas = canvasRef.current;
@@ -166,7 +222,8 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const cleanupPreviewInteraction = useCallback((resetDraggingState = true) => {
     cancelDrag(resetDraggingState);
     clearToolbarHideTimer();
-  }, [cancelDrag, clearToolbarHideTimer]);
+    cancelScrollSync();
+  }, [cancelDrag, cancelScrollSync, clearToolbarHideTimer]);
 
   const closePreview = useCallback(() => {
     cleanupPreviewInteraction();
@@ -277,12 +334,11 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   }, []);
 
   useEffect(() => {
-    const frameId = requestAnimationFrame(() => {
-      fitToCanvas();
-    });
+    setIsViewportReady(false);
+    applyInitialViewport();
 
-    return () => cancelAnimationFrame(frameId);
-  }, [fitToCanvas, safeSvg]);
+    return cancelScrollSync;
+  }, [applyInitialViewport, cancelScrollSync, safeSvg]);
 
   return (
     <div
@@ -296,8 +352,9 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     >
       <div className="mermaid-preview-dialog">
         <div
-          className={`mermaid-preview-canvas${isSpacePressed ? ' mermaid-preview-canvas--space-pan' : ''}${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
+          className={`mermaid-preview-canvas${isViewportReady ? ' mermaid-preview-canvas--viewport-ready' : ''}${isSpacePressed ? ' mermaid-preview-canvas--space-pan' : ''}${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
           ref={canvasRef}
+          aria-busy={isViewportReady ? undefined : 'true'}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDrag}

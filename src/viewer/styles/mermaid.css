@@ -248,6 +248,12 @@
   cursor: grabbing;
 }
 
+/* Keep the measured canvas in place while the initial scroll position is
+ * synchronized, so large diagrams never flash at an incorrect origin. */
+.mermaid-preview-canvas[aria-busy='true'] .mermaid-preview-content {
+  visibility: hidden;
+}
+
 .mermaid-preview-content {
   display: flex;
   align-items: center;
