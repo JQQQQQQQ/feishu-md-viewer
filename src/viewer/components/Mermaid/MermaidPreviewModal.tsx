@@ -17,6 +17,10 @@ interface DragState {
   scrollTop: number;
 }
 type ScrollPositioner = (canvas: HTMLDivElement) => void;
+interface ViewportPlan {
+  zoom: number;
+  position: ScrollPositioner;
+}
 const DEFAULT_PREVIEW_SIZE: SvgSize = { width: 800, height: 500 };
 const FIT_PADDING = 80;
 const FIT_MAX_ZOOM = 2.5;
@@ -75,6 +79,25 @@ function resetCanvasToSafeStart(canvas: HTMLDivElement): void {
   canvas.scrollTop = 0;
 }
 
+function roundZoom(value: number): number {
+  return Number(clampZoom(value).toFixed(3));
+}
+
+function getD2ViewportPlan(canvas: HTMLDivElement, size: SvgSize): ViewportPlan {
+  if (canvas.clientWidth <= 0 || canvas.clientHeight <= 0) {
+    return { zoom: 1, position: centerCanvas };
+  }
+
+  if (needsSafeStart(canvas, size)) {
+    return {
+      zoom: roundZoom(Math.max(0.75, getFitZoom(canvas, size))),
+      position: resetCanvasToSafeStart,
+    };
+  }
+
+  return { zoom: roundZoom(getFitZoom(canvas, size)), position: centerCanvas };
+}
+
 export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) {
   const [zoom, setZoom] = useState(1);
   const [isViewportReady, setIsViewportReady] = useState(false);
@@ -95,7 +118,9 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const applyingInitialToolbarFocusRef = useRef(false);
   const pointerOverToolbarRef = useRef(false);
   const pointerOverHitAreaRef = useRef(false);
+  const zoomRef = useRef(1);
   const scrollSyncFrameRef = useRef<number | null>(null);
+  const scrollSyncVersionRef = useRef(0);
 
   const clearToolbarHideTimer = useCallback(() => {
     if (toolbarHideTimerRef.current !== null) {
@@ -107,6 +132,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const toolbarHasFocus = useCallback(() => toolbarHasFocusRef.current, []);
 
   const cancelScrollSync = useCallback(() => {
+    scrollSyncVersionRef.current += 1;
     if (scrollSyncFrameRef.current !== null) {
       cancelAnimationFrame(scrollSyncFrameRef.current);
       scrollSyncFrameRef.current = null;
@@ -118,7 +144,9 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     if (!canvas) return;
 
     cancelScrollSync();
+    const syncVersion = scrollSyncVersionRef.current;
     scrollSyncFrameRef.current = requestAnimationFrame(() => {
+      if (syncVersion !== scrollSyncVersionRef.current) return;
       scrollSyncFrameRef.current = null;
       const activeCanvas = canvasRef.current;
       if (!activeCanvas) return;
@@ -146,10 +174,14 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     }, 180);
   }, [clearToolbarHideTimer, toolbarHasFocus]);
 
-  const setZoomFromCenter = useCallback((nextZoom: number) => {
+  const zoomFromCenter = useCallback((factor: number) => {
     const canvas = canvasRef.current;
+    const currentZoom = zoomRef.current;
+    const nextZoom = roundZoom(currentZoom * factor);
+    zoomRef.current = nextZoom;
+    setZoom(nextZoom);
+
     if (!canvas) {
-      setZoom(nextZoom);
       return;
     }
 
@@ -158,31 +190,32 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     const scrollX = canvas.scrollLeft + centerX;
     const scrollY = canvas.scrollTop + centerY;
 
-    setZoom((current) => {
-      const next = clampZoom(Number(nextZoom.toFixed(3)));
-      const zoomRatio = next / current;
-
-      syncScrollBounds(() => {
-        canvas.scrollLeft = scrollX * zoomRatio - centerX;
-        canvas.scrollTop = scrollY * zoomRatio - centerY;
-      });
-
-      return next;
+    const zoomRatio = nextZoom / currentZoom;
+    syncScrollBounds(() => {
+      canvas.scrollLeft = scrollX * zoomRatio - centerX;
+      canvas.scrollTop = scrollY * zoomRatio - centerY;
     });
   }, [syncScrollBounds]);
 
-  const fitToCanvas = useCallback(() => {
+  const applyD2Viewport = useCallback((afterSync?: () => void) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    setZoom(Number(getFitZoom(canvas, previewSize).toFixed(3)));
-    syncScrollBounds(needsSafeStart(canvas, previewSize) ? resetCanvasToSafeStart : centerCanvas, () => {
+    const plan = getD2ViewportPlan(canvas, previewSize);
+    zoomRef.current = plan.zoom;
+    setZoom(plan.zoom);
+    syncScrollBounds(plan.position, afterSync);
+  }, [previewSize, syncScrollBounds]);
+
+  const fitToCanvas = useCallback(() => {
+    applyD2Viewport(() => {
       setIsViewportReady(true);
     });
-  }, [previewSize, syncScrollBounds]);
+  }, [applyD2Viewport]);
 
   const resetToActualSize = useCallback(() => {
     const canvas = canvasRef.current;
+    zoomRef.current = 1;
     setZoom(1);
     if (!canvas) return;
 
@@ -192,21 +225,10 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   }, [previewSize, syncScrollBounds]);
 
   const applyInitialViewport = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const hasMeasurableViewport = canvas.clientWidth > 0 && canvas.clientHeight > 0;
-    const requiresSafeStart = hasMeasurableViewport && needsSafeStart(canvas, previewSize);
-    const fitZoom = hasMeasurableViewport ? getFitZoom(canvas, previewSize) : 1;
-    const d2Zoom = requiresSafeStart && previewSize.width > canvas.clientWidth - FIT_PADDING
-      ? clampZoom(Math.max(0.75, fitZoom))
-      : fitZoom;
-
-    setZoom(Number(d2Zoom.toFixed(3)));
-    syncScrollBounds(requiresSafeStart ? resetCanvasToSafeStart : centerCanvas, () => {
+    applyD2Viewport(() => {
       setIsViewportReady(true);
     });
-  }, [previewSize, syncScrollBounds]);
+  }, [applyD2Viewport]);
 
   const cancelDrag = useCallback((resetDraggingState = true) => {
     const canvas = canvasRef.current;
@@ -435,7 +457,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
               className="mermaid-preview-toolbar__icon-button"
               type="button"
               aria-label="Zoom out Mermaid preview"
-              onClick={() => setZoomFromCenter(zoom / ZOOM_BUTTON_FACTOR)}
+              onClick={() => zoomFromCenter(1 / ZOOM_BUTTON_FACTOR)}
             >
               -
             </button>
@@ -443,7 +465,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
               className="mermaid-preview-toolbar__icon-button"
               type="button"
               aria-label="Zoom in Mermaid preview"
-              onClick={() => setZoomFromCenter(zoom * ZOOM_BUTTON_FACTOR)}
+              onClick={() => zoomFromCenter(ZOOM_BUTTON_FACTOR)}
             >
               +
             </button>

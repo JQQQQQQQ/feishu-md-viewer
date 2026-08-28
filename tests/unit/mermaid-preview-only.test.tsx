@@ -36,11 +36,13 @@ function renderToolbar() {
 
 function deferAnimationFrames() {
   const callbacks = new Map<number, FrameRequestCallback>();
+  const allCallbacks = new Map<number, FrameRequestCallback>();
   let frameId = 0;
 
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
     frameId += 1;
     callbacks.set(frameId, callback);
+    allCallbacks.set(frameId, callback);
     return frameId;
   });
   vi.stubGlobal('cancelAnimationFrame', (id: number) => {
@@ -55,6 +57,13 @@ function deferAnimationFrames() {
     },
     pending() {
       return callbacks.size;
+    },
+    latestId() {
+      return frameId;
+    },
+    run(id: number) {
+      callbacks.delete(id);
+      allCallbacks.get(id)?.(0);
     },
   };
 }
@@ -172,6 +181,69 @@ describe('Mermaid 预览专用工具栏', () => {
     act(() => frames.flush());
 
     expect(canvas).not.toHaveAttribute('aria-busy');
+    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({ width: 'max(100%, 900px)' });
+  });
+
+  it('超长图首次打开和点击适应都保留至少 75% 的 D2 缩放与安全起点', () => {
+    const frames = deferAnimationFrames();
+    stubCanvasLayout(400, 300, 700, 1400);
+    render(
+      <MermaidPreviewModal
+        svg={'<svg viewBox="0 0 120 1200" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    let scrollLeft = 150;
+    let scrollTop = 500;
+    Object.defineProperties(canvas, {
+      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
+      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+    });
+
+    act(() => frames.flush());
+    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({ height: 'max(100%, 900px)' });
+    expect(scrollLeft).toBe(0);
+    expect(scrollTop).toBe(0);
+
+    scrollLeft = 160;
+    scrollTop = 640;
+    fireEvent.click(screen.getByRole('button', { name: 'Fit Mermaid preview to window' }));
+    act(() => frames.flush());
+    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({ height: 'max(100%, 900px)' });
+    expect(scrollLeft).toBe(0);
+    expect(scrollTop).toBe(0);
+  });
+
+  it('短图首次打开和点击适应都完整居中', () => {
+    const frames = deferAnimationFrames();
+    stubCanvasLayout(400, 300, 800, 600);
+    render(
+      <MermaidPreviewModal
+        svg={'<svg viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    let scrollLeft = 0;
+    let scrollTop = 0;
+    Object.defineProperties(canvas, {
+      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
+      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+    });
+
+    act(() => frames.flush());
+    expect(scrollLeft).toBe(200);
+    expect(scrollTop).toBe(150);
+
+    scrollLeft = 0;
+    scrollTop = 0;
+    fireEvent.click(screen.getByRole('button', { name: 'Fit Mermaid preview to window' }));
+    act(() => frames.flush());
+    expect(scrollLeft).toBe(200);
+    expect(scrollTop).toBe(150);
   });
 
   it('100% 恢复实际尺寸后在一个可取消的布局帧内回到宽图安全起点', () => {
@@ -203,6 +275,69 @@ describe('Mermaid 预览专用工具栏', () => {
     act(() => frames.flush());
     expect(scrollLeft).toBe(0);
     expect(scrollTop).toBe(0);
+  });
+
+  it('连续按钮缩放只保留最后一个滚动同步帧', () => {
+    const frames = deferAnimationFrames();
+    stubCanvasLayout(400, 300, 1200, 900);
+    render(
+      <MermaidPreviewModal
+        svg={'<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    Object.defineProperties(canvas, {
+      scrollLeft: { configurable: true, writable: true, value: 180 },
+      scrollTop: { configurable: true, writable: true, value: 120 },
+    });
+    act(() => frames.flush());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in Mermaid preview' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in Mermaid preview' }));
+
+    expect(frames.pending()).toBe(1);
+    act(() => frames.flush());
+    expect(screen.getByRole('dialog').querySelector('.mermaid-preview-toolbar__zoom')).toHaveTextContent('108%');
+  });
+
+  it('关闭或卸载后即使旧 RAF 被调用也不会写入画布滚动位置', () => {
+    const frames = deferAnimationFrames();
+    stubCanvasLayout(400, 300, 1200, 900);
+    const onClose = vi.fn();
+    const view = render(
+      <MermaidPreviewModal
+        svg={'<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        onClose={onClose}
+      />,
+    );
+
+    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    let scrollLeft = 180;
+    let scrollTop = 120;
+    Object.defineProperties(canvas, {
+      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
+      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+    });
+    act(() => frames.flush());
+    scrollLeft = 180;
+    scrollTop = 120;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in Mermaid preview' }));
+    const closeFrame = frames.latestId();
+    fireEvent.click(screen.getByRole('button', { name: 'Close Mermaid preview' }));
+    act(() => frames.run(closeFrame));
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(scrollLeft).toBe(180);
+    expect(scrollTop).toBe(120);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in Mermaid preview' }));
+    const unmountFrame = frames.latestId();
+    view.unmount();
+    act(() => frames.run(unmountFrame));
+    expect(scrollLeft).toBe(180);
+    expect(scrollTop).toBe(120);
   });
 
   it('默认隐藏底部工具栏，热区或工具栏键盘操作显示且不改变画布布局', () => {
