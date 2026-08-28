@@ -66,6 +66,7 @@ function getFitZoom(canvas: HTMLDivElement, size: SvgSize): number {
 export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) {
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [toolbarVisible, setToolbarVisible] = useState(false);
   // The source SVG comes from the already-rendered MermaidBlock. It has
   // already had its bounds expanded once; expanding it again shifts the
   // viewBox and makes preview edges/nodes appear offset from the document.
@@ -74,6 +75,25 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const canvasRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dragStateRef = useRef<DragState | null>(null);
+  const toolbarHideTimerRef = useRef<number | null>(null);
+
+  const showToolbar = useCallback((_reason?: 'pointer' | 'keyboard' | 'focus') => {
+    if (toolbarHideTimerRef.current !== null) {
+      window.clearTimeout(toolbarHideTimerRef.current);
+      toolbarHideTimerRef.current = null;
+    }
+    setToolbarVisible(true);
+  }, []);
+
+  const scheduleToolbarHide = useCallback(() => {
+    if (toolbarHideTimerRef.current !== null) {
+      window.clearTimeout(toolbarHideTimerRef.current);
+    }
+    toolbarHideTimerRef.current = window.setTimeout(() => {
+      toolbarHideTimerRef.current = null;
+      setToolbarVisible(false);
+    }, 180);
+  }, []);
 
   const setZoomFromCenter = useCallback((nextZoom: number) => {
     const canvas = canvasRef.current;
@@ -157,12 +177,22 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [onClose]);
+
+  useEffect(() => () => {
+    if (toolbarHideTimerRef.current !== null) {
+      window.clearTimeout(toolbarHideTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => closeButtonRef.current?.focus());
@@ -183,9 +213,50 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       role="dialog"
       aria-modal="true"
       aria-label="Mermaid diagram preview"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
       <div className="mermaid-preview-dialog">
-        <div className="mermaid-preview-toolbar">
+        <div
+          className={`mermaid-preview-canvas${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
+          ref={canvasRef}
+          onWheel={(event) => event.stopPropagation()}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDrag}
+          onPointerCancel={stopDrag}
+        >
+          <div
+            className="mermaid-preview-content"
+            style={{
+              width: `max(100%, ${previewSize.width * zoom}px)`,
+              height: `max(100%, ${previewSize.height * zoom}px)`,
+            }}
+          >
+            <div
+              className="mermaid-preview-zoom"
+              style={{
+                width: `${previewSize.width}px`,
+                height: `${previewSize.height}px`,
+                transform: `scale(${zoom})`,
+              }}
+              dangerouslySetInnerHTML={{ __html: safeSvg }}
+            />
+          </div>
+        </div>
+        <div
+          className="mermaid-preview-bottom-hit-area"
+          onPointerEnter={() => showToolbar('pointer')}
+          onPointerLeave={scheduleToolbarHide}
+        />
+        <div
+          className={`mermaid-preview-toolbar mermaid-preview-toolbar--${toolbarVisible ? 'visible' : 'hidden'}`}
+          onPointerEnter={() => showToolbar('pointer')}
+          onPointerLeave={scheduleToolbarHide}
+          onFocus={() => showToolbar('focus')}
+          onKeyDown={() => showToolbar('keyboard')}
+        >
           <span className="mermaid-preview-toolbar__title">Mermaid 预览</span>
           <div className="mermaid-preview-toolbar__actions" aria-label="Mermaid preview controls">
             <button
@@ -235,33 +306,6 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
-        </div>
-        <div
-          className={`mermaid-preview-canvas${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
-          ref={canvasRef}
-          onWheel={(event) => event.stopPropagation()}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={stopDrag}
-          onPointerCancel={stopDrag}
-        >
-          <div
-            className="mermaid-preview-content"
-            style={{
-              width: `max(100%, ${previewSize.width * zoom}px)`,
-              height: `max(100%, ${previewSize.height * zoom}px)`,
-            }}
-          >
-            <div
-              className="mermaid-preview-zoom"
-              style={{
-                width: `${previewSize.width}px`,
-                height: `${previewSize.height}px`,
-                transform: `scale(${zoom})`,
-              }}
-              dangerouslySetInnerHTML={{ __html: safeSvg }}
-            />
-          </div>
         </div>
       </div>
     </div>

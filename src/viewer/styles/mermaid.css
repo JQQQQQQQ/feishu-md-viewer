@@ -78,6 +78,7 @@
 }
 
 .mermaid-preview-dialog {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: min(1160px, calc(100vw - 64px));
@@ -94,14 +95,33 @@
 }
 
 .mermaid-preview-toolbar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 0 0 auto;
   min-height: 48px;
   padding: 0 12px 0 18px;
-  border-bottom: 1px solid var(--feishu-border-lighter);
+  border: 1px solid var(--feishu-border-lighter);
+  border-radius: 999px;
   background: color-mix(in srgb, var(--feishu-bg-content) 94%, var(--feishu-brand-primary) 6%);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.mermaid-preview-toolbar--hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 10px);
+}
+
+.mermaid-preview-toolbar--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
 }
 
 .mermaid-preview-toolbar__title {
@@ -196,6 +216,7 @@
 }
 
 .mermaid-preview-canvas {
+  position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -210,6 +231,13 @@
   background: var(--feishu-bg-page);
   background-image: radial-gradient(color-mix(in srgb, var(--feishu-border-light) 48%, transparent) 0.7px, transparent 0.7px);
   background-size: 18px 18px;
+}
+
+.mermaid-preview-bottom-hit-area {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+  height: 56px;
 }
 
 .mermaid-preview-canvas--dragging {
@@ -280,7 +308,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .mermaid-preview-overlay,
-  .mermaid-preview-dialog {
+  .mermaid-preview-dialog,
+  .mermaid-preview-toolbar {
     animation: none;
+    transition: none;
   }
 }
