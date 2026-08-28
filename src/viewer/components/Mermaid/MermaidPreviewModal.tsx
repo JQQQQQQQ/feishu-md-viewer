@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, type WheelEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { sanitizeMermaidSvg } from '../../utils/sanitize-svg';
 
 interface MermaidPreviewModalProps {
@@ -20,21 +20,7 @@ const DEFAULT_PREVIEW_SIZE: SvgSize = { width: 800, height: 500 };
 const FIT_PADDING = 80;
 const FIT_MAX_ZOOM = 2.5;
 const ZOOM_BUTTON_FACTOR = 1.2;
-
-function ensurePointerEventSupport(): void {
-  if (typeof window === 'undefined' || window.PointerEvent) return;
-
-  class PointerEventFallback extends MouseEvent {
-    pointerId: number;
-
-    constructor(type: string, init: PointerEventInit = {}) {
-      super(type, init);
-      this.pointerId = init.pointerId ?? 0;
-    }
-  }
-
-  window.PointerEvent = PointerEventFallback as unknown as typeof PointerEvent;
-}
+const WHEEL_LINE_HEIGHT = 16;
 
 function clampZoom(value: number): number {
   return Math.min(4, Math.max(0.25, value));
@@ -97,10 +83,6 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   const applyingInitialToolbarFocusRef = useRef(false);
   const pointerOverToolbarRef = useRef(false);
   const pointerOverHitAreaRef = useRef(false);
-
-  useEffect(() => {
-    ensurePointerEventSupport();
-  }, []);
 
   const clearToolbarHideTimer = useCallback(() => {
     if (toolbarHideTimerRef.current !== null) {
@@ -191,21 +173,34 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     onClose();
   }, [cleanupPreviewInteraction, onClose]);
 
-  const handleCanvasWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
-    const canvas = canvasRef.current;
-    if (!event.shiftKey) {
-      // Browsers perform this native default after the listener returns. jsdom
-      // has no wheel default action, so keep synthetic interaction tests
-      // representative without changing real-user scrolling.
-      if (canvas && !event.isTrusted) canvas.scrollTop += event.deltaY;
-      return;
-    }
+  const handleCanvasWheel = useCallback((event: WheelEvent) => {
+    if (!event.shiftKey) return;
 
+    const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const rawDelta = event.deltaX || event.deltaY;
+    const delta = event.deltaMode === 1
+      ? rawDelta * WHEEL_LINE_HEIGHT
+      : event.deltaMode === 2
+        ? rawDelta * canvas.clientWidth
+        : rawDelta;
+    const maxScrollLeft = Math.max(0, canvas.scrollWidth - canvas.clientWidth);
+    const nextScrollLeft = Math.min(maxScrollLeft, Math.max(0, canvas.scrollLeft + delta));
+    if (delta === 0 || nextScrollLeft === canvas.scrollLeft) return;
+
     event.preventDefault();
-    canvas.scrollLeft += event.deltaX || event.deltaY;
+    canvas.scrollLeft = nextScrollLeft;
   }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Shift 横向平移需要能取消浏览器默认行为，因此不能依赖 React 的被动 wheel 委托监听。
+    canvas.addEventListener('wheel', handleCanvasWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleCanvasWheel);
+  }, [handleCanvasWheel]);
 
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || !isSpacePressed) return;
@@ -256,7 +251,10 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.key === ' ') setIsSpacePressed(false);
+      if (event.key !== ' ') return;
+
+      setIsSpacePressed(false);
+      cancelDrag();
     };
 
     window.addEventListener('keydown', handleKeyDown, true);
@@ -265,7 +263,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keyup', handleKeyUp, true);
     };
-  }, [closePreview]);
+  }, [cancelDrag, closePreview]);
 
   useEffect(() => () => cleanupPreviewInteraction(false), [cleanupPreviewInteraction]);
 
@@ -300,7 +298,6 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
         <div
           className={`mermaid-preview-canvas${isSpacePressed ? ' mermaid-preview-canvas--space-pan' : ''}${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
           ref={canvasRef}
-          onWheel={handleCanvasWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDrag}

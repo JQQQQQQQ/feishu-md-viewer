@@ -6,6 +6,22 @@ import { act, cleanup, createEvent, fireEvent, render, screen, waitFor } from '@
 import { MermaidToolbar } from '@/viewer/components/Mermaid/MermaidToolbar';
 
 const SOURCE = 'flowchart LR\n  A --> B';
+const WHEEL_LINE_HEIGHT = 16;
+
+class TestPointerEvent extends MouseEvent {
+  pointerId: number;
+
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init);
+    this.pointerId = init.pointerId ?? 0;
+  }
+}
+
+function emulateNativeVerticalCanvasScroll(canvas: HTMLDivElement): void {
+  canvas.addEventListener('wheel', (event) => {
+    if (!event.shiftKey) canvas.scrollTop += event.deltaY;
+  });
+}
 
 function renderToolbar() {
   return render(
@@ -21,12 +37,14 @@ describe('Mermaid 预览专用工具栏', () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
+    vi.stubGlobal('PointerEvent', TestPointerEvent);
     Object.assign(navigator, { clipboard: { writeText } });
   });
 
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -126,6 +144,7 @@ describe('Mermaid 预览专用工具栏', () => {
       scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
       scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
     });
+    emulateNativeVerticalCanvasScroll(canvas);
     const normalDown = createEvent.pointerDown(canvas, { button: 0, pointerId: 1, clientX: 10, clientY: 10 });
     fireEvent(canvas, normalDown);
     expect(normalDown.defaultPrevented).toBe(false);
@@ -142,6 +161,12 @@ describe('Mermaid 预览专用工具栏', () => {
     expect(setPointerCapture).toHaveBeenCalledWith(2);
     expect(canvas).toHaveClass('mermaid-preview-canvas--dragging');
     fireEvent.pointerMove(canvas, { pointerId: 2, clientX: 50, clientY: 60 });
+    expect(canvas.scrollLeft).toBe(160);
+    expect(canvas.scrollTop).toBe(150);
+    fireEvent.keyUp(window, { key: ' ' });
+    expect(releasePointerCapture).toHaveBeenCalledWith(2);
+    expect(canvas).not.toHaveClass('mermaid-preview-canvas--dragging');
+    fireEvent.pointerMove(canvas, { pointerId: 2, clientX: 90, clientY: 100 });
     expect(canvas.scrollLeft).toBe(160);
     expect(canvas.scrollTop).toBe(150);
     fireEvent.pointerUp(canvas, { button: 0, pointerId: 2 });
@@ -161,8 +186,23 @@ describe('Mermaid 预览专用工具栏', () => {
     fireEvent.wheel(canvas, { deltaY: 80, shiftKey: false });
     expect(canvas.scrollTop).toBe(scrollTopBefore + 80);
     expect(zoomLabel?.textContent).toBe(zoomBefore);
-    fireEvent.wheel(canvas, { deltaY: 80, shiftKey: true });
-    expect(canvas.scrollLeft).toBeGreaterThan(scrollLeftBefore);
+    const lineWheel = createEvent.wheel(canvas, { deltaY: 3, deltaMode: 1, shiftKey: true, cancelable: true });
+    fireEvent(canvas, lineWheel);
+    expect(lineWheel.defaultPrevented).toBe(true);
+    expect(canvas.scrollLeft).toBe(scrollLeftBefore + 3 * WHEEL_LINE_HEIGHT);
+    const pageWheel = createEvent.wheel(canvas, { deltaY: 1, deltaMode: 2, shiftKey: true, cancelable: true });
+    fireEvent(canvas, pageWheel);
+    expect(pageWheel.defaultPrevented).toBe(true);
+    expect(canvas.scrollLeft).toBe(scrollLeftBefore + 3 * WHEEL_LINE_HEIGHT + canvas.clientWidth);
+    const zeroWheel = createEvent.wheel(canvas, { deltaY: 0, deltaX: 0, shiftKey: true, cancelable: true });
+    fireEvent(canvas, zeroWheel);
+    expect(zeroWheel.defaultPrevented).toBe(false);
+    expect(canvas.scrollLeft).toBe(scrollLeftBefore + 3 * WHEEL_LINE_HEIGHT + canvas.clientWidth);
+    canvas.scrollLeft = canvas.scrollWidth - canvas.clientWidth;
+    const exhaustedWheel = createEvent.wheel(canvas, { deltaY: 80, shiftKey: true, cancelable: true });
+    fireEvent(canvas, exhaustedWheel);
+    expect(exhaustedWheel.defaultPrevented).toBe(false);
+    expect(canvas.scrollLeft).toBe(canvas.scrollWidth - canvas.clientWidth);
     expect(zoomLabel?.textContent).toBe(zoomBefore);
     vi.useRealTimers();
   });
