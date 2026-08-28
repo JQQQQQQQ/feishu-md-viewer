@@ -343,7 +343,12 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
         return;
       }
 
-      if (event.key.toLowerCase() === 'f') {
+      if (
+        event.key.toLowerCase() === 'f'
+        && !event.ctrlKey
+        && !event.metaKey
+        && !event.altKey
+      ) {
         event.preventDefault();
         showToolbar('keyboard');
         fitToCanvas();

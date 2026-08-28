@@ -481,6 +481,20 @@ describe('Mermaid 预览专用工具栏', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     await waitFor(() => expect(previewButton).toHaveFocus());
   });
+
+  it('不劫持带 Ctrl、Command 或 Alt 修饰的 f 查找快捷键', () => {
+    render(<MermaidPreviewModal svg={'<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'} onClose={vi.fn()} />);
+
+    ([
+      { ctrlKey: true },
+      { metaKey: true },
+      { altKey: true },
+    ] as const).forEach((modifiers) => {
+      const event = createEvent.keyDown(window, { key: 'f', cancelable: true, ...modifiers });
+      fireEvent(window, event);
+      expect(event.defaultPrevented).toBe(false);
+    });
+  });
 });
 
 describe('Mermaid 预览版源码写回清理', () => {

@@ -189,30 +189,52 @@ test.describe('浏览器 Markdown 预览', () => {
         await previewButton.click();
         return viewerLocator(page, '[role="dialog"][aria-label="Mermaid diagram preview"]');
       };
-      const getCanvasBackground = async (dialog: ReturnType<typeof viewerLocator>) => dialog
+      const getCanvasStyles = async (dialog: ReturnType<typeof viewerLocator>) => dialog
         .locator('.mermaid-preview-canvas')
-        .evaluate((element) => getComputedStyle(element).backgroundColor);
+        .evaluate((element) => {
+          const styles = getComputedStyle(element);
+          return { backgroundColor: styles.backgroundColor, backgroundImage: styles.backgroundImage };
+        });
+      const getSurfaceContrast = async (dialog: ReturnType<typeof viewerLocator>, selector: string) => dialog
+        .locator(selector)
+        .evaluate((element) => {
+          const styles = getComputedStyle(element);
+          return { borderColor: styles.borderTopColor, boxShadow: styles.boxShadow };
+        });
 
       await expect(viewer).toHaveClass(/feishu-viewer--light/);
       let dialog = await openPreview();
       await expect(dialog).toBeVisible();
-      await expect.poll(() => getCanvasBackground(dialog)).toBe('rgb(245, 246, 247)');
+      await expect.poll(() => getCanvasStyles(dialog)).toEqual({
+        backgroundColor: 'rgb(245, 246, 247)',
+        backgroundImage: 'none',
+      });
 
       const canvas = dialog.locator('.mermaid-preview-canvas');
       const zoom = dialog.locator('.mermaid-preview-toolbar__zoom');
+      const previewToolbar = dialog.locator('.mermaid-preview-toolbar');
       await canvas.click();
       await page.keyboard.press('0');
       await expect(zoom).toHaveText('100%');
+      await expect(previewToolbar).toHaveClass(/mermaid-preview-toolbar--visible/);
       await page.keyboard.press('+');
       const zoomAfterPlus = Number((await zoom.textContent())?.replace('%', ''));
       expect(zoomAfterPlus).toBeGreaterThan(100);
+      await expect(previewToolbar).toHaveClass(/mermaid-preview-toolbar--visible/);
       await page.keyboard.press('-');
       const zoomAfterMinus = Number((await zoom.textContent())?.replace('%', ''));
       expect(zoomAfterMinus).toBeLessThan(zoomAfterPlus);
+      await expect(previewToolbar).toHaveClass(/mermaid-preview-toolbar--visible/);
       await page.keyboard.press('0');
       await expect(zoom).toHaveText('100%');
+      await expect(previewToolbar).toHaveClass(/mermaid-preview-toolbar--visible/);
+      await dialog.getByRole('button', { name: 'Fit Mermaid preview to window' }).click();
+      const zoomAfterFitButton = await zoom.textContent();
+      expect(zoomAfterFitButton).not.toBeNull();
+      await page.keyboard.press('0');
       await page.keyboard.press('f');
-      await expect(zoom).not.toHaveText('100%');
+      await expect(zoom).toHaveText(zoomAfterFitButton ?? '');
+      await expect(previewToolbar).toHaveClass(/mermaid-preview-toolbar--visible/);
 
       await page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
@@ -221,7 +243,18 @@ test.describe('浏览器 Markdown 预览', () => {
       await themeButton.click();
       await expect(viewer).toHaveClass(/feishu-viewer--dark/);
       dialog = await openPreview();
-      await expect.poll(() => getCanvasBackground(dialog)).toBe('rgb(26, 26, 26)');
+      await expect.poll(() => getCanvasStyles(dialog)).toEqual({
+        backgroundColor: 'rgb(26, 26, 26)',
+        backgroundImage: 'none',
+      });
+      const darkZoomContrast = await getSurfaceContrast(dialog, '.mermaid-preview-zoom');
+      const darkToolbarContrast = await getSurfaceContrast(dialog, '.mermaid-preview-toolbar');
+      expect(darkZoomContrast.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+      expect(darkZoomContrast.borderColor).not.toBe('rgb(26, 26, 26)');
+      expect(darkZoomContrast.boxShadow).not.toBe('none');
+      expect(darkToolbarContrast.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+      expect(darkToolbarContrast.borderColor).not.toBe('rgb(26, 26, 26)');
+      expect(darkToolbarContrast.boxShadow).not.toBe('none');
       await dialog.locator('.mermaid-preview-canvas').click();
       await page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
