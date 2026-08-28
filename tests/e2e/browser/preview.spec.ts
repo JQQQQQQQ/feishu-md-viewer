@@ -145,6 +145,29 @@ test.describe('浏览器 Markdown 预览', () => {
     }
   });
 
+  test('Mermaid 预览工具栏按需显示并可点击遮罩关闭', async () => {
+    const fixture = await createTempMarkdownFixture();
+    const context = await createBrowserContext();
+    try {
+      const page = await context.newPage();
+      await page.goto(fixture.url, { waitUntil: 'domcontentloaded' });
+      await waitForViewer(page);
+      const toolbar = viewerLocator(page, '.mermaid-toolbar-wrapper').first();
+      await toolbar.hover();
+      await toolbar.locator('button[aria-label="Preview Mermaid diagram"]').click();
+      const dialog = viewerLocator(page, '[role="dialog"][aria-label="Mermaid diagram preview"]');
+      const hitArea = dialog.locator('.mermaid-preview-bottom-hit-area');
+      await expect(dialog.locator('.mermaid-preview-toolbar')).toHaveClass(/hidden/);
+      await hitArea.hover();
+      await expect(dialog.locator('.mermaid-preview-toolbar')).toHaveClass(/visible/);
+      await page.mouse.click(8, 8);
+      await expect(dialog).toHaveCount(0);
+    } finally {
+      await context.close();
+      await fixture.cleanup();
+    }
+  });
+
   test('自动刷新局部替换正文并保留滚动位置', async () => {
     const initial = '# 发布验收 Fixture\n\n自动刷新版本 1\n\n| 列 1 | 列 2 | 列 3 | 列 4 | 列 5 | 列 6 | 列 7 | 列 8 | 列 9 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| A | B | C | D | E | F | G | H | I |\n';
     const fixture = await createTempMarkdownFixture(initial);

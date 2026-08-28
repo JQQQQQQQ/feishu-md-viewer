@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MermaidToolbar } from '@/viewer/components/Mermaid/MermaidToolbar';
 
@@ -63,6 +64,41 @@ describe('Mermaid 预览专用工具栏', () => {
 
     expect(event.defaultPrevented).toBe(false);
     expect(zoomLabel?.textContent).toBe('100%');
+  });
+
+  it('默认隐藏底部工具栏，进入底部热区后显示且不改变画布结构', () => {
+    renderToolbar();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Mermaid diagram' }));
+    const dialog = screen.getByRole('dialog', { name: 'Mermaid diagram preview' });
+    const toolbar = dialog.querySelector('.mermaid-preview-toolbar');
+    const hitArea = dialog.querySelector('.mermaid-preview-bottom-hit-area');
+    expect(toolbar).toHaveClass('mermaid-preview-toolbar--hidden');
+    expect(hitArea).not.toBeNull();
+    fireEvent.pointerEnter(hitArea!);
+    expect(toolbar).toHaveClass('mermaid-preview-toolbar--visible');
+  });
+
+  it('只在按住空格时进入画布平移状态', () => {
+    renderToolbar();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Mermaid diagram' }));
+    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas')!;
+    fireEvent.pointerDown(canvas, { button: 0, pointerId: 1, clientX: 10, clientY: 10 });
+    expect(canvas).not.toHaveClass('mermaid-preview-canvas--space-pan');
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(canvas).toHaveClass('mermaid-preview-canvas--space-pan');
+    fireEvent.keyUp(window, { key: ' ' });
+  });
+
+  it('点击遮罩关闭，点击画布内容不关闭', () => {
+    renderToolbar();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Mermaid diagram' }));
+    const dialog = screen.getByRole('dialog', { name: 'Mermaid diagram preview' });
+    const overlay = dialog.parentElement!;
+    fireEvent.pointerDown(dialog.querySelector('.mermaid-preview-canvas')!);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.click(overlay);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Preview Mermaid diagram' })).toHaveFocus();
   });
 });
 
