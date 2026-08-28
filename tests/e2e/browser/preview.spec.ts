@@ -160,7 +160,9 @@ test.describe('浏览器 Markdown 预览', () => {
       await expect(dialog.locator('.mermaid-preview-toolbar')).toHaveClass(/hidden/);
       await hitArea.hover();
       await expect(dialog.locator('.mermaid-preview-toolbar')).toHaveClass(/visible/);
-      await page.mouse.click(8, 8);
+      const overlayBox = await dialog.boundingBox();
+      expect(overlayBox).not.toBeNull();
+      await page.mouse.click((overlayBox?.x ?? 0) + 4, (overlayBox?.y ?? 0) + 4);
       await expect(dialog).toHaveCount(0);
     } finally {
       await context.close();
