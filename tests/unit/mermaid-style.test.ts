@@ -83,4 +83,21 @@ describe('Mermaid modern visual theme', () => {
     expect(mermaidStylesheet).toContain('align-items: center;');
     expect(mermaidStylesheet).toContain('justify-content: center;');
   });
+
+  it('uses theme-owned preview surfaces without a canvas pattern and preserves dark contrast', () => {
+    const canvasRule = mermaidStylesheet.match(/\.mermaid-preview-canvas\s*\{[^}]*\}/);
+    const zoomRule = mermaidStylesheet.match(/\.mermaid-preview-zoom\s*\{[^}]*\}/);
+    const darkZoomRule = mermaidStylesheet.match(/\.feishu-viewer--dark \.mermaid-preview-zoom\s*\{[^}]*\}/);
+
+    expect(canvasRule, 'expected a Mermaid preview canvas rule').toBeTruthy();
+    expect(canvasRule?.[0]).toContain('background: var(--feishu-bg-page);');
+    expect(canvasRule?.[0]).not.toContain('background-image:');
+    expect(canvasRule?.[0]).not.toContain('background-size:');
+    expect(zoomRule, 'expected a Mermaid preview frame rule').toBeTruthy();
+    expect(zoomRule?.[0]).toContain('background: var(--feishu-bg-content);');
+    expect(zoomRule?.[0]).toContain('border: 1px solid var(--feishu-border-lighter);');
+    expect(darkZoomRule, 'expected a dark Mermaid preview frame contrast rule').toBeTruthy();
+    expect(darkZoomRule?.[0]).toMatch(/border-color:\s*rgba\(255, 255, 255,/i);
+    expect(darkZoomRule?.[0]).toMatch(/box-shadow:\s*0 10px 32px rgba\(0, 0, 0,/i);
+  });
 });

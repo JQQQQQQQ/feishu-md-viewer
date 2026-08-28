@@ -170,6 +170,68 @@ test.describe('浏览器 Markdown 预览', () => {
     }
   });
 
+  test('Mermaid 预览在主题、快捷键与焦点恢复间保持一致', async () => {
+    const fixture = await createTempMarkdownFixture();
+    const context = await createBrowserContext();
+    try {
+      await setViewerSettings(context, { theme: 'light' });
+      const page = await context.newPage();
+      await page.goto(fixture.url, { waitUntil: 'domcontentloaded' });
+      await waitForViewer(page);
+
+      const viewer = viewerLocator(page, '.feishu-viewer');
+      const themeButton = viewerLocator(page, 'button[aria-label^="Theme:"]');
+      const mermaidToolbar = viewerLocator(page, '.mermaid-toolbar-wrapper').first();
+      const previewButton = mermaidToolbar.locator('button[aria-label="Preview Mermaid diagram"]');
+      const openPreview = async () => {
+        await mermaidToolbar.scrollIntoViewIfNeeded();
+        await mermaidToolbar.hover();
+        await previewButton.click();
+        return viewerLocator(page, '[role="dialog"][aria-label="Mermaid diagram preview"]');
+      };
+      const getCanvasBackground = async (dialog: ReturnType<typeof viewerLocator>) => dialog
+        .locator('.mermaid-preview-canvas')
+        .evaluate((element) => getComputedStyle(element).backgroundColor);
+
+      await expect(viewer).toHaveClass(/feishu-viewer--light/);
+      let dialog = await openPreview();
+      await expect(dialog).toBeVisible();
+      await expect.poll(() => getCanvasBackground(dialog)).toBe('rgb(245, 246, 247)');
+
+      const canvas = dialog.locator('.mermaid-preview-canvas');
+      const zoom = dialog.locator('.mermaid-preview-toolbar__zoom');
+      await canvas.click();
+      await page.keyboard.press('0');
+      await expect(zoom).toHaveText('100%');
+      await page.keyboard.press('+');
+      const zoomAfterPlus = Number((await zoom.textContent())?.replace('%', ''));
+      expect(zoomAfterPlus).toBeGreaterThan(100);
+      await page.keyboard.press('-');
+      const zoomAfterMinus = Number((await zoom.textContent())?.replace('%', ''));
+      expect(zoomAfterMinus).toBeLessThan(zoomAfterPlus);
+      await page.keyboard.press('0');
+      await expect(zoom).toHaveText('100%');
+      await page.keyboard.press('f');
+      await expect(zoom).not.toHaveText('100%');
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      await expect(previewButton).toBeFocused();
+
+      await themeButton.click();
+      await expect(viewer).toHaveClass(/feishu-viewer--dark/);
+      dialog = await openPreview();
+      await expect.poll(() => getCanvasBackground(dialog)).toBe('rgb(26, 26, 26)');
+      await dialog.locator('.mermaid-preview-canvas').click();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      await expect(previewButton).toBeFocused();
+    } finally {
+      await context.close();
+      await fixture.cleanup();
+    }
+  });
+
   test('自动刷新局部替换正文并保留滚动位置', async () => {
     const initial = '# 发布验收 Fixture\n\n自动刷新版本 1\n\n| 列 1 | 列 2 | 列 3 | 列 4 | 列 5 | 列 6 | 列 7 | 列 8 | 列 9 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| A | B | C | D | E | F | G | H | I |\n';
     const fixture = await createTempMarkdownFixture(initial);

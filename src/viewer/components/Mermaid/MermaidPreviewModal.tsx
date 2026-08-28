@@ -322,6 +322,34 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
         return;
       }
 
+      if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        showToolbar('keyboard');
+        zoomFromCenter(ZOOM_BUTTON_FACTOR);
+        return;
+      }
+
+      if (event.key === '-') {
+        event.preventDefault();
+        showToolbar('keyboard');
+        zoomFromCenter(1 / ZOOM_BUTTON_FACTOR);
+        return;
+      }
+
+      if (event.key === '0') {
+        event.preventDefault();
+        showToolbar('keyboard');
+        resetToActualSize();
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'f') {
+        event.preventDefault();
+        showToolbar('keyboard');
+        fitToCanvas();
+        return;
+      }
+
       if (event.key !== 'Escape') return;
 
       event.preventDefault();
@@ -342,7 +370,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keyup', handleKeyUp, true);
     };
-  }, [cancelDrag, closePreview]);
+  }, [cancelDrag, closePreview, fitToCanvas, resetToActualSize, showToolbar, zoomFromCenter]);
 
   useEffect(() => () => cleanupPreviewInteraction(false), [cleanupPreviewInteraction]);
 
