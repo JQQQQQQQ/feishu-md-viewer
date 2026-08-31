@@ -160,7 +160,7 @@ It should preserve whitespace and remain readable on narrow screens.
 
 | 入口 | 所属系统 | 功能 | 代码路 |
 | --- | --- | --- | --- |
-| `RMSDataSync_Timer` / `RMSDataSyncMinute_Timer` / `RMSDataSyncTenMinute_Timer` / `RMSDataSyncThirtyMinute_Timer` | RMS Azure Function | 按不同周期扫描 Dataverse 实体增量，生成同步配置并推送到零售后台 DB 同步接口 | `/root/workspace/rms/AzureFunction/AzureFunctions/RMS2intl_DataSyncFunction/RMSDataSync.cs` |
+| `RMSDataSync_Timer` / `RMSDataSyncMinute_Timer` / `RMSDataSyncTenMinute1_Timer` / `RMSDataSyncThirtyMinute_Timer` | RMS Azure Function | 按不同周期扫描 Dataverse 实体增量，生成同步配置并推送到零售后台 DB 同步接口 | `/root/workspace/rms/AzureFunction/AzureFunctions/RMS2intl_DataSyncFunction/RMSDataSync.cs` |
 | `RMSDataSync_HttpStart` | RMS Azure Function | 手动触发指定表同步，可通过 `tableName`, `Hour`, 分页参数控制 | `/root/workspace/rms/AzureFunction/AzureFunctions/RMS2intl_DataSyncFunction/RMSDataSync.cs` |
 | `RmsSyncDbServiceImpl.syncRmsDbMsg` | 零售后台 | 接收 RMS DB 同步请求，按表名分流普通 Topic 与 Cold Topic | `/root/workspace/intl-retail/intl-retail-front/src/main/java/com/mi/info/intl/retail/sync/RmsSyncDbServiceImpl.java` |
 | `RmsSyncDbConsumer` | 零售后台 | 消费 `${intl-retail.rocketmq.syncdb.topic}`，调用 `RmsSyncDbManager.editDb` 落库 | `/root/workspace/intl-retail/intl-retail-front/src/main/java/com/mi/info/intl/retail/sync/RmsSyncDbConsumer.java` |
@@ -502,5 +502,277 @@ The script tag above should NOT execute.
 ```mermaid
 this is not valid mermaid syntax !!!
 ```
+231231343234324233242332131
 
-The block above should show an error state, not crash.
+## 第 10 节：复杂与长 Mermaid 验收
+
+本节用于验证长流程图在真实阅读场景下的预览体验。重点检查：
+
+- 点击正文中的流程图后，是否进入全屏画布，而不是小弹窗；
+- 画布中的图形是否整体居中，节点和连线不被裁切；
+- 使用鼠标滚轮时只进行上下滚动，不应意外缩放图形；
+- 缩放、拖拽、旋转（如支持）后，退出再重新打开时状态是否稳定；
+- 点击左上角“× 退出”或“退出”文字后，是否回到原来的正文滚动位置；
+- 长图在浅色和深色主题下都保持足够的文字、节点和连线对比度；
+- 图表加载失败时，错误提示应位于图表区域内，不应让整页消失或出现水平溢出。
+
+### 10.1 长分支流程图
+
+预期：图表包含多个分支和回环，打开全屏预览后应能完整滚动浏览；长节点文本不能把节点撑出画布，连线不能与文字严重重叠。
+
+```mermaid
+flowchart TD
+    A([开始：打开 Markdown 文档]) --> B{文件是否存在}
+    B -->|否| C[显示文件不存在提示]
+    C --> Z([结束])
+    B -->|是| D[读取文件内容]
+    D --> E{文件是否发生变化}
+    E -->|否| F[复用当前渲染结果]
+    E -->|是| G[局部更新正文]
+    F --> H{是否包含 Mermaid 代码块}
+    G --> H
+    H -->|否| I[渲染普通 Markdown]
+    H -->|是| J[提取 Mermaid 源码]
+    J --> K{语法是否有效}
+    K -->|否| L[显示 Mermaid 错误提示]
+    L --> M[保留原始源码供排查]
+    M --> N{用户是否点击重试}
+    N -->|否| Z
+    N -->|是| J
+    K -->|是| O[生成 SVG 图表]
+    O --> P{图表是否超出正文宽度}
+    P -->|否| Q[按正文宽度居中显示]
+    P -->|是| R[进入可滚动画布模式]
+    R --> S[保留原生滚动条]
+    S --> T{用户是否点击图表}
+    Q --> T
+    T -->|否| U[继续阅读正文]
+    T -->|是| V[打开全屏流程图画布]
+    V --> W[图表居中并保留安全边距]
+    W --> X{用户操作}
+    X -->|滚轮| Y[上下滚动画布]
+    X -->|拖拽| AA[平移图表]
+    X -->|缩放按钮| AB[按步长缩放]
+    X -->|退出| AC[关闭画布并恢复正文位置]
+    Y --> X
+    AA --> X
+    AB --> X
+    AC --> U
+    I --> U
+    U --> AD{用户是否切换主题}
+    AD -->|是| AE[重新应用主题变量]
+    AE --> U
+    AD -->|否| Z
+```
+
+### 10.2 大型子图与跨分组连线
+
+预期：子图之间存在跨区域连接，验证全屏模式下布局是否稳定；目录、正文和图表之间的层级不应互相遮挡。
+
+```mermaid
+flowchart LR
+    subgraph Client[客户端：浏览器或 VS Code]
+        C1[打开 Markdown]
+        C2[监听文件变化]
+        C3[更新阅读视图]
+        C4[打开全屏画布]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    subgraph Parse[解析层]
+        P1[读取 Markdown]
+        P2[remark 解析]
+        P3[rehype 转换]
+        P4[安全过滤]
+        P1 --> P2 --> P3 --> P4
+    end
+
+    subgraph Render[渲染层]
+        R1[普通 Markdown 块]
+        R2[表格渲染]
+        R3[代码块渲染]
+        R4[Mermaid 渲染]
+        R5[错误降级]
+        R1 --> R5
+        R2 --> R5
+        R3 --> R5
+        R4 --> R5
+    end
+
+    subgraph Interaction[交互层]
+        I1[目录定位]
+        I2[标题临时高亮]
+        I3[图表缩放]
+        I4[画布滚动]
+        I5[退出全屏]
+        I1 --> I2
+        I3 --> I4 --> I5
+    end
+
+    C1 --> P1
+    C2 --> P1
+    P4 --> R1
+    P4 --> R2
+    P4 --> R3
+    P4 --> R4
+    R4 --> C4
+    C3 --> I1
+    C4 --> I3
+    I5 --> C3
+    R5 --> C3
+```
+
+### 10.3 长时序图
+
+预期：参与者较多、消息较长时，时序图文字仍清晰可读；全屏画布可以上下滚动，消息箭头不会被顶部工具栏遮挡。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant Browser as 浏览器页面
+    participant Content as Content Script
+    participant Parser as Markdown Parser
+    participant Sanitizer as HTML Sanitizer
+    participant Mermaid as Mermaid Renderer
+    participant Store as Settings Store
+    participant Canvas as Fullscreen Canvas
+
+    User->>Browser: 打开本地 Markdown 文件
+    Browser->>Content: 注入阅读视图
+    Content->>Store: 读取主题、字号、目录和滚动设置
+    Store-->>Content: 返回持久化设置
+    Content->>Parser: 发送 Markdown 文本
+    Parser->>Parser: 解析标题、表格、代码块和 HTML
+    Parser->>Sanitizer: 发送待过滤的 HTML AST
+    Sanitizer-->>Parser: 返回安全 HTML AST
+    Parser-->>Content: 返回普通内容和 Mermaid 源码块
+    Content->>Mermaid: 渲染第一个 Mermaid 图表
+    Mermaid-->>Content: 返回 SVG 或错误结果
+    Content->>Mermaid: 渲染第二个 Mermaid 图表
+    Mermaid-->>Content: 返回 SVG 或错误结果
+    Content-->>Browser: 更新正文和目录
+    User->>Browser: 点击流程图
+    Browser->>Canvas: 创建全屏画布
+    Canvas->>Canvas: 计算图表边界并居中
+    Canvas-->>User: 展示全屏流程图
+    User->>Canvas: 使用滚轮向下浏览长图
+    Canvas-->>User: 只滚动画布，不改变缩放比例
+    User->>Canvas: 点击放大按钮
+    Canvas->>Canvas: 按固定步长更新缩放
+    Canvas-->>User: 保持当前视觉中心
+    User->>Canvas: 点击退出
+    Canvas-->>Browser: 关闭画布
+    Browser-->>User: 恢复原正文位置和目录状态
+```
+
+### 10.4 带错误恢复的长状态图
+
+预期：错误状态、重试状态和成功状态之间的切换明确；错误 Mermaid 不应阻塞同一文档中的其他图表。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Loading: 打开文档
+    Loading --> Parsing: 文件读取成功
+    Loading --> LoadError: 文件读取失败
+    LoadError --> Loading: 用户点击重试
+    LoadError --> [*]: 用户关闭文档
+    Parsing --> Rendering: Markdown 解析成功
+    Parsing --> ParseError: Markdown 解析失败
+    ParseError --> Parsing: 内容更新
+    Rendering --> MermaidPending: 发现 Mermaid 代码块
+    Rendering --> Ready: 没有 Mermaid 代码块
+    MermaidPending --> MermaidRendering: 开始渲染
+    MermaidRendering --> MermaidReady: SVG 生成成功
+    MermaidRendering --> MermaidError: SVG 生成失败
+    MermaidError --> MermaidRendering: 用户点击重试
+    MermaidError --> ReadyWithFallback: 使用错误降级视图
+    MermaidReady --> Ready
+    ReadyWithFallback --> Ready
+    Ready --> PreviewOpen: 点击任意图表
+    PreviewOpen --> PreviewScrolling: 滚轮操作
+    PreviewScrolling --> PreviewOpen: 停止滚动
+    PreviewOpen --> PreviewZooming: 点击缩放
+    PreviewZooming --> PreviewOpen: 缩放完成
+    PreviewOpen --> Ready: 点击退出
+```
+
+### 10.5 宽流程图与水平溢出
+
+预期：图表宽度明显超过正文可视区域时，外层布局仍保持稳定；应出现可用的原生水平滚动条，页面背景不能出现黑边或空白断层。
+
+```mermaid
+flowchart LR
+    A[入口：用户打开文档] --> B[读取文件]
+    B --> C[解析 front matter]
+    C --> D[解析标题]
+    D --> E[生成目录]
+    E --> F[解析段落]
+    F --> G[解析列表]
+    G --> H[解析表格]
+    H --> I[解析代码块]
+    I --> J[解析图片]
+    J --> K[解析 HTML]
+    K --> L[解析 Mermaid 01]
+    L --> M[解析 Mermaid 02]
+    M --> N[解析 Mermaid 03]
+    N --> O[解析 Mermaid 04]
+    O --> P[解析 Mermaid 05]
+    P --> Q[生成正文布局]
+    Q --> R[应用目录宽度]
+    R --> S[计算内容宽度]
+    S --> T[限制外框最大宽度]
+    T --> U[决定是否显示水平滚动条]
+    U --> V[应用左右滚动阴影]
+    V --> W[允许用户拖拽滚动条]
+    W --> X[保持目录浮层可点击]
+```
+
+### 10.6 单文档多图表
+
+预期：同一文档内连续放置多个图表时，单击某一张图只打开当前图；切换上一张/下一张时蒙版、工具栏和图表内容不应闪烁，图片或其他图表不应被误替换。
+
+```mermaid
+flowchart TD
+    A[图表 1：文档加载] --> B[图表 2：解析完成]
+    B --> C[图表 3：主题切换]
+    C --> D[图表 4：宽度变化]
+    D --> E[图表 5：错误降级]
+    E --> F[图表 6：恢复成功]
+    F --> G[图表 7：全屏预览]
+    G --> H[图表 8：滚动到底部]
+    H --> I[图表 9：退出预览]
+```
+
+### 10.7 有效图表旁的非法语法
+
+预期：非法 Mermaid 只在当前图表位置显示错误，不影响相邻的有效图表、目录和正文。
+
+```mermaid
+flowchart TD
+    A[有效图表仍应显示] --> B[下一张有效图表]
+```
+
+```mermaid
+this is deliberately invalid Mermaid syntax for fallback testing
+```
+
+```mermaid
+sequenceDiagram
+    participant A as 有效图表
+    participant B as 相邻图表
+    A->>B: 非法图表不应阻塞这一张
+```
+
+### 10.8 长内容回归检查清单
+
+打开本文件并完成以下检查：
+
+1. 从目录跳转到“10.1 长分支流程图”，目标标题应立即出现临时高亮，并在约 2 秒后消失。
+2. 点击长流程图，确认进入全屏画布；画布中的图表整体居中，顶部和底部没有被裁切。
+3. 在画布内滚轮上下滚动，确认滚动的是图表视口，不是后面的正文页面。
+4. 将窗口缩窄到约一半宽度，确认长图仍可滚动，正文背景和外框保持连续。
+5. 切换浅色/深色主题，确认节点、文字、箭头、工具栏和滚动阴影都有足够对比度。
+6. 点击“10.7 有效图表旁的非法语法”中的非法图表，确认只有当前图表降级，前后有效图表仍可用。
+7. 在文档中切换其他选项卡再切回来，确认不会回到顶部、不会重复创建多个画布，也不会造成目录闪动。
