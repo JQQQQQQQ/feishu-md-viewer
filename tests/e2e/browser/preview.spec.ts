@@ -254,6 +254,9 @@ test.describe('浏览器 Markdown 预览', () => {
       }
       await themeButton.click();
       await expect(viewer).toHaveClass(/feishu-viewer--dark/);
+      if (await settingsButton.getAttribute('aria-expanded') === 'true') {
+        await settingsButton.click();
+      }
       dialog = await openPreview();
       await expect.poll(() => getCanvasStyles(dialog)).toEqual({
         backgroundColor: 'rgb(26, 26, 26)',
