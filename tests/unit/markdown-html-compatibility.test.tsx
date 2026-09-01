@@ -58,6 +58,21 @@ describe('GitHub README HTML compatibility', () => {
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
   });
 
+  it('sanitizes explicit HTML heading ids and resolves their internal anchors', () => {
+    const result = parseMarkdown('<h2 id="internal-anchor">内部锚点目标</h2>\n\n[跳转](#internal-anchor)', githubContext);
+    const { container } = render(result);
+    const target = container.querySelector<HTMLElement>('#user-content-internal-anchor');
+    const link = container.querySelector<HTMLAnchorElement>('a');
+    const scrollIntoView = vi.fn();
+
+    expect(target?.textContent).toContain('内部锚点目标');
+    expect(target).not.toBeNull();
+    expect(link).not.toBeNull();
+    Object.defineProperty(target as HTMLElement, 'scrollIntoView', { value: scrollIntoView });
+    fireEvent.click(link as HTMLAnchorElement);
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+  });
+
   it('resolves README links and strips unsafe HTML', () => {
     const result = parseMarkdown(`
 <div align="center" onclick="alert(1)">

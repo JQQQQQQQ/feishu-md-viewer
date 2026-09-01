@@ -27,7 +27,10 @@ test.describe('浏览器 Markdown 预览', () => {
 
       const internalLink = viewerLocator(page, 'a').filter({ hasText: '跳到内部锚点' });
       await internalLink.click();
-      await expect(viewerLocator(page, '#internal-anchor')).toBeInViewport();
+      // rehype-sanitize prefixes explicit HTML ids with user-content- to
+      // prevent DOM clobbering; the link handler maps the original fragment
+      // to that safe id before scrolling.
+      await expect(viewerLocator(page, '#user-content-internal-anchor')).toBeInViewport();
     } finally {
       await context.close();
       await fixture.cleanup();
@@ -164,9 +167,7 @@ test.describe('浏览器 Markdown 预览', () => {
       await expect(dialog.locator('.mermaid-preview-toolbar')).toHaveClass(/hidden/);
       await hitArea.hover();
       await expect(dialog.locator('.mermaid-preview-toolbar')).toHaveClass(/visible/);
-      const overlayBox = await dialog.boundingBox();
-      expect(overlayBox).not.toBeNull();
-      await page.mouse.click((overlayBox?.x ?? 0) + 4, (overlayBox?.y ?? 0) + 4);
+      await dialog.getByRole('button', { name: 'Close Mermaid preview' }).click();
       await expect(dialog).toHaveCount(0);
     } finally {
       await context.close();
@@ -245,6 +246,12 @@ test.describe('浏览器 Markdown 预览', () => {
       await expect(dialog).toHaveCount(0);
       await expect(previewButton).toBeFocused();
 
+      // Opening the preview is an outside click for the settings popover, so
+      // reopen it before interacting with the theme control.
+      const settingsButton = viewerLocator(page, 'button[aria-label="打开阅读设置"]');
+      if (await settingsButton.getAttribute('aria-expanded') !== 'true') {
+        await settingsButton.click();
+      }
       await themeButton.click();
       await expect(viewer).toHaveClass(/feishu-viewer--dark/);
       dialog = await openPreview();

@@ -22,6 +22,15 @@ const markdownHtmlSchema = {
   ],
   attributes: {
     ...defaultSchema.attributes,
+    // GitHub README 常用显式 HTML id 作为内部锚点（例如
+    // <h2 id="install">）。保留 id 不会放宽脚本或事件属性，仍由
+    // rehype-sanitize 负责协议与属性白名单校验。
+    h1: [...(defaultSchema.attributes?.h1 ?? []), 'id'],
+    h2: [...(defaultSchema.attributes?.h2 ?? []), 'id'],
+    h3: [...(defaultSchema.attributes?.h3 ?? []), 'id'],
+    h4: [...(defaultSchema.attributes?.h4 ?? []), 'id'],
+    h5: [...(defaultSchema.attributes?.h5 ?? []), 'id'],
+    h6: [...(defaultSchema.attributes?.h6 ?? []), 'id'],
     // remark-gfm emits `checked` for completed task-list inputs.  The
     // GitHub-style default schema permits only the checkbox type/disabled
     // attributes, so preserve this harmless boolean explicitly.

@@ -105,7 +105,7 @@ function scrollToInternalAnchor(event: MouseEvent<HTMLAnchorElement>): void {
   }
   const root = event.currentTarget.getRootNode() as Document | ShadowRoot;
   const target = Array.from(root.querySelectorAll<HTMLElement>('[id]'))
-    .find((element) => element.id === targetId);
+    .find((element) => element.id === targetId || element.id === `user-content-${targetId}`);
   if (target && typeof target.scrollIntoView === 'function') {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
