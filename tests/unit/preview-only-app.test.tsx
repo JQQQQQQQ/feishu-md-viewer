@@ -14,6 +14,7 @@ function renderAppWithLegacyMode() {
     mode: 'read',
     theme: 'light',
     fontSize: 15,
+    tocFontSize: 13,
     contentAlignment: 'center',
     settingsHydrated: false,
   });
@@ -28,6 +29,7 @@ function renderApp() {
     mode: 'read',
     theme: 'light',
     fontSize: 15,
+    tocFontSize: 13,
     contentAlignment: 'center',
     settingsHydrated: false,
   });
@@ -52,24 +54,26 @@ describe('预览专用 App 入口', () => {
         observe() {}
         unobserve() {}
         disconnect() {}
-        takeRecords() { return []; }
+        takeRecords() {
+          return [];
+        }
       },
     });
   });
 
   it('即使存储中有旧内容，仍只渲染传入的 Markdown 阅读视图', () => {
-      renderAppWithLegacyMode();
+    renderAppWithLegacyMode();
 
-      expect(screen.getByRole('heading', { name: /预览文档/ })).not.toBeNull();
-      expect(screen.queryByLabelText('Markdown 源码编辑器')).toBeNull();
-      expect(screen.queryByText('编辑器加载中...')).toBeNull();
-      expect(screen.queryByText('源码编辑器加载中...')).toBeNull();
+    expect(screen.getByRole('heading', { name: /预览文档/ })).not.toBeNull();
+    expect(screen.queryByLabelText('Markdown 源码编辑器')).toBeNull();
+    expect(screen.queryByText('编辑器加载中...')).toBeNull();
+    expect(screen.queryByText('源码编辑器加载中...')).toBeNull();
   });
 
   it('不提供编辑、源码或保存控件', () => {
     renderAppWithLegacyMode();
 
-    expect(screen.queryByRole('button', { name: /编辑|阅读/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(编辑|阅读)$/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /源码/ })).toBeNull();
     expect(screen.queryByRole('button', { name: '保存' })).toBeNull();
     expect(screen.queryByText(/已保存|保存中|未保存|保存失败/)).toBeNull();
@@ -81,7 +85,9 @@ describe('预览专用 App 入口', () => {
     fireEvent.doubleClick(screen.getByText('这是只读正文。'));
 
     expect(useViewerStore.getState().mode).toBe('read');
-    expect(screen.getByRole('article', { name: 'Rendered markdown document' }).getAttribute('data-mode')).toBe('read');
+    expect(
+      screen.getByRole('article', { name: 'Rendered markdown document' }).getAttribute('data-mode'),
+    ).toBe('read');
   });
 
   it.each([
@@ -106,6 +112,7 @@ describe('预览专用 App 入口', () => {
 
     expect(screen.getByRole('navigation', { name: 'Table of contents' })).not.toBeNull();
 
+    fireEvent.click(screen.getByRole('button', { name: '打开阅读设置' }));
     fireEvent.click(screen.getByRole('button', { name: 'Decrease font size' }));
     expect(screen.getByText('14')).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Theme: light/ }));
@@ -117,6 +124,7 @@ describe('预览专用 App 入口', () => {
     const article = screen.getByRole('article', { name: 'Rendered markdown document' });
 
     expect(article.classList.contains('feishu-viewer--content-center')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '打开阅读设置' }));
     fireEvent.click(screen.getByRole('button', { name: '正文对齐' }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: '正文靠左' }));
 
@@ -126,11 +134,12 @@ describe('预览专用 App 入口', () => {
 
   it('本地文件更新时显示非打断式局部刷新提示', () => {
     const onRefresh = vi.fn();
-    render(<App markdown={DOCUMENT} source="file" contentUpdateAvailable onRefreshContent={onRefresh} />);
+    render(
+      <App markdown={DOCUMENT} source="file" contentUpdateAvailable onRefreshContent={onRefresh} />,
+    );
 
     expect(screen.getByRole('status')).toHaveTextContent('Markdown 文件已更新');
     fireEvent.click(screen.getByRole('button', { name: '立即刷新' }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
-
 });

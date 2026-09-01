@@ -12,6 +12,7 @@ export type PreviewContentAlignment = 'left' | 'center';
 export interface PreviewSettings {
   theme: PreviewThemeMode;
   fontSize: number;
+  tocFontSize: number;
   tocSmoothScrollEnabled: boolean;
   contentAlignment: PreviewContentAlignment;
 }
@@ -23,6 +24,7 @@ export const TABLE_IDENTITIES_STORAGE_KEY = 'feishu-md-viewer.tableIdentities';
 export const DEFAULT_PREVIEW_SETTINGS: PreviewSettings = {
   theme: 'system',
   fontSize: 15,
+  tocFontSize: 13,
   tocSmoothScrollEnabled: true,
   contentAlignment: 'center',
 };
@@ -147,6 +149,10 @@ function clampFontSize(value: number): number {
   return Math.min(24, Math.max(12, Math.round(value)));
 }
 
+function clampTocFontSize(value: number): number {
+  return Math.min(20, Math.max(12, Math.round(value)));
+}
+
 export function sanitizePreviewSettings(value: unknown): PreviewSettings {
   const candidate = typeof value === 'object' && value !== null
     ? value as Partial<PreviewSettings>
@@ -159,6 +165,9 @@ export function sanitizePreviewSettings(value: unknown): PreviewSettings {
     fontSize: typeof candidate.fontSize === 'number' && Number.isFinite(candidate.fontSize)
       ? clampFontSize(candidate.fontSize)
       : DEFAULT_PREVIEW_SETTINGS.fontSize,
+    tocFontSize: typeof candidate.tocFontSize === 'number' && Number.isFinite(candidate.tocFontSize)
+      ? clampTocFontSize(candidate.tocFontSize)
+      : DEFAULT_PREVIEW_SETTINGS.tocFontSize,
     tocSmoothScrollEnabled: typeof candidate.tocSmoothScrollEnabled === 'boolean'
       ? candidate.tocSmoothScrollEnabled
       : DEFAULT_PREVIEW_SETTINGS.tocSmoothScrollEnabled,

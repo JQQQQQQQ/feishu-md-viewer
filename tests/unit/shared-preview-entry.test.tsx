@@ -24,7 +24,9 @@ beforeEach(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-      takeRecords() { return []; }
+      takeRecords() {
+        return [];
+      }
     },
   });
 });
@@ -46,12 +48,7 @@ it('does not expose persistent settings controls by default', () => {
 
 it('keeps a VS Code themed preview read-only without persistent settings controls', () => {
   render(
-    <PreviewRoot
-      markdown="# 标题"
-      source="file"
-      themeOverride="dark"
-      settingsEnabled={false}
-    />
+    <PreviewRoot markdown="# 标题" source="file" themeOverride="dark" settingsEnabled={false} />,
   );
 
   expect(screen.getByRole('article')).toHaveClass('feishu-viewer--dark');
@@ -62,7 +59,7 @@ it('keeps a VS Code themed preview read-only without persistent settings control
 });
 
 it('字号设置变化会更新阅读根节点的正文字号变量', () => {
-  useViewerStore.setState({ fontSize: 15 });
+  useViewerStore.setState({ fontSize: 15, tocFontSize: 13 });
   render(<PreviewRoot markdown="正文" source="file" />);
 
   const article = screen.getByRole('article');
@@ -71,4 +68,11 @@ it('字号设置变化会更新阅读根节点的正文字号变量', () => {
   act(() => useViewerStore.setState({ fontSize: 20 }));
 
   expect(article).toHaveStyle('--feishu-font-size-body: 20px');
+});
+
+it('目录字号设置会同步到阅读根节点变量', () => {
+  useViewerStore.setState({ tocFontSize: 16 });
+  render(<PreviewRoot markdown="# 标题" source="file" />);
+
+  expect(screen.getByRole('article')).toHaveStyle('--feishu-toc-font-size: 16px');
 });

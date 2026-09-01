@@ -27,16 +27,18 @@ function findTocTextById(items: TOCItemType[], id: string): string | null {
 }
 
 function extractHeadingText(heading: HTMLElement): string {
-  const directTextSlot = Array.from(heading.children).find((child) => (
-    child instanceof HTMLElement && child.classList.contains('feishu-heading__text')
-  ));
+  const directTextSlot = Array.from(heading.children).find(
+    (child) => child instanceof HTMLElement && child.classList.contains('feishu-heading__text'),
+  );
 
   if (directTextSlot instanceof HTMLElement && directTextSlot.textContent) {
     return directTextSlot.textContent.trim();
   }
 
   const clone = heading.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll('.feishu-heading__toggle,.feishu-heading__anchor').forEach((node) => node.remove());
+  clone
+    .querySelectorAll('.feishu-heading__toggle,.feishu-heading__anchor')
+    .forEach((node) => node.remove());
   return clone.textContent?.trim() ?? '';
 }
 
@@ -48,17 +50,45 @@ function escapeCssIdentifier(value: string): string {
   return value.replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
 }
 
+const TOC_TARGET_HIGHLIGHT_CLASS = 'feishu-heading--toc-target';
+const TOC_TARGET_HIGHLIGHT_DURATION_MS = 2000;
+
 export function TableOfContents({ items, containerRef }: TableOfContentsProps) {
   const [activeId, setActiveId] = useState('');
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const highlightedHeadingRef = useRef<HTMLElement | null>(null);
+  const highlightTimerRef = useRef<number | undefined>(undefined);
   const tocSmoothScrollEnabled = useViewerStore((s) => s.tocSmoothScrollEnabled);
+
+  const clearHeadingHighlight = useCallback(() => {
+    if (highlightTimerRef.current !== undefined) {
+      window.clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = undefined;
+    }
+    highlightedHeadingRef.current?.classList.remove(TOC_TARGET_HIGHLIGHT_CLASS);
+    highlightedHeadingRef.current = null;
+  }, []);
+
+  const highlightHeading = useCallback(
+    (heading: HTMLElement) => {
+      clearHeadingHighlight();
+      // Force a reflow so a second click on the same heading restarts the animation.
+      void heading.offsetWidth;
+      heading.classList.add(TOC_TARGET_HIGHLIGHT_CLASS);
+      highlightedHeadingRef.current = heading;
+      highlightTimerRef.current = window.setTimeout(() => {
+        clearHeadingHighlight();
+      }, TOC_TARGET_HIGHLIGHT_DURATION_MS);
+    },
+    [clearHeadingHighlight],
+  );
+
+  useEffect(() => clearHeadingHighlight, [clearHeadingHighlight]);
 
   const ensureHeadingAnchors = useCallback((container: HTMLElement): HTMLElement[] => {
     const getUniqueId = createUniqueHeadingIdFactory();
     const usedIds = new Set<string>();
-    const headings = Array.from(
-      container.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6')
-    );
+    const headings = Array.from(container.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6'));
 
     headings.forEach((heading) => {
       const text = extractHeadingText(heading);
@@ -115,26 +145,30 @@ export function TableOfContents({ items, containerRef }: TableOfContentsProps) {
     };
   }, [containerRef, ensureHeadingAnchors, items]);
 
-  const handleNavigate = useCallback((id: string) => {
-    const container = containerRef.current;
-    if (!container) return;
+  const handleNavigate = useCallback(
+    (id: string) => {
+      const container = containerRef.current;
+      if (!container) return;
 
-    ensureHeadingAnchors(container);
-    let el = container.querySelector<HTMLElement>(`#${escapeCssIdentifier(id)}`);
+      ensureHeadingAnchors(container);
+      let el = container.querySelector<HTMLElement>(`#${escapeCssIdentifier(id)}`);
 
-    if (!el) {
-      const targetText = findTocTextById(items, id);
-      if (targetText) {
-        const headings = Array.from(container.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6'));
-        el = headings.find((heading) => extractHeadingText(heading) === targetText) ?? null;
+      if (!el) {
+        const targetText = findTocTextById(items, id);
+        if (targetText) {
+          const headings = Array.from(container.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6'));
+          el = headings.find((heading) => extractHeadingText(heading) === targetText) ?? null;
+        }
       }
-    }
 
-    if (el) {
-      el.scrollIntoView({ behavior: tocSmoothScrollEnabled ? 'smooth' : 'auto', block: 'start' });
-      setActiveId(id);
-    }
-  }, [containerRef, ensureHeadingAnchors, items, tocSmoothScrollEnabled]);
+      if (el) {
+        el.scrollIntoView({ behavior: tocSmoothScrollEnabled ? 'smooth' : 'auto', block: 'start' });
+        highlightHeading(el);
+        setActiveId(id);
+      }
+    },
+    [containerRef, ensureHeadingAnchors, highlightHeading, items, tocSmoothScrollEnabled],
+  );
 
   if (items.length === 0) return null;
 

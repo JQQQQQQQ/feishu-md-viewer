@@ -6,6 +6,7 @@ describe('Theme switching & settings', () => {
     useViewerStore.setState({
       theme: 'system',
       fontSize: 15,
+      tocFontSize: 13,
       tocSmoothScrollEnabled: true,
       contentAlignment: 'center',
     });

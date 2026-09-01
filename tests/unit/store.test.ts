@@ -4,7 +4,9 @@ import { useViewerStore } from '@/viewer/store/index';
 describe('预览版 ViewerStore', () => {
   beforeEach(() => {
     vi.stubGlobal('chrome', {
-      storage: { local: { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockResolvedValue(undefined) } },
+      storage: {
+        local: { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockResolvedValue(undefined) },
+      },
     });
     useViewerStore.setState({
       content: '',
@@ -12,7 +14,9 @@ describe('预览版 ViewerStore', () => {
       mode: 'read',
       theme: 'system',
       fontSize: 15,
+      tocFontSize: 13,
       tocSmoothScrollEnabled: true,
+      sidebarDividerVisible: true,
       contentAlignment: 'center',
       localFileRefreshMode: 'prompt',
       settingsHydrated: false,
@@ -41,7 +45,9 @@ describe('预览版 ViewerStore', () => {
       viewerSettings: {
         theme: 'dark',
         fontSize: 15,
+        tocFontSize: 13,
         tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: true,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',
       },
@@ -87,7 +93,49 @@ describe('预览版 ViewerStore', () => {
       viewerSettings: {
         theme: 'system',
         fontSize: 15,
+        tocFontSize: 13,
         tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: true,
+        contentAlignment: 'center',
+        localFileRefreshMode: 'prompt',
+      },
+    });
+  });
+
+  it('持久化目录与正文分隔线显示设置', () => {
+    const set = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('chrome', { storage: { local: { get: vi.fn(), set } } });
+
+    useViewerStore.getState().setSidebarDividerVisible(false);
+
+    expect(useViewerStore.getState().sidebarDividerVisible).toBe(false);
+    expect(set).toHaveBeenCalledWith({
+      viewerSettings: {
+        theme: 'system',
+        fontSize: 15,
+        tocFontSize: 13,
+        tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: false,
+        contentAlignment: 'center',
+        localFileRefreshMode: 'prompt',
+      },
+    });
+  });
+
+  it('限制目录字号范围并持久化统一阅读设置', () => {
+    const set = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('chrome', { storage: { local: { get: vi.fn(), set } } });
+
+    useViewerStore.getState().setTocFontSize(30);
+
+    expect(useViewerStore.getState().tocFontSize).toBe(20);
+    expect(set).toHaveBeenCalledWith({
+      viewerSettings: {
+        theme: 'system',
+        fontSize: 15,
+        tocFontSize: 20,
+        tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: true,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',
       },

@@ -3,6 +3,9 @@ import { create } from 'zustand';
 const FONT_SIZE_MIN = 12;
 const FONT_SIZE_MAX = 24;
 const FONT_SIZE_DEFAULT = 15;
+const TOC_FONT_SIZE_MIN = 12;
+const TOC_FONT_SIZE_MAX = 20;
+const TOC_FONT_SIZE_DEFAULT = 13;
 let settingsRevision = 0;
 
 interface ChromeStorageArea {
@@ -31,7 +34,9 @@ interface UISlice {
 interface SettingsSlice {
   theme: ThemeMode;
   fontSize: number;
+  tocFontSize: number;
   tocSmoothScrollEnabled: boolean;
+  sidebarDividerVisible: boolean;
   contentAlignment: ContentAlignment;
   localFileRefreshMode: LocalFileRefreshMode;
   /** 本次阅读会话的设置已完成首次加载，后续不再用旧存储覆盖用户选择。 */
@@ -48,9 +53,11 @@ interface Actions {
   setSidebarOpen: (open: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   setFontSize: (size: number) => void;
+  setTocFontSize: (size: number) => void;
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
   setTocSmoothScrollEnabled: (enabled: boolean) => void;
+  setSidebarDividerVisible: (visible: boolean) => void;
   setContentAlignment: (alignment: ContentAlignment) => void;
   setLocalFileRefreshMode: (mode: LocalFileRefreshMode) => void;
   loadSettings: () => Promise<void>;
@@ -62,11 +69,17 @@ function clampFontSize(size: number): number {
   return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, size));
 }
 
+function clampTocFontSize(size: number): number {
+  return Math.min(TOC_FONT_SIZE_MAX, Math.max(TOC_FONT_SIZE_MIN, size));
+}
+
 function currentSettings(state: SettingsSlice): PersistedSettings {
   return {
     theme: state.theme,
     fontSize: state.fontSize,
+    tocFontSize: state.tocFontSize,
     tocSmoothScrollEnabled: state.tocSmoothScrollEnabled,
+    sidebarDividerVisible: state.sidebarDividerVisible,
     contentAlignment: state.contentAlignment,
     localFileRefreshMode: state.localFileRefreshMode,
   };
@@ -97,7 +110,9 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
 
   theme: 'system',
   fontSize: FONT_SIZE_DEFAULT,
+  tocFontSize: TOC_FONT_SIZE_DEFAULT,
   tocSmoothScrollEnabled: true,
+  sidebarDividerVisible: true,
   contentAlignment: 'center',
   localFileRefreshMode: 'prompt',
   settingsHydrated: false,
@@ -136,6 +151,13 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
     void persistSettings(currentSettings({ ...get(), fontSize }));
   },
 
+  setTocFontSize: (size: number) => {
+    const tocFontSize = clampTocFontSize(size);
+    settingsRevision += 1;
+    set({ tocFontSize, settingsHydrated: true });
+    void persistSettings(currentSettings({ ...get(), tocFontSize }));
+  },
+
   increaseFontSize: () => {
     const fontSize = clampFontSize(get().fontSize + 1);
     settingsRevision += 1;
@@ -154,6 +176,12 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
     settingsRevision += 1;
     set({ tocSmoothScrollEnabled, settingsHydrated: true });
     void persistSettings(currentSettings({ ...get(), tocSmoothScrollEnabled }));
+  },
+
+  setSidebarDividerVisible: (sidebarDividerVisible: boolean) => {
+    settingsRevision += 1;
+    set({ sidebarDividerVisible, settingsHydrated: true });
+    void persistSettings(currentSettings({ ...get(), sidebarDividerVisible }));
   },
 
   setContentAlignment: (contentAlignment: ContentAlignment) => {
@@ -181,7 +209,9 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
           set({
             theme: settings.theme ?? 'system',
             fontSize: clampFontSize(settings.fontSize ?? FONT_SIZE_DEFAULT),
+            tocFontSize: clampTocFontSize(settings.tocFontSize ?? TOC_FONT_SIZE_DEFAULT),
             tocSmoothScrollEnabled: settings.tocSmoothScrollEnabled ?? true,
+            sidebarDividerVisible: settings.sidebarDividerVisible ?? true,
             contentAlignment: settings.contentAlignment === 'left' ? 'left' : 'center',
             localFileRefreshMode: settings.localFileRefreshMode === 'auto' ? 'auto' : 'prompt',
             // 兼容旧数据：无论存储值为何，都从阅读态启动。

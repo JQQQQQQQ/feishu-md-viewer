@@ -2,7 +2,15 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { act, cleanup, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  createEvent,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MermaidPreviewModal } from '@/viewer/components/Mermaid/MermaidPreviewModal';
 import { MermaidToolbar } from '@/viewer/components/Mermaid/MermaidToolbar';
 
@@ -28,7 +36,9 @@ function renderToolbar() {
   return render(
     <MermaidToolbar code={SOURCE} blockIndex={2}>
       <div className="feishu-mermaid">
-        <svg aria-label="示例流程图" viewBox="0 0 100 40"><path d="M0 0" /></svg>
+        <svg aria-label="示例流程图" viewBox="0 0 100 40">
+          <path d="M0 0" />
+        </svg>
       </div>
     </MermaidToolbar>,
   );
@@ -68,7 +78,12 @@ function deferAnimationFrames() {
   };
 }
 
-function stubCanvasLayout(width: number, height: number, scrollWidth: number, scrollHeight: number) {
+function stubCanvasLayout(
+  width: number,
+  height: number,
+  scrollWidth: number,
+  scrollHeight: number,
+) {
   return [
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function () {
       return this.classList.contains('mermaid-preview-canvas') ? width : 0;
@@ -120,6 +135,29 @@ describe('Mermaid 预览专用工具栏', () => {
     expect(screen.getByRole('button', { name: 'Zoom in Mermaid preview' })).not.toBeNull();
   });
 
+  it('预览使用全屏容器而不是受限的弹窗卡片', () => {
+    renderToolbar();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Mermaid diagram' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Mermaid diagram preview' });
+    expect(dialog).toHaveClass('mermaid-preview-dialog--fullscreen');
+    expect(dialog).toHaveAttribute('data-preview-surface', 'fullscreen');
+  });
+
+  it('全屏预览的退出按钮固定在左上角而不是底部工具栏', () => {
+    renderToolbar();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Mermaid diagram' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Mermaid diagram preview' });
+    const closeButton = screen.getByRole('button', { name: 'Close Mermaid preview' });
+
+    expect(closeButton).toHaveClass('mermaid-preview-close-button');
+    expect(closeButton).toHaveTextContent('退出');
+    expect(
+      dialog.querySelector('.mermaid-preview-toolbar .mermaid-preview-toolbar__close'),
+    ).toBeNull();
+  });
+
   it('滚轮只保留原生画布滚动，不改变预览缩放', () => {
     renderToolbar();
     fireEvent.click(screen.getByRole('button', { name: 'Preview Mermaid diagram' }));
@@ -142,24 +180,42 @@ describe('Mermaid 预览专用工具栏', () => {
     stubCanvasLayout(400, 300, 1000, 700);
     render(
       <MermaidPreviewModal
-        svg={'<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        svg={
+          '<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'
+        }
         onClose={vi.fn()}
       />,
     );
 
-    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    const canvas = screen
+      .getByRole('dialog')
+      .querySelector('.mermaid-preview-canvas') as HTMLDivElement;
     let scrollLeft = 160;
     let scrollTop = 80;
     Object.defineProperties(canvas, {
-      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
-      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+      scrollLeft: {
+        configurable: true,
+        get: () => scrollLeft,
+        set: (value: number) => {
+          scrollLeft = value;
+        },
+      },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value;
+        },
+      },
     });
 
     expect(canvas).toHaveAttribute('aria-busy', 'true');
     act(() => frames.flush());
 
     expect(canvas).not.toHaveAttribute('aria-busy');
-    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({ width: 'max(100%, 900px)' });
+    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({
+      width: 'max(100%, 900px)',
+    });
     expect(scrollLeft).toBe(0);
     expect(scrollTop).toBe(0);
   });
@@ -169,19 +225,25 @@ describe('Mermaid 预览专用工具栏', () => {
     stubCanvasLayout(400, 300, 1000, 700);
     render(
       <MermaidPreviewModal
-        svg={'<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        svg={
+          '<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'
+        }
         onClose={vi.fn()}
       />,
     );
 
-    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    const canvas = screen
+      .getByRole('dialog')
+      .querySelector('.mermaid-preview-canvas') as HTMLDivElement;
     expect(canvas).toHaveAttribute('aria-busy', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: 'Fit Mermaid preview to window' }));
     act(() => frames.flush());
 
     expect(canvas).not.toHaveAttribute('aria-busy');
-    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({ width: 'max(100%, 900px)' });
+    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({
+      width: 'max(100%, 900px)',
+    });
   });
 
   it('超长图首次打开和点击适应都保留至少 75% 的 D2 缩放与安全起点', () => {
@@ -189,21 +251,39 @@ describe('Mermaid 预览专用工具栏', () => {
     stubCanvasLayout(400, 300, 700, 1400);
     render(
       <MermaidPreviewModal
-        svg={'<svg viewBox="0 0 120 1200" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        svg={
+          '<svg viewBox="0 0 120 1200" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'
+        }
         onClose={vi.fn()}
       />,
     );
 
-    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    const canvas = screen
+      .getByRole('dialog')
+      .querySelector('.mermaid-preview-canvas') as HTMLDivElement;
     let scrollLeft = 150;
     let scrollTop = 500;
     Object.defineProperties(canvas, {
-      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
-      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+      scrollLeft: {
+        configurable: true,
+        get: () => scrollLeft,
+        set: (value: number) => {
+          scrollLeft = value;
+        },
+      },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value;
+        },
+      },
     });
 
     act(() => frames.flush());
-    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({ height: 'max(100%, 900px)' });
+    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({
+      height: 'max(100%, 900px)',
+    });
     expect(scrollLeft).toBe(0);
     expect(scrollTop).toBe(0);
 
@@ -211,7 +291,9 @@ describe('Mermaid 预览专用工具栏', () => {
     scrollTop = 640;
     fireEvent.click(screen.getByRole('button', { name: 'Fit Mermaid preview to window' }));
     act(() => frames.flush());
-    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({ height: 'max(100%, 900px)' });
+    expect(canvas.querySelector('.mermaid-preview-content')).toHaveStyle({
+      height: 'max(100%, 900px)',
+    });
     expect(scrollLeft).toBe(0);
     expect(scrollTop).toBe(0);
   });
@@ -226,12 +308,26 @@ describe('Mermaid 预览专用工具栏', () => {
       />,
     );
 
-    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    const canvas = screen
+      .getByRole('dialog')
+      .querySelector('.mermaid-preview-canvas') as HTMLDivElement;
     let scrollLeft = 0;
     let scrollTop = 0;
     Object.defineProperties(canvas, {
-      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
-      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+      scrollLeft: {
+        configurable: true,
+        get: () => scrollLeft,
+        set: (value: number) => {
+          scrollLeft = value;
+        },
+      },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value;
+        },
+      },
     });
 
     act(() => frames.flush());
@@ -251,17 +347,33 @@ describe('Mermaid 预览专用工具栏', () => {
     stubCanvasLayout(400, 300, 1240, 800);
     render(
       <MermaidPreviewModal
-        svg={'<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        svg={
+          '<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'
+        }
         onClose={vi.fn()}
       />,
     );
 
-    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    const canvas = screen
+      .getByRole('dialog')
+      .querySelector('.mermaid-preview-canvas') as HTMLDivElement;
     let scrollLeft = 0;
     let scrollTop = 0;
     Object.defineProperties(canvas, {
-      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
-      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+      scrollLeft: {
+        configurable: true,
+        get: () => scrollLeft,
+        set: (value: number) => {
+          scrollLeft = value;
+        },
+      },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value;
+        },
+      },
     });
     act(() => frames.flush());
     scrollLeft = 320;
@@ -282,12 +394,16 @@ describe('Mermaid 预览专用工具栏', () => {
     stubCanvasLayout(400, 300, 1200, 900);
     render(
       <MermaidPreviewModal
-        svg={'<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        svg={
+          '<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'
+        }
         onClose={vi.fn()}
       />,
     );
 
-    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    const canvas = screen
+      .getByRole('dialog')
+      .querySelector('.mermaid-preview-canvas') as HTMLDivElement;
     Object.defineProperties(canvas, {
       scrollLeft: { configurable: true, writable: true, value: 180 },
       scrollTop: { configurable: true, writable: true, value: 120 },
@@ -299,7 +415,9 @@ describe('Mermaid 预览专用工具栏', () => {
 
     expect(frames.pending()).toBe(1);
     act(() => frames.flush());
-    expect(screen.getByRole('dialog').querySelector('.mermaid-preview-toolbar__zoom')).toHaveTextContent('108%');
+    expect(
+      screen.getByRole('dialog').querySelector('.mermaid-preview-toolbar__zoom'),
+    ).toHaveTextContent('108%');
   });
 
   it('关闭或卸载后即使旧 RAF 被调用也不会写入画布滚动位置', () => {
@@ -308,17 +426,33 @@ describe('Mermaid 预览专用工具栏', () => {
     const onClose = vi.fn();
     const view = render(
       <MermaidPreviewModal
-        svg={'<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'}
+        svg={
+          '<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'
+        }
         onClose={onClose}
       />,
     );
 
-    const canvas = screen.getByRole('dialog').querySelector('.mermaid-preview-canvas') as HTMLDivElement;
+    const canvas = screen
+      .getByRole('dialog')
+      .querySelector('.mermaid-preview-canvas') as HTMLDivElement;
     let scrollLeft = 180;
     let scrollTop = 120;
     Object.defineProperties(canvas, {
-      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
-      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+      scrollLeft: {
+        configurable: true,
+        get: () => scrollLeft,
+        set: (value: number) => {
+          scrollLeft = value;
+        },
+      },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value;
+        },
+      },
     });
     act(() => frames.flush());
     scrollLeft = 180;
@@ -374,13 +508,15 @@ describe('Mermaid 预览专用工具栏', () => {
     }).toEqual(canvasStructure);
 
     fireEvent.pointerLeave(toolbar!);
-    act(() => { vi.advanceTimersByTime(180); });
+    act(() => {
+      vi.advanceTimersByTime(180);
+    });
     expect(toolbar).toHaveClass('mermaid-preview-toolbar--hidden');
     fireEvent.keyDown(toolbar!, { key: 'Enter' });
     expect(toolbar).toHaveClass('mermaid-preview-toolbar--visible');
   });
 
-  it('只在按住空格时进入画布平移状态，并正确处理指针与滚轮事件', () => {
+  it('支持普通鼠标拖拽和空格拖拽平移，并正确处理指针与滚轮事件', () => {
     vi.useFakeTimers();
     renderToolbar();
     fireEvent.click(screen.getByRole('button', { name: 'Preview Mermaid diagram' }));
@@ -396,34 +532,58 @@ describe('Mermaid 预览专用工具栏', () => {
       clientHeight: { configurable: true, value: 160 },
       scrollWidth: { configurable: true, value: 800 },
       scrollHeight: { configurable: true, value: 600 },
-      scrollLeft: { configurable: true, get: () => scrollLeft, set: (value: number) => { scrollLeft = value; } },
-      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } },
+      scrollLeft: {
+        configurable: true,
+        get: () => scrollLeft,
+        set: (value: number) => {
+          scrollLeft = value;
+        },
+      },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value;
+        },
+      },
     });
     emulateNativeVerticalCanvasScroll(canvas);
-    const normalDown = createEvent.pointerDown(canvas, { button: 0, pointerId: 1, clientX: 10, clientY: 10 });
+    const normalDown = createEvent.pointerDown(canvas, {
+      button: 0,
+      pointerId: 1,
+      clientX: 10,
+      clientY: 10,
+    });
     fireEvent(canvas, normalDown);
-    expect(normalDown.defaultPrevented).toBe(false);
-    expect(setPointerCapture).not.toHaveBeenCalled();
+    expect(normalDown.defaultPrevented).toBe(true);
+    expect(setPointerCapture).toHaveBeenCalledWith(1);
+    expect(canvas).toHaveClass('mermaid-preview-canvas--dragging');
     fireEvent.pointerMove(canvas, { pointerId: 1, clientX: 50, clientY: 60 });
-    expect(canvas.scrollLeft).toBe(200);
-    expect(canvas.scrollTop).toBe(200);
-    expect(canvas).not.toHaveClass('mermaid-preview-canvas--space-pan');
+    expect(canvas.scrollLeft).toBe(160);
+    expect(canvas.scrollTop).toBe(150);
+    fireEvent.pointerUp(canvas, { button: 0, pointerId: 1 });
+    expect(canvas).not.toHaveClass('mermaid-preview-canvas--dragging');
     fireEvent.keyDown(window, { key: ' ' });
     expect(canvas).toHaveClass('mermaid-preview-canvas--space-pan');
-    const spaceDown = createEvent.pointerDown(canvas, { button: 0, pointerId: 2, clientX: 10, clientY: 10 });
+    const spaceDown = createEvent.pointerDown(canvas, {
+      button: 0,
+      pointerId: 2,
+      clientX: 10,
+      clientY: 10,
+    });
     fireEvent(canvas, spaceDown);
     expect(spaceDown.defaultPrevented).toBe(true);
     expect(setPointerCapture).toHaveBeenCalledWith(2);
     expect(canvas).toHaveClass('mermaid-preview-canvas--dragging');
     fireEvent.pointerMove(canvas, { pointerId: 2, clientX: 50, clientY: 60 });
-    expect(canvas.scrollLeft).toBe(160);
-    expect(canvas.scrollTop).toBe(150);
+    expect(canvas.scrollLeft).toBe(120);
+    expect(canvas.scrollTop).toBe(100);
     fireEvent.keyUp(window, { key: ' ' });
     expect(releasePointerCapture).toHaveBeenCalledWith(2);
     expect(canvas).not.toHaveClass('mermaid-preview-canvas--dragging');
     fireEvent.pointerMove(canvas, { pointerId: 2, clientX: 90, clientY: 100 });
-    expect(canvas.scrollLeft).toBe(160);
-    expect(canvas.scrollTop).toBe(150);
+    expect(canvas.scrollLeft).toBe(120);
+    expect(canvas.scrollTop).toBe(100);
     fireEvent.pointerUp(canvas, { button: 0, pointerId: 2 });
     expect(releasePointerCapture).toHaveBeenCalledWith(2);
     expect(canvas).not.toHaveClass('mermaid-preview-canvas--dragging');
@@ -441,20 +601,39 @@ describe('Mermaid 预览专用工具栏', () => {
     fireEvent.wheel(canvas, { deltaY: 80, shiftKey: false });
     expect(canvas.scrollTop).toBe(scrollTopBefore + 80);
     expect(zoomLabel?.textContent).toBe(zoomBefore);
-    const lineWheel = createEvent.wheel(canvas, { deltaY: 3, deltaMode: 1, shiftKey: true, cancelable: true });
+    const lineWheel = createEvent.wheel(canvas, {
+      deltaY: 3,
+      deltaMode: 1,
+      shiftKey: true,
+      cancelable: true,
+    });
     fireEvent(canvas, lineWheel);
     expect(lineWheel.defaultPrevented).toBe(true);
     expect(canvas.scrollLeft).toBe(scrollLeftBefore + 3 * WHEEL_LINE_HEIGHT);
-    const pageWheel = createEvent.wheel(canvas, { deltaY: 1, deltaMode: 2, shiftKey: true, cancelable: true });
+    const pageWheel = createEvent.wheel(canvas, {
+      deltaY: 1,
+      deltaMode: 2,
+      shiftKey: true,
+      cancelable: true,
+    });
     fireEvent(canvas, pageWheel);
     expect(pageWheel.defaultPrevented).toBe(true);
     expect(canvas.scrollLeft).toBe(scrollLeftBefore + 3 * WHEEL_LINE_HEIGHT + canvas.clientWidth);
-    const zeroWheel = createEvent.wheel(canvas, { deltaY: 0, deltaX: 0, shiftKey: true, cancelable: true });
+    const zeroWheel = createEvent.wheel(canvas, {
+      deltaY: 0,
+      deltaX: 0,
+      shiftKey: true,
+      cancelable: true,
+    });
     fireEvent(canvas, zeroWheel);
     expect(zeroWheel.defaultPrevented).toBe(false);
     expect(canvas.scrollLeft).toBe(scrollLeftBefore + 3 * WHEEL_LINE_HEIGHT + canvas.clientWidth);
     canvas.scrollLeft = canvas.scrollWidth - canvas.clientWidth;
-    const exhaustedWheel = createEvent.wheel(canvas, { deltaY: 80, shiftKey: true, cancelable: true });
+    const exhaustedWheel = createEvent.wheel(canvas, {
+      deltaY: 80,
+      shiftKey: true,
+      cancelable: true,
+    });
     fireEvent(canvas, exhaustedWheel);
     expect(exhaustedWheel.defaultPrevented).toBe(false);
     expect(canvas.scrollLeft).toBe(canvas.scrollWidth - canvas.clientWidth);
@@ -483,13 +662,16 @@ describe('Mermaid 预览专用工具栏', () => {
   });
 
   it('不劫持带 Ctrl、Command 或 Alt 修饰的 f 查找快捷键', () => {
-    render(<MermaidPreviewModal svg={'<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'} onClose={vi.fn()} />);
+    render(
+      <MermaidPreviewModal
+        svg={
+          '<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>'
+        }
+        onClose={vi.fn()}
+      />,
+    );
 
-    ([
-      { ctrlKey: true },
-      { metaKey: true },
-      { altKey: true },
-    ] as const).forEach((modifiers) => {
+    ([{ ctrlKey: true }, { metaKey: true }, { altKey: true }] as const).forEach((modifiers) => {
       const event = createEvent.keyDown(window, { key: 'f', cancelable: true, ...modifiers });
       fireEvent(window, event);
       expect(event.defaultPrevented).toBe(false);

@@ -491,6 +491,7 @@ describe('MarkdownPreviewProvider', () => {
       settings: {
         theme: 'dark',
         fontSize: 19,
+        tocFontSize: 13,
         tocSmoothScrollEnabled: false,
         contentAlignment: 'left',
       },
@@ -526,16 +527,17 @@ describe('MarkdownPreviewProvider', () => {
     expect(settingsStore.update).toHaveBeenCalledWith('feishu-md-viewer.previewSettings', {
       theme: 'light',
       fontSize: 18,
+      tocFontSize: 13,
       tocSmoothScrollEnabled: true,
       contentAlignment: 'center',
     });
     expect(firstPanel.webview.postMessage).toHaveBeenCalledWith({
       type: 'settings',
-      settings: { theme: 'light', fontSize: 18, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
+      settings: { theme: 'light', fontSize: 18, tocFontSize: 13, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
     });
     expect(secondPanel.webview.postMessage).toHaveBeenCalledWith({
       type: 'settings',
-      settings: { theme: 'light', fontSize: 18, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
+      settings: { theme: 'light', fontSize: 18, tocFontSize: 13, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
     });
   });
 

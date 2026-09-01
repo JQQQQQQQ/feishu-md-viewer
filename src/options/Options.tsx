@@ -7,7 +7,9 @@ type ContentAlignment = 'left' | 'center';
 interface Settings {
   theme: ThemeMode;
   fontSize: number;
+  tocFontSize: number;
   tocSmoothScrollEnabled: boolean;
+  sidebarDividerVisible: boolean;
   contentAlignment: ContentAlignment;
   localFileRefreshMode: LocalFileRefreshMode;
 }
@@ -15,13 +17,17 @@ interface Settings {
 const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   fontSize: 15,
+  tocFontSize: 13,
   tocSmoothScrollEnabled: true,
+  sidebarDividerVisible: true,
   contentAlignment: 'center',
   localFileRefreshMode: 'prompt',
 };
 
 const FONT_SIZE_MIN = 12;
 const FONT_SIZE_MAX = 24;
+const TOC_FONT_SIZE_MIN = 12;
+const TOC_FONT_SIZE_MAX = 20;
 
 export function Options() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -40,7 +46,14 @@ export function Options() {
           setSettings({
             theme: stored.theme ?? DEFAULT_SETTINGS.theme,
             fontSize: stored.fontSize ?? DEFAULT_SETTINGS.fontSize,
-            tocSmoothScrollEnabled: stored.tocSmoothScrollEnabled ?? DEFAULT_SETTINGS.tocSmoothScrollEnabled,
+            tocFontSize: Math.min(
+              TOC_FONT_SIZE_MAX,
+              Math.max(TOC_FONT_SIZE_MIN, stored.tocFontSize ?? DEFAULT_SETTINGS.tocFontSize),
+            ),
+            tocSmoothScrollEnabled:
+              stored.tocSmoothScrollEnabled ?? DEFAULT_SETTINGS.tocSmoothScrollEnabled,
+            sidebarDividerVisible:
+              stored.sidebarDividerVisible ?? DEFAULT_SETTINGS.sidebarDividerVisible,
             contentAlignment: stored.contentAlignment === 'left' ? 'left' : 'center',
             localFileRefreshMode: stored.localFileRefreshMode === 'auto' ? 'auto' : 'prompt',
           });
@@ -63,36 +76,70 @@ export function Options() {
     }
   }, []);
 
-  const handleThemeChange = useCallback((theme: ThemeMode) => {
-    const newSettings = { ...settings, theme };
-    setSettings(newSettings);
-    void saveSettings(newSettings);
-  }, [settings, saveSettings]);
+  const handleThemeChange = useCallback(
+    (theme: ThemeMode) => {
+      const newSettings = { ...settings, theme };
+      setSettings(newSettings);
+      void saveSettings(newSettings);
+    },
+    [settings, saveSettings],
+  );
 
-  const handleFontSizeChange = useCallback((fontSize: number) => {
-    const clamped = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, fontSize));
-    const newSettings = { ...settings, fontSize: clamped };
-    setSettings(newSettings);
-    void saveSettings(newSettings);
-  }, [settings, saveSettings]);
+  const handleFontSizeChange = useCallback(
+    (fontSize: number) => {
+      const clamped = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, fontSize));
+      const newSettings = { ...settings, fontSize: clamped };
+      setSettings(newSettings);
+      void saveSettings(newSettings);
+    },
+    [settings, saveSettings],
+  );
 
-  const handleTocSmoothScrollChange = useCallback((tocSmoothScrollEnabled: boolean) => {
-    const newSettings = { ...settings, tocSmoothScrollEnabled };
-    setSettings(newSettings);
-    void saveSettings(newSettings);
-  }, [settings, saveSettings]);
+  const handleTocFontSizeChange = useCallback(
+    (tocFontSize: number) => {
+      const clamped = Math.min(TOC_FONT_SIZE_MAX, Math.max(TOC_FONT_SIZE_MIN, tocFontSize));
+      const newSettings = { ...settings, tocFontSize: clamped };
+      setSettings(newSettings);
+      void saveSettings(newSettings);
+    },
+    [settings, saveSettings],
+  );
 
-  const handleContentAlignmentChange = useCallback((contentAlignment: ContentAlignment) => {
-    const newSettings = { ...settings, contentAlignment };
-    setSettings(newSettings);
-    void saveSettings(newSettings);
-  }, [settings, saveSettings]);
+  const handleTocSmoothScrollChange = useCallback(
+    (tocSmoothScrollEnabled: boolean) => {
+      const newSettings = { ...settings, tocSmoothScrollEnabled };
+      setSettings(newSettings);
+      void saveSettings(newSettings);
+    },
+    [settings, saveSettings],
+  );
 
-  const handleLocalFileRefreshModeChange = useCallback((localFileRefreshMode: LocalFileRefreshMode) => {
-    const newSettings = { ...settings, localFileRefreshMode };
-    setSettings(newSettings);
-    void saveSettings(newSettings);
-  }, [settings, saveSettings]);
+  const handleContentAlignmentChange = useCallback(
+    (contentAlignment: ContentAlignment) => {
+      const newSettings = { ...settings, contentAlignment };
+      setSettings(newSettings);
+      void saveSettings(newSettings);
+    },
+    [settings, saveSettings],
+  );
+
+  const handleSidebarDividerChange = useCallback(
+    (sidebarDividerVisible: boolean) => {
+      const newSettings = { ...settings, sidebarDividerVisible };
+      setSettings(newSettings);
+      void saveSettings(newSettings);
+    },
+    [settings, saveSettings],
+  );
+
+  const handleLocalFileRefreshModeChange = useCallback(
+    (localFileRefreshMode: LocalFileRefreshMode) => {
+      const newSettings = { ...settings, localFileRefreshMode };
+      setSettings(newSettings);
+      void saveSettings(newSettings);
+    },
+    [settings, saveSettings],
+  );
 
   return (
     <div style={styles.container}>
@@ -121,7 +168,11 @@ export function Options() {
                   style={styles.radioInput}
                 />
                 <span style={styles.radioText}>
-                  {themeOption === 'system' ? 'System (auto)' : themeOption === 'light' ? 'Light' : 'Dark'}
+                  {themeOption === 'system'
+                    ? 'System (auto)'
+                    : themeOption === 'light'
+                      ? 'Light'
+                      : 'Dark'}
                 </span>
               </label>
             ))}
@@ -169,13 +220,58 @@ export function Options() {
           </div>
         </section>
 
+        {/* TOC font size */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>目录字号</h2>
+          <p style={styles.description}>
+            调整左侧目录项目字号（{TOC_FONT_SIZE_MIN}px - {TOC_FONT_SIZE_MAX}px）。
+          </p>
+          <div style={styles.fontSizeControl}>
+            <button
+              style={styles.fontBtn}
+              onClick={() => handleTocFontSizeChange(settings.tocFontSize - 1)}
+              disabled={settings.tocFontSize <= TOC_FONT_SIZE_MIN}
+              type="button"
+              aria-label="Decrease TOC font size"
+            >
+              -
+            </button>
+            <span style={styles.fontSizeDisplay} aria-live="polite" aria-atomic="true">
+              {settings.tocFontSize}px
+            </span>
+            <button
+              style={styles.fontBtn}
+              onClick={() => handleTocFontSizeChange(settings.tocFontSize + 1)}
+              disabled={settings.tocFontSize >= TOC_FONT_SIZE_MAX}
+              type="button"
+              aria-label="Increase TOC font size"
+            >
+              +
+            </button>
+            <input
+              type="range"
+              min={TOC_FONT_SIZE_MIN}
+              max={TOC_FONT_SIZE_MAX}
+              step={1}
+              value={settings.tocFontSize}
+              onChange={(e) => handleTocFontSizeChange(Number(e.target.value))}
+              style={styles.slider}
+              aria-label="TOC font size slider"
+            />
+          </div>
+        </section>
+
         {/* TOC scroll behavior */}
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>TOC Scroll Behavior</h2>
           <p style={styles.description}>
             Choose whether clicking the table of contents uses smooth scrolling.
           </p>
-          <div style={styles.radioGroup} role="radiogroup" aria-label="TOC scroll behavior selection">
+          <div
+            style={styles.radioGroup}
+            role="radiogroup"
+            aria-label="TOC scroll behavior selection"
+          >
             <label style={styles.radioLabel}>
               <input
                 type="radio"
@@ -222,6 +318,35 @@ export function Options() {
                 style={styles.radioInput}
               />
               <span style={styles.radioText}>正文靠左</span>
+            </label>
+          </div>
+        </section>
+
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>目录分隔线</h2>
+          <p style={styles.description}>
+            控制目录与正文之间的分隔线。隐藏后仍可将鼠标移到目录右侧边缘拖动调整宽度。
+          </p>
+          <div style={styles.radioGroup} role="radiogroup" aria-label="目录分隔线">
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="sidebar-divider"
+                checked={settings.sidebarDividerVisible}
+                onChange={() => handleSidebarDividerChange(true)}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>显示目录分隔线</span>
+            </label>
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="sidebar-divider"
+                checked={!settings.sidebarDividerVisible}
+                onChange={() => handleSidebarDividerChange(false)}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>隐藏目录分隔线</span>
             </label>
           </div>
         </section>

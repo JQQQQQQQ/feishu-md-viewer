@@ -1,12 +1,14 @@
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from '@/viewer/components/Layout/AppShell';
+import { useViewerStore } from '@/viewer/store';
 
 describe('AppShell 响应式目录状态', () => {
   beforeEach(() => {
     vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    useViewerStore.setState({ sidebarDividerVisible: true });
   });
 
   afterEach(() => {
@@ -203,5 +205,34 @@ describe('AppShell 响应式目录状态', () => {
     });
     expect(navigation).toHaveAttribute('aria-hidden', 'false');
     expect(navigation).not.toHaveClass('feishu-sidebar--table-scrolling');
+  });
+
+  it('隐藏目录分隔线时仍保留可拖拽热区，并在拖拽中标记辅助线状态', () => {
+    useViewerStore.setState({ sidebarDividerVisible: false });
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: () => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+
+    render(<AppShell title="测试" tocItems={[]}><p>正文</p></AppShell>);
+
+    const resizeHandle = screen.getByRole('separator', { name: 'Resize document navigation' });
+    const navigation = screen.getByLabelText('Document navigation');
+    expect(navigation).toHaveClass('feishu-sidebar--divider-hidden');
+    expect(resizeHandle).toHaveClass('feishu-sidebar__resize-handle--hidden');
+
+    act(() => {
+      fireEvent.pointerDown(resizeHandle, { button: 0 });
+    });
+    expect(resizeHandle).toHaveClass('feishu-sidebar__resize-handle--resizing');
+
+    act(() => {
+      window.dispatchEvent(new Event('pointerup'));
+    });
+    expect(resizeHandle).not.toHaveClass('feishu-sidebar__resize-handle--resizing');
   });
 });

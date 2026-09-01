@@ -3,6 +3,7 @@ import type { TOCItem } from '../../hooks/useTOC';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 import { ContentUpdateNotice } from '../Common/ContentUpdateNotice';
+import { useViewerStore } from '../../store';
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'feishu-md-viewer-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 260;
@@ -177,6 +178,7 @@ export function AppShell({
   const isDrawerMode = useIsDrawerMode();
   const [tableScrollHidden, setTableScrollHidden] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
+  const sidebarDividerVisible = useViewerStore((state) => state.sidebarDividerVisible);
   const sidebarOpen = isDrawerMode ? drawerOpen : desktopSidebarOpen;
 
   const handleToggleSidebar = useCallback(() => {
@@ -276,6 +278,7 @@ export function AppShell({
           containerRef={contentRef}
           isDrawerMode={isDrawerMode}
           isTableScrollHidden={tableScrollHidden}
+          dividerVisible={sidebarDividerVisible}
           onClose={handleCloseSidebar}
           onWidthChange={handleSidebarWidthChange}
         />

@@ -4,6 +4,13 @@ import { expandMermaidSvgBounds } from './mermaid-svg';
 const XHTML_NS = 'http://www.w3.org/1999/xhtml';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const HTML_TAGS_IN_FOREIGN_OBJECT = new Set(['div', 'span', 'p', 'br', 'strong', 'em', 'b', 'i']);
+const MERMAID_TEXT_THEME_STYLE =
+  'color: var(--feishu-mermaid-node-text) !important; fill: var(--feishu-mermaid-node-text) !important; -webkit-text-fill-color: var(--feishu-mermaid-node-text) !important';
+
+function appendStyle(element: Element, declaration: string): void {
+  const style = element.getAttribute('style');
+  element.setAttribute('style', style ? `${style}; ${declaration}` : declaration);
+}
 
 function restoreForeignObjectNamespaces(svgText: string): string {
   if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
@@ -27,6 +34,12 @@ function restoreForeignObjectNamespaces(svgText: string): string {
   return new XMLSerializer().serializeToString(root);
 }
 
+function pinMermaidTextTheme(root: Element): void {
+  root
+    .querySelectorAll('.nodeLabel, .nodeLabel *, text, text *')
+    .forEach((element) => appendStyle(element, MERMAID_TEXT_THEME_STYLE));
+}
+
 function countLikelyNodeLabels(svgText: string): number {
   const classMatches = svgText.match(/class="[^"]*nodeLabel[^"]*"/g)?.length ?? 0;
   const textMatches = svgText.match(/<(?:text|span|p)[^>]*>[^<\s][\s\S]*?<\/(?:text|span|p)>/g)?.length ?? 0;
@@ -44,9 +57,21 @@ export function sanitizeMermaidSvg(
   options: SanitizeMermaidSvgOptions = {},
 ): string {
   const expanded = options.expandBounds === false ? svg : expandMermaidSvgBounds(svg);
-  const originalLabelCount = countLikelyNodeLabels(expanded);
+  let preparedSvg = expanded;
+  const originalLabelCount = countLikelyNodeLabels(preparedSvg);
 
-  const sanitized = DOMPurify.sanitize(expanded, {
+  // Mermaid embeds an ID-scoped stylesheet in every SVG. In WebViews and
+  // shadow roots that stylesheet can outrank the viewer's external rules, so
+  // pin Mermaid text to the theme at the serialized SVG boundary.
+  if (typeof DOMParser !== 'undefined' && typeof XMLSerializer !== 'undefined') {
+    const doc = new DOMParser().parseFromString(preparedSvg, 'image/svg+xml');
+    if (!doc.querySelector('parsererror') && doc.documentElement.tagName.toLowerCase() === 'svg') {
+      pinMermaidTextTheme(doc.documentElement);
+      preparedSvg = new XMLSerializer().serializeToString(doc.documentElement);
+    }
+  }
+
+  const sanitized = DOMPurify.sanitize(preparedSvg, {
     USE_PROFILES: { html: true, svg: true, svgFilters: true },
     HTML_INTEGRATION_POINTS: { foreignobject: true },
     ADD_TAGS: ['foreignObject', 'div', 'span', 'p', 'br'],
@@ -59,7 +84,7 @@ export function sanitizeMermaidSvg(
   // Mermaid output should already be sanitized by Mermaid itself (securityLevel strict).
   // If DOMPurify pass accidentally strips almost all node labels, keep diagram readable.
   if (originalLabelCount >= 2 && normalizedLabelCount === 0) {
-    return restoreForeignObjectNamespaces(expanded);
+    return restoreForeignObjectNamespaces(preparedSvg);
   }
 
   return normalized;

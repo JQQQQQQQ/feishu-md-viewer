@@ -17,7 +17,9 @@ it('在扩展设置页保存正文对齐选择', async () => {
           viewerSettings: {
             theme: 'light',
             fontSize: 16,
+            tocFontSize: 13,
             tocSmoothScrollEnabled: false,
+            sidebarDividerVisible: true,
             contentAlignment: 'center',
           },
         }),
@@ -33,15 +35,19 @@ it('在扩展设置页保存正文对齐选择', async () => {
   });
   fireEvent.click(screen.getByLabelText('正文靠左'));
 
-  await waitFor(() => expect(set).toHaveBeenLastCalledWith({
-    viewerSettings: {
-      theme: 'light',
-      fontSize: 16,
-      tocSmoothScrollEnabled: false,
-      contentAlignment: 'left',
-      localFileRefreshMode: 'prompt',
-    },
-  }));
+  await waitFor(() =>
+    expect(set).toHaveBeenLastCalledWith({
+      viewerSettings: {
+        theme: 'light',
+        fontSize: 16,
+        tocFontSize: 13,
+        tocSmoothScrollEnabled: false,
+        sidebarDividerVisible: true,
+        contentAlignment: 'left',
+        localFileRefreshMode: 'prompt',
+      },
+    }),
+  );
   await waitFor(() => {
     expect(screen.getByRole('status')).toHaveTextContent('Settings saved');
   });
@@ -56,7 +62,9 @@ it('在扩展设置页保存本地文件自动刷新选择', async () => {
           viewerSettings: {
             theme: 'system',
             fontSize: 15,
+            tocFontSize: 13,
             tocSmoothScrollEnabled: true,
+            sidebarDividerVisible: true,
             contentAlignment: 'center',
             localFileRefreshMode: 'prompt',
           },
@@ -73,13 +81,60 @@ it('在扩展设置页保存本地文件自动刷新选择', async () => {
   });
   fireEvent.click(screen.getByLabelText('自动刷新'));
 
-  await waitFor(() => expect(set).toHaveBeenLastCalledWith({
-    viewerSettings: {
-      theme: 'system',
-      fontSize: 15,
-      tocSmoothScrollEnabled: true,
-      contentAlignment: 'center',
-      localFileRefreshMode: 'auto',
+  await waitFor(() =>
+    expect(set).toHaveBeenLastCalledWith({
+      viewerSettings: {
+        theme: 'system',
+        fontSize: 15,
+        tocFontSize: 13,
+        tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: true,
+        contentAlignment: 'center',
+        localFileRefreshMode: 'auto',
+      },
+    }),
+  );
+});
+
+it('在扩展设置页保存目录分隔线显示选择', async () => {
+  const set = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('chrome', {
+    storage: {
+      local: {
+        get: vi.fn().mockResolvedValue({
+          viewerSettings: {
+            theme: 'system',
+            fontSize: 15,
+            tocFontSize: 13,
+            tocSmoothScrollEnabled: true,
+            sidebarDividerVisible: true,
+            contentAlignment: 'center',
+            localFileRefreshMode: 'prompt',
+          },
+        }),
+        set,
+      },
     },
-  }));
+  });
+
+  render(<Options />);
+
+  await waitFor(() => {
+    expect(screen.getByLabelText('显示目录分隔线')).toBeChecked();
+  });
+  fireEvent.click(screen.getByLabelText('隐藏目录分隔线'));
+
+  await waitFor(() =>
+    expect(set).toHaveBeenLastCalledWith({
+      viewerSettings: {
+        theme: 'system',
+        fontSize: 15,
+        tocFontSize: 13,
+        tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: false,
+        contentAlignment: 'center',
+        localFileRefreshMode: 'prompt',
+      },
+    }),
+  );
 });

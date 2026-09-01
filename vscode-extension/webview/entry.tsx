@@ -45,6 +45,7 @@ interface ErrorMessage {
 interface PreviewSettings {
   theme: ThemeMode;
   fontSize: number;
+  tocFontSize: number;
   tocSmoothScrollEnabled: boolean;
   contentAlignment: ContentAlignment;
 }
@@ -144,6 +145,7 @@ function isWebviewMessage(message: unknown): message is WebviewMessage {
       (settings.theme === 'light' || settings.theme === 'dark' || settings.theme === 'system')
       && typeof settings.fontSize === 'number'
       && Number.isFinite(settings.fontSize)
+      && (settings.tocFontSize === undefined || (typeof settings.tocFontSize === 'number' && Number.isFinite(settings.tocFontSize)))
       && typeof settings.tocSmoothScrollEnabled === 'boolean'
       && (settings.contentAlignment === 'left' || settings.contentAlignment === 'center')
     );
@@ -187,10 +189,12 @@ export function WebviewPreview() {
   const [error, setError] = useState<string>();
   const storedTheme = useViewerStore((state) => state.theme);
   const fontSize = useViewerStore((state) => state.fontSize);
+  const tocFontSize = useViewerStore((state) => state.tocFontSize);
   const tocSmoothScrollEnabled = useViewerStore((state) => state.tocSmoothScrollEnabled);
   const contentAlignment = useViewerStore((state) => state.contentAlignment);
   const setStoredTheme = useViewerStore((state) => state.setTheme);
   const setStoredFontSize = useViewerStore((state) => state.setFontSize);
+  const setStoredTocFontSize = useViewerStore((state) => state.setTocFontSize);
   const setStoredSmoothScroll = useViewerStore((state) => state.setTocSmoothScrollEnabled);
   const setStoredContentAlignment = useViewerStore((state) => state.setContentAlignment);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
@@ -330,9 +334,9 @@ export function WebviewPreview() {
     if (!settingsHydrated) return;
     vscodeApi?.postMessage({
       type: 'settings',
-      settings: { theme: storedTheme, fontSize, tocSmoothScrollEnabled, contentAlignment },
+      settings: { theme: storedTheme, fontSize, tocFontSize, tocSmoothScrollEnabled, contentAlignment },
     });
-  }, [contentAlignment, fontSize, settingsHydrated, storedTheme, tocSmoothScrollEnabled, vscodeApi]);
+  }, [contentAlignment, fontSize, settingsHydrated, storedTheme, tocFontSize, tocSmoothScrollEnabled, vscodeApi]);
 
   useEffect(() => {
     vscodeApi?.postMessage({ type: 'ready' });
@@ -390,6 +394,7 @@ export function WebviewPreview() {
       if (event.data.type === 'settings') {
         setStoredTheme(event.data.settings.theme);
         setStoredFontSize(event.data.settings.fontSize);
+        setStoredTocFontSize(event.data.settings.tocFontSize ?? 13);
         setStoredSmoothScroll(event.data.settings.tocSmoothScrollEnabled);
         setStoredContentAlignment(event.data.settings.contentAlignment);
         setSettingsHydrated(true);
@@ -401,7 +406,7 @@ export function WebviewPreview() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [setStoredContentAlignment, setStoredFontSize, setStoredSmoothScroll, setStoredTheme]);
+  }, [setStoredContentAlignment, setStoredFontSize, setStoredSmoothScroll, setStoredTheme, setStoredTocFontSize]);
 
   const sourceContext: MarkdownSourceContext | undefined = useMemo(() => {
     const context = documentState?.sourceContext;

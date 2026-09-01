@@ -92,4 +92,24 @@ describe('sanitizeMermaidSvg', () => {
     expect(result).toContain('xmlns="http://www.w3.org/1999/xhtml"');
     expect(result).toContain('Debug');
   });
+
+  it('pins node label text to the viewer theme inside Mermaid foreignObject output', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 140 60"><g class="node"><foreignObject x="10" y="10" width="120" height="40"><div><span class="nodeLabel"><p>有效图表</p></span></div></foreignObject></g></svg>',
+    );
+
+    expect(result).toContain('color: var(--feishu-mermaid-node-text) !important');
+    expect(result).toContain('fill: var(--feishu-mermaid-node-text) !important');
+  });
+
+  it('pins sequence actor tspan labels to the viewer theme', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 320 180"><text class="actor actor-box" x="80" y="30"><tspan x="80" dy="0" style="overflow: visible">相邻图表</tspan></text></svg>',
+      { expandBounds: false },
+    );
+
+    expect(result).toContain(
+      '<tspan x="80" dy="0" style="overflow: visible; color: var(--feishu-mermaid-node-text) !important; fill: var(--feishu-mermaid-node-text) !important;',
+    );
+  });
 });

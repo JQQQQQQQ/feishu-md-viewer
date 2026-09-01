@@ -170,6 +170,36 @@
   scroll-margin-top: calc(var(--feishu-topbar-height, 56px) + 18px);
 }
 
+/* Briefly mark the heading reached from the directory without changing layout. */
+.feishu-heading--toc-target {
+  border-radius: 6px;
+  animation: feishu-toc-target-highlight 2000ms ease-out forwards;
+}
+
+@keyframes feishu-toc-target-highlight {
+  0% {
+    background-color: color-mix(in srgb, var(--feishu-brand-primary) 24%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--feishu-brand-primary) 10%, transparent);
+  }
+
+  65% {
+    background-color: color-mix(in srgb, var(--feishu-brand-primary) 12%, transparent);
+    box-shadow: 0 0 0 4px transparent;
+  }
+
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feishu-heading--toc-target {
+    animation: none;
+    background-color: color-mix(in srgb, var(--feishu-brand-primary) 14%, transparent);
+  }
+}
+
 .feishu-heading__text {
   min-width: 0;
 }
@@ -1380,11 +1410,33 @@
 
 .feishu-mermaid svg foreignObject div,
 .feishu-mermaid svg foreignObject span,
+.feishu-mermaid svg foreignObject *,
 .feishu-mermaid svg .nodeLabel,
+.feishu-mermaid svg .edgeLabel,
+.feishu-mermaid svg .edgeLabel span,
+.feishu-mermaid svg .sequenceNumber,
+.feishu-mermaid svg .loopText,
+.feishu-mermaid svg .noteText,
+.feishu-mermaid svg .titleText,
+.feishu-mermaid svg .sectionTitle,
+.feishu-mermaid svg .taskText,
+.feishu-mermaid svg .taskTextOutsideRight,
+.feishu-mermaid svg .taskTextOutsideLeft,
 .mermaid-preview-zoom svg foreignObject div,
 .mermaid-preview-zoom svg foreignObject span,
-.mermaid-preview-zoom svg .nodeLabel {
-  color: var(--feishu-mermaid-node-text);
+.mermaid-preview-zoom svg foreignObject *,
+.mermaid-preview-zoom svg .nodeLabel,
+.mermaid-preview-zoom svg .edgeLabel,
+.mermaid-preview-zoom svg .edgeLabel span,
+.mermaid-preview-zoom svg .sequenceNumber,
+.mermaid-preview-zoom svg .loopText,
+.mermaid-preview-zoom svg .noteText,
+.mermaid-preview-zoom svg .titleText,
+.mermaid-preview-zoom svg .sectionTitle,
+.mermaid-preview-zoom svg .taskText,
+.mermaid-preview-zoom svg .taskTextOutsideRight,
+.mermaid-preview-zoom svg .taskTextOutsideLeft {
+  color: var(--feishu-mermaid-node-text) !important;
 }
 
 .feishu-mermaid svg .node rect,
@@ -1394,7 +1446,9 @@
 .feishu-mermaid svg .node circle,
 .mermaid-preview-zoom svg .node circle,
 .feishu-mermaid svg .node ellipse,
-.mermaid-preview-zoom svg .node ellipse {
+.mermaid-preview-zoom svg .node ellipse,
+.feishu-mermaid svg .node path,
+.mermaid-preview-zoom svg .node path {
   fill: var(--feishu-mermaid-node-bg) !important;
   stroke: var(--feishu-mermaid-node-border) !important;
 }
@@ -1406,6 +1460,22 @@
 .feishu-mermaid svg .labelText,
 .mermaid-preview-zoom svg .labelText {
   fill: var(--feishu-mermaid-node-text) !important;
+}
+
+/* Node labels can be emitted as SVG text or as HTML inside foreignObject.
+ * Target the label subtree explicitly so Mermaid's primaryTextColor does not
+ * leave node text dark while edge labels are light in a dark theme. */
+.feishu-mermaid svg .nodeLabel,
+.feishu-mermaid svg .nodeLabel text,
+.feishu-mermaid svg .nodeLabel tspan,
+.feishu-mermaid svg .nodeLabel *,
+.mermaid-preview-zoom svg .nodeLabel,
+.mermaid-preview-zoom svg .nodeLabel text,
+.mermaid-preview-zoom svg .nodeLabel tspan,
+.mermaid-preview-zoom svg .nodeLabel * {
+  color: var(--feishu-mermaid-node-text) !important;
+  fill: var(--feishu-mermaid-node-text) !important;
+  -webkit-text-fill-color: var(--feishu-mermaid-node-text) !important;
 }
 
 .feishu-mermaid svg rect.actor,
@@ -1453,11 +1523,42 @@
   marker-height: 6;
 }
 
+/* Sequence and state diagrams use separate line classes instead of the
+ * flowchart edge path. Keep those lines visible against dark surfaces too. */
+.feishu-mermaid svg .actor-line,
+.mermaid-preview-zoom svg .actor-line,
+.feishu-mermaid svg .messageLine0,
+.mermaid-preview-zoom svg .messageLine0,
+.feishu-mermaid svg .messageLine1,
+.mermaid-preview-zoom svg .messageLine1,
+.feishu-mermaid svg .loopLine,
+.mermaid-preview-zoom svg .loopLine {
+  stroke: var(--feishu-mermaid-edge) !important;
+}
+
 .feishu-mermaid svg .edgeLabel rect,
 .mermaid-preview-zoom svg .edgeLabel rect,
 .feishu-mermaid svg .labelBkg,
 .mermaid-preview-zoom svg .labelBkg {
   fill: var(--feishu-mermaid-edge-label-bg) !important;
+}
+
+/* Flowchart edge labels may be rendered as HTML inside a foreignObject.
+ * Mermaid's default p/div background remains white in dark mode unless the
+ * HTML surface is overridden separately from the SVG rect above. */
+.feishu-mermaid svg .edgeLabel,
+.feishu-mermaid svg .edgeLabel foreignObject,
+.feishu-mermaid svg .edgeLabel foreignObject *,
+.feishu-mermaid svg .edgeLabel p,
+.feishu-mermaid svg .edgeLabel div,
+.feishu-mermaid svg .edgeLabel span,
+.mermaid-preview-zoom svg .edgeLabel,
+.mermaid-preview-zoom svg .edgeLabel foreignObject,
+.mermaid-preview-zoom svg .edgeLabel foreignObject *,
+.mermaid-preview-zoom svg .edgeLabel p,
+.mermaid-preview-zoom svg .edgeLabel div,
+.mermaid-preview-zoom svg .edgeLabel span {
+  background-color: var(--feishu-mermaid-edge-label-bg) !important;
 }
 
 .feishu-mermaid svg .cluster rect,

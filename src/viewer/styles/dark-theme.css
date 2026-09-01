@@ -37,7 +37,9 @@
   --feishu-mermaid-node-border: #6d9aff;
   --feishu-mermaid-node-text: #f2f5ff;
   --feishu-mermaid-edge: #8eabff;
-  --feishu-mermaid-edge-label-bg: #293449;
+  /* Edge labels stay on the diagram plane; avoid a boxed dark tile behind
+   * branch text while preserving the label text and connector contrast. */
+  --feishu-mermaid-edge-label-bg: transparent;
   --feishu-mermaid-cluster-bg: #202938;
   --feishu-mermaid-cluster-border: #40547a;
   --feishu-scrollbar-track: #1f1f1f;
@@ -55,8 +57,13 @@
 
 /* Sidebar dark adjustments */
 .feishu-viewer--dark .feishu-sidebar {
-  background-color: var(--feishu-bg-page);
+  /* Keep navigation on the same reading surface as the document. */
+  background-color: var(--feishu-bg-content);
   border-right-color: var(--feishu-border-light);
+}
+
+.feishu-viewer--dark .feishu-sidebar.feishu-sidebar--divider-hidden {
+  border-right-color: transparent;
 }
 
 /* Code block dark adjustments */
@@ -236,8 +243,13 @@
   }
 
   .feishu-viewer--system .feishu-sidebar {
-    background-color: var(--feishu-bg-page);
+    /* Keep navigation on the same reading surface as the document. */
+    background-color: var(--feishu-bg-content);
     border-right-color: var(--feishu-border-light);
+  }
+
+  .feishu-viewer--system .feishu-sidebar.feishu-sidebar--divider-hidden {
+    border-right-color: transparent;
   }
 
   .feishu-viewer--system .feishu-code-block {
@@ -269,7 +281,7 @@
     --feishu-mermaid-node-border: #6d9aff;
     --feishu-mermaid-node-text: #f2f5ff;
     --feishu-mermaid-edge: #8eabff;
-    --feishu-mermaid-edge-label-bg: #293449;
+    --feishu-mermaid-edge-label-bg: transparent;
     --feishu-mermaid-cluster-bg: #202938;
     --feishu-mermaid-cluster-border: #40547a;
   }

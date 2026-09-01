@@ -15,6 +15,7 @@ import tailwindStyles from '../viewer/styles/tailwind-output.css?inline';
 import darkThemeStyles from '../viewer/styles/dark-theme.css?inline';
 import printStyles from '../viewer/styles/print.css?inline';
 import { createMarkdownSourceContext } from '../lib/markdown-resource-resolver';
+import { getViewerSettingsSyncPatch } from './settings-sync';
 
 const DEV_MESSAGE_SOURCE = 'feishu-md-viewer-devtools';
 
@@ -85,13 +86,13 @@ async function main(): Promise<void> {
     areaName: string,
   ) => {
     if (areaName !== 'local') return;
-    const newSettings = changes.viewerSettings?.newValue as { localFileRefreshMode?: unknown } | undefined;
-    if (!newSettings) return;
+    const settingsPatch = getViewerSettingsSyncPatch(changes.viewerSettings?.newValue);
+    if (Object.keys(settingsPatch).length === 0) return;
 
     // The options page runs in a separate JS context. Sync only the setting
     // needed by the already-open content page without persisting it again.
     useViewerStore.setState({
-      localFileRefreshMode: newSettings.localFileRefreshMode === 'auto' ? 'auto' : 'prompt',
+      ...settingsPatch,
       settingsHydrated: true,
     });
   };

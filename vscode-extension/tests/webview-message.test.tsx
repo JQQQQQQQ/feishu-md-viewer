@@ -45,6 +45,7 @@ describe('VS Code Webview preview', () => {
     useViewerStore.setState({
       theme: 'system',
       fontSize: 15,
+      tocFontSize: 13,
       tocSmoothScrollEnabled: true,
       contentAlignment: 'center',
       settingsHydrated: false,
@@ -96,6 +97,8 @@ describe('VS Code Webview preview', () => {
     sendWebviewMessage({ type: 'document', text: '# 设置入口', version: 1 });
 
     expect(await screen.findByRole('heading', { name: '设置入口' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '打开阅读设置' }));
+    expect(screen.getByRole('dialog', { name: '阅读设置' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Theme:/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /TOC scroll:/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Decrease font size' })).toBeInTheDocument();
@@ -116,6 +119,7 @@ describe('VS Code Webview preview', () => {
 
     expect(await screen.findByRole('heading', { name: '全局设置' })).toBeInTheDocument();
     expect(screen.getByRole('article')).toHaveClass('feishu-viewer--dark', 'feishu-viewer--content-left');
+    fireEvent.click(screen.getByRole('button', { name: '打开阅读设置' }));
     expect(screen.getByRole('button', { name: /TOC scroll: instant/ })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByText('19')).toBeInTheDocument();
   });
@@ -135,6 +139,7 @@ describe('VS Code Webview preview', () => {
     await screen.findByRole('heading', { name: '修改设置' });
     postMessage.mockClear();
 
+    fireEvent.click(screen.getByRole('button', { name: '打开阅读设置' }));
     fireEvent.click(screen.getByRole('button', { name: 'Increase font size' }));
 
     expect(postMessage).toHaveBeenCalledWith({
@@ -142,6 +147,7 @@ describe('VS Code Webview preview', () => {
       settings: {
         theme: 'light',
         fontSize: 16,
+        tocFontSize: 13,
         tocSmoothScrollEnabled: true,
         contentAlignment: 'center',
       },

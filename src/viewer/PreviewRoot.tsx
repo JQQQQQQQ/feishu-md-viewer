@@ -48,6 +48,7 @@ export function PreviewRoot({
 }: PreviewRootProps) {
   const storedTheme = useViewerStore((s) => s.theme);
   const fontSize = useViewerStore((s) => s.fontSize);
+  const tocFontSize = useViewerStore((s) => s.tocFontSize);
   const contentAlignment = useViewerStore((s) => s.contentAlignment);
   const tocItems = useTOC(markdown);
   const title = useMemo(() => extractTitle(markdown), [markdown]);
@@ -69,7 +70,12 @@ export function PreviewRoot({
         aria-label="Rendered markdown document"
         data-source={source}
         data-mode="read"
-        style={{ '--feishu-font-size-body': `${fontSize}px` } as React.CSSProperties}
+        style={
+          {
+            '--feishu-font-size-body': `${fontSize}px`,
+            '--feishu-toc-font-size': `${tocFontSize}px`,
+          } as React.CSSProperties
+        }
       >
         <AppShell
           title={title}

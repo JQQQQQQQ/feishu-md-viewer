@@ -24,7 +24,9 @@
   opacity: 0;
   pointer-events: none;
   transform: translateY(-4px);
-  transition: opacity 150ms ease, transform 150ms ease;
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
 }
 
 .mermaid-toolbar-wrapper:hover .mermaid-toolbar,
@@ -47,7 +49,9 @@
   font-size: 12px;
   font-family: var(--feishu-font-family);
   cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
 .mermaid-toolbar__preview-btn:hover,
@@ -69,9 +73,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(8px);
+  padding: 0;
+  background: var(--feishu-bg-page);
+  backdrop-filter: none;
   animation: mermaid-preview-fade-in 180ms ease-out both;
   isolation: isolate;
   overscroll-behavior: contain;
@@ -81,17 +85,17 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(1160px, calc(100vw - 64px));
-  height: min(800px, calc(100vh - 64px));
-  max-height: calc(100vh - 64px);
-  min-height: 320px;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  min-height: 0;
   box-sizing: border-box;
   overflow: hidden;
-  background: var(--feishu-bg-content);
-  border: 1px solid var(--feishu-border-light);
-  border-radius: 14px;
-  box-shadow: 0 28px 90px rgba(15, 23, 42, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  animation: mermaid-preview-panel-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--feishu-bg-page);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .mermaid-preview-toolbar {
@@ -109,7 +113,9 @@
   background: color-mix(in srgb, var(--feishu-bg-content) 94%, var(--feishu-brand-primary) 6%);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
   backdrop-filter: blur(8px);
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 .mermaid-preview-toolbar--hidden {
@@ -192,27 +198,44 @@
   outline-offset: 1px;
 }
 
-.mermaid-preview-toolbar__close {
+.mermaid-preview-close-button {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 4;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid transparent;
-  border-radius: var(--feishu-radius-sm);
-  background: transparent;
-  color: var(--feishu-text-secondary);
+  gap: 6px;
+  width: auto;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--feishu-border-light) 72%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--feishu-text-primary) 72%, transparent);
+  color: var(--feishu-bg-content);
+  font-family: var(--feishu-font-family);
+  font-size: var(--feishu-font-size-small);
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(8px);
   cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
 }
 
-.mermaid-preview-toolbar__close:hover {
-  background: var(--feishu-bg-page);
-  color: var(--feishu-text-primary);
+.mermaid-preview-close-button:hover {
+  background: var(--feishu-brand-primary);
+  color: #fff;
+  transform: scale(1.04);
 }
 
-.mermaid-preview-toolbar__close:focus-visible {
+.mermaid-preview-close-button:focus-visible {
   outline: 2px solid var(--feishu-brand-primary);
-  outline-offset: 1px;
+  outline-offset: 3px;
 }
 
 .mermaid-preview-canvas {
@@ -223,7 +246,8 @@
   overflow: auto;
   overscroll-behavior: contain;
   padding: 40px;
-  cursor: default;
+  cursor: grab;
+  user-select: none;
   touch-action: pan-x pan-y;
   /* Keep the preview surface consistent with the in-document Mermaid card.
    * The canvas still provides pan/zoom, without introducing a second visual
@@ -269,15 +293,16 @@
   justify-content: center;
   transform-origin: center center;
   box-sizing: border-box;
-  background: var(--feishu-bg-content);
-  border: 1px solid var(--feishu-border-lighter);
-  border-radius: var(--feishu-radius);
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .feishu-viewer--dark .mermaid-preview-zoom {
-  border-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .feishu-viewer--dark .mermaid-preview-toolbar {
@@ -300,13 +325,12 @@
   }
 
   .mermaid-preview-overlay {
-    padding: 12px;
+    padding: 0;
   }
 
   .mermaid-preview-dialog {
-    width: min(1120px, calc(100vw - 24px));
-    height: min(780px, calc(100vh - 24px));
-    max-height: calc(100vh - 24px);
+    width: 100vw;
+    height: 100vh;
   }
 
   .mermaid-preview-canvas {
@@ -315,18 +339,27 @@
 }
 
 @keyframes mermaid-preview-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes mermaid-preview-panel-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .mermaid-preview-overlay,
-  .mermaid-preview-dialog,
   .mermaid-preview-toolbar {
     animation: none;
     transition: none;

@@ -20,15 +20,17 @@ export async function createTempMarkdownFixture(
 ): Promise<TempMarkdownFixture> {
   const directory = await mkdtemp(join(tmpdir(), 'feishu-md-viewer-e2e-'));
   const filePath = join(directory, 'fixture.md');
-  const content = initialContent ?? await readFile(
-    join(
-      projectRoot,
-      fixtureName === 'markdown-compatibility'
-        ? 'test-markdown-compatibility.md'
-        : 'tests/e2e/fixtures/all-markdown-features.md',
-    ),
-    'utf8',
-  );
+  const content =
+    initialContent ??
+    (await readFile(
+      join(
+        projectRoot,
+        fixtureName === 'markdown-compatibility'
+          ? 'test-markdown-compatibility.md'
+          : 'tests/e2e/fixtures/all-markdown-features.md',
+      ),
+      'utf8',
+    ));
   await writeFile(filePath, content, 'utf8');
 
   return {
@@ -62,9 +64,13 @@ export async function createBrowserContext(): Promise<BrowserContext> {
 }
 
 export async function waitForViewer(page: Page): Promise<void> {
-  await page.waitForFunction(() => Boolean(document.querySelector('#feishu-md-viewer-host')?.shadowRoot), null, {
-    timeout: 15_000,
-  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector('#feishu-md-viewer-host')?.shadowRoot),
+    null,
+    {
+      timeout: 15_000,
+    },
+  );
   await page.locator('#feishu-md-viewer-host .feishu-viewer').waitFor({ state: 'visible' });
 }
 
@@ -79,6 +85,7 @@ export async function setViewerSettings(
   settings: Partial<{
     theme: 'light' | 'dark' | 'system';
     fontSize: number;
+    tocFontSize: number;
     tocSmoothScrollEnabled: boolean;
     contentAlignment: 'left' | 'center';
     localFileRefreshMode: 'prompt' | 'auto';
@@ -90,6 +97,7 @@ export async function setViewerSettings(
       viewerSettings: {
         theme: 'system',
         fontSize: 15,
+        tocFontSize: 13,
         tocSmoothScrollEnabled: true,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',

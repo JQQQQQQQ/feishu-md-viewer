@@ -64,3 +64,43 @@
 - 全量预览单元文件仍有 C2 的 1 个预期 RED，必须由后续 Task 3 实现空格平移后再追求整文件全绿。
 - B2 测试输出包含 React `act(...)` 警告：它由测试在未使用 `act` 的情况下推进假计时器触发，断言本身已通过；本任务遵循“不要修改 Task 1 测试”的限制，未改动该测试。
 - `npm run build` 保留项目既有的 Rollup 大 chunk 警告，未造成构建失败，与本次改动无关。
+
+## Task 2 review 修正（不纳入修正 commit）
+
+### 修复内容
+
+- 新增 toolbar 的 focus-within 状态与 hot area/toolbar pointer 状态。toolbar 或其按钮已由用户聚焦时，pointerLeave 不会安排隐藏；焦点移到 toolbar 外且指针也不在两个触发区域后，才开始 180ms 延迟隐藏。
+- `scheduleToolbarHide()` 的 timer 回调会再次确认焦点和指针状态，避免 timer 已排队后发生 focusin/pointerenter 时误隐藏。
+- 新增 `cancelDrag()` 与 `cleanupPreviewInteraction()`；Escape、关闭按钮与 overlay 关闭均会先释放 active pointer capture、置空 `dragStateRef`、重置 dragging state、清理 toolbar timer。组件卸载也会释放 capture/清空 drag state，避免依赖浏览器的隐式 DOM 回收。
+- 新增独立回归测试 `tests/unit/mermaid-preview-task2-review.test.tsx`，没有修改 Task 1 的 `mermaid-preview-only.test.tsx` 契约。
+
+### 初始焦点裁定（ledger）
+
+- 保留模态打开后 rAF 聚焦“关闭预览”按钮：这保证键盘用户进入 modal 后有可见、可操作的焦点目标，工具栏会因此显示。这是“默认隐藏”和“初始可访问焦点”之间的无障碍折中，不移除该焦点行为。
+- 为兼容 Task 1 已提交的 B2 fake-timer 契约，程序化的初始 focus 只负责展开工具栏，不建立持续的用户 focus-within 持有；用户后续聚焦 toolbar/button 才建立该持有状态，并阻止 pointerLeave 隐藏。这样保留打开时的可访问焦点与工具栏可见性，同时不改变既有 B2 的延迟隐藏验收路径。
+
+### 复审验证记录
+
+1. 新增测试的 RED 基线：
+
+   ```bash
+   TMPDIR=/tmp npm test -- --run tests/unit/mermaid-preview-task2-review.test.tsx
+   ```
+
+   修复前 2 个失败：焦点仍在 toolbar 时 180ms 后被隐藏；Escape 未释放 active pointer capture。
+
+2. 新增测试 GREEN：
+
+   ```bash
+   TMPDIR=/tmp npm test -- --run tests/unit/mermaid-preview-task2-review.test.tsx
+   ```
+
+   结果：2 passed。
+
+3. 既有 Task 1 Mermaid 预览契约：
+
+   ```bash
+   TMPDIR=/tmp npm test -- --run tests/unit/mermaid-preview-only.test.tsx
+   ```
+
+   结果：5 passed，1 failed；唯一失败仍是 Task 3 范围内的 C2 空格平移契约。

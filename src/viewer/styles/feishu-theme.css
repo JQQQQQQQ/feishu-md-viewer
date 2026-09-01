@@ -43,7 +43,8 @@
   --feishu-mermaid-node-border: #8fb1ff;
   --feishu-mermaid-node-text: #1f2329;
   --feishu-mermaid-edge: #5b7cff;
-  --feishu-mermaid-edge-label-bg: #ffffff;
+  /* Keep branch labels on the diagram plane instead of rendering white text tiles. */
+  --feishu-mermaid-edge-label-bg: transparent;
   --feishu-mermaid-cluster-bg: #f7f9fc;
   --feishu-mermaid-cluster-border: #d7e2ff;
   --feishu-scrollbar-track: transparent;

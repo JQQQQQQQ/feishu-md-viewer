@@ -49,7 +49,11 @@ function getSvgPreviewSize(svgString: string): SvgSize {
   if (width !== null && height !== null) return { width, height };
 
   const viewBox = svg.getAttribute('viewBox');
-  const parts = viewBox?.trim().split(/[\s,]+/).map(Number).filter(Number.isFinite);
+  const parts = viewBox
+    ?.trim()
+    .split(/[\s,]+/)
+    .map(Number)
+    .filter(Number.isFinite);
   if (parts?.length === 4) {
     const [, , viewBoxWidth, viewBoxHeight] = parts as [number, number, number, number];
     return { width: viewBoxWidth, height: viewBoxHeight };
@@ -66,12 +70,16 @@ function centerCanvas(canvas: HTMLDivElement): void {
 function getFitZoom(canvas: HTMLDivElement, size: SvgSize): number {
   const availableWidth = Math.max(1, canvas.clientWidth - FIT_PADDING);
   const availableHeight = Math.max(1, canvas.clientHeight - FIT_PADDING);
-  return clampZoom(Math.min(FIT_MAX_ZOOM, availableWidth / size.width, availableHeight / size.height));
+  return clampZoom(
+    Math.min(FIT_MAX_ZOOM, availableWidth / size.width, availableHeight / size.height),
+  );
 }
 
 function needsSafeStart(canvas: HTMLDivElement, size: SvgSize): boolean {
-  return size.width > Math.max(1, canvas.clientWidth - FIT_PADDING)
-    || size.height > Math.max(1, canvas.clientHeight - FIT_PADDING);
+  return (
+    size.width > Math.max(1, canvas.clientWidth - FIT_PADDING) ||
+    size.height > Math.max(1, canvas.clientHeight - FIT_PADDING)
+  );
 }
 
 function resetCanvasToSafeStart(canvas: HTMLDivElement): void {
@@ -139,27 +147,33 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     }
   }, []);
 
-  const syncScrollBounds = useCallback((position: ScrollPositioner, afterSync?: () => void) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const syncScrollBounds = useCallback(
+    (position: ScrollPositioner, afterSync?: () => void) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    cancelScrollSync();
-    const syncVersion = scrollSyncVersionRef.current;
-    scrollSyncFrameRef.current = requestAnimationFrame(() => {
-      if (syncVersion !== scrollSyncVersionRef.current) return;
-      scrollSyncFrameRef.current = null;
-      const activeCanvas = canvasRef.current;
-      if (!activeCanvas) return;
+      cancelScrollSync();
+      const syncVersion = scrollSyncVersionRef.current;
+      scrollSyncFrameRef.current = requestAnimationFrame(() => {
+        if (syncVersion !== scrollSyncVersionRef.current) return;
+        scrollSyncFrameRef.current = null;
+        const activeCanvas = canvasRef.current;
+        if (!activeCanvas) return;
 
-      position(activeCanvas);
-      afterSync?.();
-    });
-  }, [cancelScrollSync]);
+        position(activeCanvas);
+        afterSync?.();
+      });
+    },
+    [cancelScrollSync],
+  );
 
-  const showToolbar = useCallback((_reason?: 'pointer' | 'keyboard' | 'focus') => {
-    clearToolbarHideTimer();
-    setToolbarVisible(true);
-  }, [clearToolbarHideTimer]);
+  const showToolbar = useCallback(
+    (_reason?: 'pointer' | 'keyboard' | 'focus') => {
+      clearToolbarHideTimer();
+      setToolbarVisible(true);
+    },
+    [clearToolbarHideTimer],
+  );
 
   const scheduleToolbarHide = useCallback(() => {
     clearToolbarHideTimer();
@@ -174,38 +188,44 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     }, 180);
   }, [clearToolbarHideTimer, toolbarHasFocus]);
 
-  const zoomFromCenter = useCallback((factor: number) => {
-    const canvas = canvasRef.current;
-    const currentZoom = zoomRef.current;
-    const nextZoom = roundZoom(currentZoom * factor);
-    zoomRef.current = nextZoom;
-    setZoom(nextZoom);
+  const zoomFromCenter = useCallback(
+    (factor: number) => {
+      const canvas = canvasRef.current;
+      const currentZoom = zoomRef.current;
+      const nextZoom = roundZoom(currentZoom * factor);
+      zoomRef.current = nextZoom;
+      setZoom(nextZoom);
 
-    if (!canvas) {
-      return;
-    }
+      if (!canvas) {
+        return;
+      }
 
-    const centerX = canvas.clientWidth / 2;
-    const centerY = canvas.clientHeight / 2;
-    const scrollX = canvas.scrollLeft + centerX;
-    const scrollY = canvas.scrollTop + centerY;
+      const centerX = canvas.clientWidth / 2;
+      const centerY = canvas.clientHeight / 2;
+      const scrollX = canvas.scrollLeft + centerX;
+      const scrollY = canvas.scrollTop + centerY;
 
-    const zoomRatio = nextZoom / currentZoom;
-    syncScrollBounds(() => {
-      canvas.scrollLeft = scrollX * zoomRatio - centerX;
-      canvas.scrollTop = scrollY * zoomRatio - centerY;
-    });
-  }, [syncScrollBounds]);
+      const zoomRatio = nextZoom / currentZoom;
+      syncScrollBounds(() => {
+        canvas.scrollLeft = scrollX * zoomRatio - centerX;
+        canvas.scrollTop = scrollY * zoomRatio - centerY;
+      });
+    },
+    [syncScrollBounds],
+  );
 
-  const applyD2Viewport = useCallback((afterSync?: () => void) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const applyD2Viewport = useCallback(
+    (afterSync?: () => void) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const plan = getD2ViewportPlan(canvas, previewSize);
-    zoomRef.current = plan.zoom;
-    setZoom(plan.zoom);
-    syncScrollBounds(plan.position, afterSync);
-  }, [previewSize, syncScrollBounds]);
+      const plan = getD2ViewportPlan(canvas, previewSize);
+      zoomRef.current = plan.zoom;
+      setZoom(plan.zoom);
+      syncScrollBounds(plan.position, afterSync);
+    },
+    [previewSize, syncScrollBounds],
+  );
 
   const fitToCanvas = useCallback(() => {
     applyD2Viewport(() => {
@@ -219,9 +239,12 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     setZoom(1);
     if (!canvas) return;
 
-    syncScrollBounds(needsSafeStart(canvas, previewSize) ? resetCanvasToSafeStart : centerCanvas, () => {
-      setIsViewportReady(true);
-    });
+    syncScrollBounds(
+      needsSafeStart(canvas, previewSize) ? resetCanvasToSafeStart : centerCanvas,
+      () => {
+        setIsViewportReady(true);
+      },
+    );
   }, [previewSize, syncScrollBounds]);
 
   const applyInitialViewport = useCallback(() => {
@@ -241,11 +264,14 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     if (resetDraggingState) setIsDragging(false);
   }, []);
 
-  const cleanupPreviewInteraction = useCallback((resetDraggingState = true) => {
-    cancelDrag(resetDraggingState);
-    clearToolbarHideTimer();
-    cancelScrollSync();
-  }, [cancelDrag, cancelScrollSync, clearToolbarHideTimer]);
+  const cleanupPreviewInteraction = useCallback(
+    (resetDraggingState = true) => {
+      cancelDrag(resetDraggingState);
+      clearToolbarHideTimer();
+      cancelScrollSync();
+    },
+    [cancelDrag, cancelScrollSync, clearToolbarHideTimer],
+  );
 
   const closePreview = useCallback(() => {
     cleanupPreviewInteraction();
@@ -259,11 +285,12 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     if (!canvas) return;
 
     const rawDelta = event.deltaX || event.deltaY;
-    const delta = event.deltaMode === 1
-      ? rawDelta * WHEEL_LINE_HEIGHT
-      : event.deltaMode === 2
-        ? rawDelta * canvas.clientWidth
-        : rawDelta;
+    const delta =
+      event.deltaMode === 1
+        ? rawDelta * WHEEL_LINE_HEIGHT
+        : event.deltaMode === 2
+          ? rawDelta * canvas.clientWidth
+          : rawDelta;
     const maxScrollLeft = Math.max(0, canvas.scrollWidth - canvas.clientWidth);
     const nextScrollLeft = Math.min(maxScrollLeft, Math.max(0, canvas.scrollLeft + delta));
     if (delta === 0 || nextScrollLeft === canvas.scrollLeft) return;
@@ -281,23 +308,29 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     return () => canvas.removeEventListener('wheel', handleCanvasWheel);
   }, [handleCanvasWheel]);
 
-  const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || !isSpacePressed) return;
+  const handlePointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      // Mouse dragging is the primary pan gesture. Keep space-drag as a
+      // keyboard-friendly fallback, while leaving touch to the browser's
+      // native scrolling behavior.
+      if (event.button !== 0 || (event.pointerType === 'touch' && !isSpacePressed)) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    event.preventDefault();
-    canvas.setPointerCapture(event.pointerId);
-    dragStateRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      scrollLeft: canvas.scrollLeft,
-      scrollTop: canvas.scrollTop,
-    };
-    setIsDragging(true);
-  }, [isSpacePressed]);
+      event.preventDefault();
+      canvas.setPointerCapture(event.pointerId);
+      dragStateRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        scrollLeft: canvas.scrollLeft,
+        scrollTop: canvas.scrollTop,
+      };
+      setIsDragging(true);
+    },
+    [isSpacePressed],
+  );
 
   const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const dragState = dragStateRef.current;
@@ -308,12 +341,15 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
     canvas.scrollTop = dragState.scrollTop - (event.clientY - dragState.startY);
   }, []);
 
-  const stopDrag = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const dragState = dragStateRef.current;
-    if (!dragState || event.pointerId !== dragState.pointerId) return;
+  const stopDrag = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || event.pointerId !== dragState.pointerId) return;
 
-    cancelDrag();
-  }, [cancelDrag]);
+      cancelDrag();
+    },
+    [cancelDrag],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -343,12 +379,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
         return;
       }
 
-      if (
-        event.key.toLowerCase() === 'f'
-        && !event.ctrlKey
-        && !event.metaKey
-        && !event.altKey
-      ) {
+      if (event.key.toLowerCase() === 'f' && !event.ctrlKey && !event.metaKey && !event.altKey) {
         event.preventDefault();
         showToolbar('keyboard');
         fitToCanvas();
@@ -397,15 +428,33 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
 
   return (
     <div
-      className="mermaid-preview-overlay"
+      className="mermaid-preview-overlay mermaid-preview-dialog--fullscreen"
       role="dialog"
       aria-modal="true"
       aria-label="Mermaid diagram preview"
+      data-preview-surface="fullscreen"
       onClick={(event) => {
         if (event.target === event.currentTarget) closePreview();
       }}
     >
       <div className="mermaid-preview-dialog">
+        <button
+          ref={closeButtonRef}
+          className="mermaid-preview-close-button"
+          type="button"
+          aria-label="Close Mermaid preview"
+          onClick={closePreview}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M4 4l8 8M12 4l-8 8"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span>退出</span>
+        </button>
         <div
           className={`mermaid-preview-canvas${isViewportReady ? ' mermaid-preview-canvas--viewport-ready' : ''}${isSpacePressed ? ' mermaid-preview-canvas--space-pan' : ''}${isDragging ? ' mermaid-preview-canvas--dragging' : ''}`}
           ref={canvasRef}
@@ -503,20 +552,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
               +
             </button>
           </div>
-          <span className="mermaid-preview-toolbar__zoom">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            ref={closeButtonRef}
-            className="mermaid-preview-toolbar__close"
-            type="button"
-            aria-label="Close Mermaid preview"
-            onClick={closePreview}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
+          <span className="mermaid-preview-toolbar__zoom">{Math.round(zoom * 100)}%</span>
         </div>
       </div>
     </div>

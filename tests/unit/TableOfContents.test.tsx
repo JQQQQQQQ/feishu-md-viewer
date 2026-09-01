@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import type { RefObject } from 'react';
 import { TableOfContents } from '@/viewer/components/TOC/TableOfContents';
 import type { TOCItem } from '@/viewer/hooks/useTOC';
@@ -104,5 +105,54 @@ describe('TableOfContents', () => {
     fireEvent.click(screen.getByRole('link', { name: headingText }));
 
     expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
+  });
+
+  it('点击目录后短暂高亮目标标题，并在约 2 秒后移除', () => {
+    vi.useFakeTimers();
+    const headingText = 'Section 11: Jump target';
+    const headingId = createHeadingId(headingText);
+    const container = createContainerWithHeading(headingText);
+    const containerRef = { current: container } as RefObject<HTMLElement | null>;
+    const items: TOCItem[] = [{ id: headingId, text: headingText, level: 2, children: [] }];
+
+    render(<TableOfContents items={items} containerRef={containerRef} />);
+    fireEvent.click(screen.getByRole('link', { name: headingText }));
+
+    const heading = container.querySelector('h2');
+    expect(heading).toHaveClass('feishu-heading--toc-target');
+
+    vi.advanceTimersByTime(1999);
+    expect(heading).toHaveClass('feishu-heading--toc-target');
+
+    vi.advanceTimersByTime(1);
+    expect(heading).not.toHaveClass('feishu-heading--toc-target');
+    vi.useRealTimers();
+  });
+
+  it('连续点击目录时只保留最后一次跳转的标题高亮', () => {
+    vi.useFakeTimers();
+    const firstText = 'Section 12: First target';
+    const secondText = 'Section 13: Second target';
+    const firstId = createHeadingId(firstText);
+    const secondId = createHeadingId(secondText);
+    const container = document.createElement('main');
+    container.innerHTML = `<h2><span class="feishu-heading__text">${firstText}</span></h2><h2><span class="feishu-heading__text">${secondText}</span></h2>`;
+    document.body.appendChild(container);
+    const containerRef = { current: container } as RefObject<HTMLElement | null>;
+    const items: TOCItem[] = [
+      { id: firstId, text: firstText, level: 2, children: [] },
+      { id: secondId, text: secondText, level: 2, children: [] },
+    ];
+
+    render(<TableOfContents items={items} containerRef={containerRef} />);
+    fireEvent.click(screen.getByRole('link', { name: firstText }));
+    fireEvent.click(screen.getByRole('link', { name: secondText }));
+
+    const headings = Array.from(container.querySelectorAll('h2'));
+    expect(headings[0]).not.toHaveClass('feishu-heading--toc-target');
+    expect(headings[1]).toHaveClass('feishu-heading--toc-target');
+    vi.advanceTimersByTime(2000);
+    expect(headings[1]).not.toHaveClass('feishu-heading--toc-target');
+    vi.useRealTimers();
   });
 });

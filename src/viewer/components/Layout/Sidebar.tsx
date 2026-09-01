@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TOCItem } from '../../hooks/useTOC';
 import { TableOfContents } from '../TOC/TableOfContents';
 
@@ -8,6 +8,7 @@ interface SidebarProps {
   containerRef: React.RefObject<HTMLElement | null>;
   isDrawerMode: boolean;
   isTableScrollHidden?: boolean;
+  dividerVisible?: boolean;
   onClose: () => void;
   onWidthChange: (width: number) => void;
 }
@@ -18,11 +19,13 @@ export function Sidebar({
   containerRef,
   isDrawerMode,
   isTableScrollHidden = false,
+  dividerVisible = true,
   onClose,
   onWidthChange,
 }: SidebarProps) {
   const sidebarRef = useRef<HTMLElement>(null);
   const isResizingRef = useRef(false);
+  const [isResizing, setIsResizing] = useState(false);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -58,6 +61,7 @@ export function Sidebar({
     const handlePointerUp = () => {
       if (!isResizingRef.current) return;
       isResizingRef.current = false;
+      setIsResizing(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -78,6 +82,7 @@ export function Sidebar({
 
     event.preventDefault();
     isResizingRef.current = true;
+    setIsResizing(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }, [isDrawerMode, isOpen]);
@@ -85,6 +90,7 @@ export function Sidebar({
   const sidebarClassName = [
     'feishu-sidebar',
     !isOpen ? 'feishu-sidebar--collapsed' : '',
+    !dividerVisible ? 'feishu-sidebar--divider-hidden' : '',
     isTableScrollHidden ? 'feishu-sidebar--table-scrolling' : '',
   ]
     .filter(Boolean)
@@ -117,7 +123,7 @@ export function Sidebar({
         </div>
         {!isDrawerMode && isOpen && (
           <div
-            className="feishu-sidebar__resize-handle"
+            className={`feishu-sidebar__resize-handle${dividerVisible ? '' : ' feishu-sidebar__resize-handle--hidden'}${isResizing ? ' feishu-sidebar__resize-handle--resizing' : ''}`}
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize document navigation"
