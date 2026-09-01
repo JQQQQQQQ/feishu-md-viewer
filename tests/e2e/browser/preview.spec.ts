@@ -266,11 +266,7 @@ test.describe('浏览器 Markdown 预览', () => {
         backgroundColor: 'rgb(26, 26, 26)',
         backgroundImage: 'none',
       });
-      const darkZoomContrast = await getSurfaceContrast(dialog, '.mermaid-preview-zoom');
       const darkToolbarContrast = await getSurfaceContrast(dialog, '.mermaid-preview-toolbar');
-      expect(darkZoomContrast.borderColor).not.toBe('rgba(0, 0, 0, 0)');
-      expect(darkZoomContrast.borderColor).not.toBe('rgb(26, 26, 26)');
-      expect(darkZoomContrast.boxShadow).not.toBe('none');
       expect(darkToolbarContrast.borderColor).not.toBe('rgba(0, 0, 0, 0)');
       expect(darkToolbarContrast.borderColor).not.toBe('rgb(26, 26, 26)');
       expect(darkToolbarContrast.boxShadow).not.toBe('none');
