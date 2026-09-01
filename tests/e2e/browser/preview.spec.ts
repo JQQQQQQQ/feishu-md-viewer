@@ -20,7 +20,7 @@ test.describe('浏览器 Markdown 预览', () => {
       await expect(article).toContainText('GitHub Markdown 兼容性测试文档');
       await expect(viewerLocator(page, 'details')).toHaveCount(2);
       await expect(viewerLocator(page, 'picture source')).toHaveCount(2);
-      await expect(viewerLocator(page, 'kbd')).toHaveCount(2);
+      await expect(viewerLocator(page, 'kbd')).toHaveCount(3);
       await expect(viewerLocator(page, 'video')).toHaveCount(1);
       await expect(viewerLocator(page, '.feishu-table:not(.feishu-table--sticky-clone):not(.feishu-table--left-reveal-clone)')).toHaveCount(2);
       await expect(viewerLocator(page, 'a[href^="file:"]')).toHaveCount(3);
@@ -103,6 +103,7 @@ test.describe('浏览器 Markdown 预览', () => {
       await page.goto(fixture.url, { waitUntil: 'domcontentloaded' });
       await waitForViewer(page);
 
+      await viewerLocator(page, 'button[aria-label="打开阅读设置"]').click();
       const themeButton = viewerLocator(page, 'button[aria-label^="Theme:"]');
       await themeButton.click();
       await themeButton.click();
@@ -157,6 +158,9 @@ test.describe('浏览器 Markdown 预览', () => {
       await toolbar.locator('button[aria-label="Preview Mermaid diagram"]').click();
       const dialog = viewerLocator(page, '[role="dialog"][aria-label="Mermaid diagram preview"]');
       const hitArea = dialog.locator('.mermaid-preview-bottom-hit-area');
+      // Opening the dialog can leave the pointer over the toolbar's bottom
+      // hit area. Move it away before asserting the initial hidden state.
+      await page.mouse.move(12, 120);
       await expect(dialog.locator('.mermaid-preview-toolbar')).toHaveClass(/hidden/);
       await hitArea.hover();
       await expect(dialog.locator('.mermaid-preview-toolbar')).toHaveClass(/visible/);
@@ -179,6 +183,7 @@ test.describe('浏览器 Markdown 预览', () => {
       await page.goto(fixture.url, { waitUntil: 'domcontentloaded' });
       await waitForViewer(page);
 
+      await viewerLocator(page, 'button[aria-label="打开阅读设置"]').click();
       const viewer = viewerLocator(page, '.feishu-viewer');
       const themeButton = viewerLocator(page, 'button[aria-label^="Theme:"]');
       const mermaidToolbar = viewerLocator(page, '.mermaid-toolbar-wrapper').first();
