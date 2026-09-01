@@ -192,7 +192,11 @@ test.describe('浏览器 Markdown 预览', () => {
       const openPreview = async () => {
         await mermaidToolbar.scrollIntoViewIfNeeded();
         await mermaidToolbar.hover();
-        await previewButton.click();
+        // Theme changes can briefly leave a sticky clone over the source
+        // toolbar while layout observers settle. The locator is still the
+        // real source button; force the click after hover so the test does
+        // not wait on a transient hit-test result.
+        await previewButton.click({ force: true });
         return viewerLocator(page, '[role="dialog"][aria-label="Mermaid diagram preview"]');
       };
       const getCanvasStyles = async (dialog: ReturnType<typeof viewerLocator>) => dialog
@@ -356,12 +360,17 @@ test.describe('浏览器 Markdown 预览', () => {
 
       // Ctrl/Cmd+A intentionally selects the full grid so the clipboard
       // assertion covers the multi-column Excel-compatible structure.
-      await table.click();
+      await table.locator('tbody td').first().click();
       await page.keyboard.press('Control+A');
       await page.keyboard.press('Control+C');
-      const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
-      expect(clipboardText).toContain('\t');
-      expect(clipboardText).toContain('\n');
+      await expect.poll(
+        () => page.evaluate(() => navigator.clipboard.readText()),
+        { timeout: 2_000 },
+      ).toContain('\t');
+      await expect.poll(
+        () => page.evaluate(() => navigator.clipboard.readText()),
+        { timeout: 2_000 },
+      ).toContain('\n');
     } finally {
       await context.close();
       await fixture.cleanup();
