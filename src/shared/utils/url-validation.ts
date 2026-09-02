@@ -16,5 +16,8 @@ const ALLOWED_URL_PATTERNS = [
  * that end with .md or .markdown extension.
  */
 export function isAllowedUrl(url: string): boolean {
-  return ALLOWED_URL_PATTERNS.some((pattern) => pattern.test(url));
+  // A fragment points into the rendered document and must not participate in
+  // validating the Markdown source URL itself.
+  const sourceUrl = url.split('#', 1)[0] ?? url;
+  return ALLOWED_URL_PATTERNS.some((pattern) => pattern.test(sourceUrl));
 }

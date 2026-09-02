@@ -34,6 +34,13 @@ describe('isAllowedUrl (service worker URL validation)', () => {
     it('accepts raw.githubusercontent.com .markdown URLs', () => {
       expect(isAllowedUrl('https://raw.githubusercontent.com/owner/repo/main/docs/guide.markdown')).toBe(true);
     });
+
+    it('accepts markdown source URLs with an anchor', () => {
+      expect(isAllowedUrl('https://github.com/owner/repo/blob/main/README.md#installation')).toBe(true);
+      expect(isAllowedUrl('https://gitlab.com/group/repo/-/blob/main/README.md#usage')).toBe(true);
+      expect(isAllowedUrl('file:///home/user/docs/readme.md#section')).toBe(true);
+      expect(isAllowedUrl('https://raw.githubusercontent.com/owner/repo/main/README.md#top')).toBe(true);
+    });
   });
 
   describe('rejects invalid URLs', () => {

@@ -27,6 +27,13 @@ describe('GitHubAdapter', () => {
       expect(adapter.detect()).toBe(true);
     });
 
+    it('returns true for GitHub blob URLs with an anchor', async () => {
+      setUrl('https://github.com/owner/repo/blob/main/README.md#installation');
+      const { GitHubAdapter } = await import('@/content/adapters/github-adapter');
+      const adapter = new GitHubAdapter();
+      expect(adapter.detect()).toBe(true);
+    });
+
     it('returns true for nested path .md URLs', async () => {
       setUrl('https://github.com/org/repo/blob/feature/branch/src/docs/api/reference.md');
       const { GitHubAdapter } = await import('@/content/adapters/github-adapter');
@@ -83,6 +90,13 @@ describe('GitHubAdapter', () => {
       const { GitHubAdapter } = await import('@/content/adapters/github-adapter');
       const adapter = new GitHubAdapter();
       expect(adapter.getDocumentTitle()).toBe('CONTRIBUTING - project');
+    });
+
+    it('extracts the title when the URL contains an anchor', async () => {
+      setUrl('https://github.com/user/project/blob/main/README.md#usage');
+      const { GitHubAdapter } = await import('@/content/adapters/github-adapter');
+      const adapter = new GitHubAdapter();
+      expect(adapter.getDocumentTitle()).toBe('README - project');
     });
 
     it('returns fallback title for non-matching URL', async () => {

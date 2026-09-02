@@ -7,8 +7,8 @@
 }
 
 .feishu-viewer--dark {
-  --feishu-bg-page: #1a1a1a;
-  --feishu-bg-content: #242424;
+  --feishu-bg-page: #121212;
+  --feishu-bg-content: #1c1c1c;
   --feishu-brand-primary: #4e83fd;
   --feishu-brand-primary-hover: #6b9bff;
   --feishu-text-primary: #e8e8e8;
@@ -204,8 +204,8 @@
 /* System preference: respect prefers-color-scheme as default */
 @media (prefers-color-scheme: dark) {
   .feishu-viewer--system {
-    --feishu-bg-page: #1a1a1a;
-    --feishu-bg-content: #242424;
+    --feishu-bg-page: #121212;
+    --feishu-bg-content: #1c1c1c;
     --feishu-brand-primary: #4e83fd;
     --feishu-brand-primary-hover: #6b9bff;
     --feishu-text-primary: #e8e8e8;

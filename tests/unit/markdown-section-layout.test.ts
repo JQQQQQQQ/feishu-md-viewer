@@ -63,6 +63,11 @@ describe('markdown section layout', () => {
     );
   });
 
+  it('让暗色主题的整体阅读底色更深，同时保持页面和正文两层层次', () => {
+    expect(darkTheme).toMatch(/\.feishu-viewer--dark\s*\{[^}]*--feishu-bg-page:\s*#121212;[^}]*--feishu-bg-content:\s*#1c1c1c;/i);
+    expect(darkTheme).toMatch(/\.feishu-viewer--system\s*\{[^}]*--feishu-bg-page:\s*#121212;[^}]*--feishu-bg-content:\s*#1c1c1c;/i);
+  });
+
   it('keeps the collapse toggle outside the heading text flow and hidden until needed', () => {
     expect(stylesheet).toMatch(
       /\.feishu-heading__toggle\s*\{[^}]*position:\s*absolute;[^}]*left:\s*-[^;]+;[^}]*opacity:\s*0;/i,

@@ -7,6 +7,10 @@ import type { PlatformAdapter } from '@/shared/types/adapter';
 const GITHUB_BLOB_PATTERN =
   /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+\.(md|markdown))$/i;
 
+function withoutHash(url: string): string {
+  return url.split('#', 1)[0] ?? url;
+}
+
 /**
  * Adapter for GitHub markdown files.
  * Fetches raw content from raw.githubusercontent.com.
@@ -15,7 +19,7 @@ export class GitHubAdapter implements PlatformAdapter {
   readonly name = 'github';
 
   detect(): boolean {
-    return GITHUB_BLOB_PATTERN.test(window.location.href);
+    return GITHUB_BLOB_PATTERN.test(withoutHash(window.location.href));
   }
 
   async getContent(): Promise<string | null> {
@@ -56,7 +60,7 @@ export class GitHubAdapter implements PlatformAdapter {
   }
 
   getDocumentTitle(): string {
-    const match = GITHUB_BLOB_PATTERN.exec(window.location.href);
+    const match = GITHUB_BLOB_PATTERN.exec(withoutHash(window.location.href));
     if (!match) return 'GitHub Document';
 
     const repo = match[2] ?? '';
@@ -68,7 +72,7 @@ export class GitHubAdapter implements PlatformAdapter {
   }
 
   private buildRawUrl(): string | null {
-    const url = window.location.href;
+    const url = withoutHash(window.location.href);
     const match = GITHUB_BLOB_PATTERN.exec(url);
     if (!match) return null;
 

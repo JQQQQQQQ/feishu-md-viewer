@@ -16,6 +16,24 @@ function getSourceTableIds(container: HTMLElement): string[] {
 }
 
 describe('MarkdownReadView table identities', () => {
+  it('scrolls to the heading named by the initial URL fragment', () => {
+    const previousHash = window.location.hash;
+    window.location.hash = '#目标区块';
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    try {
+      render(<MarkdownReadView content={'# 目标区块\n\n正文'} />);
+
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
+    } finally {
+      window.location.hash = previousHash;
+    }
+  });
+
   it('matches inserted tables by their position within the same section', () => {
     window.localStorage.clear();
     const initial = `## Data

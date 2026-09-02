@@ -7,6 +7,10 @@ import type { PlatformAdapter } from '@/shared/types/adapter';
 const GITLAB_BLOB_PATTERN =
   /^https:\/\/gitlab\.com\/([^/]+)\/([^/]+)\/-\/blob\/([^/]+)\/(.+\.(md|markdown))$/i;
 
+function withoutHash(url: string): string {
+  return url.split('#', 1)[0] ?? url;
+}
+
 /**
  * Adapter for GitLab markdown files.
  * Fetches raw content from the /-/raw/ endpoint.
@@ -15,7 +19,7 @@ export class GitLabAdapter implements PlatformAdapter {
   readonly name = 'gitlab';
 
   detect(): boolean {
-    return GITLAB_BLOB_PATTERN.test(window.location.href);
+    return GITLAB_BLOB_PATTERN.test(withoutHash(window.location.href));
   }
 
   async getContent(): Promise<string | null> {
@@ -43,7 +47,7 @@ export class GitLabAdapter implements PlatformAdapter {
   }
 
   getDocumentTitle(): string {
-    const match = GITLAB_BLOB_PATTERN.exec(window.location.href);
+    const match = GITLAB_BLOB_PATTERN.exec(withoutHash(window.location.href));
     if (!match) return 'GitLab Document';
 
     const project = match[2] ?? '';
@@ -55,7 +59,7 @@ export class GitLabAdapter implements PlatformAdapter {
   }
 
   private buildRawUrl(): string | null {
-    const url = window.location.href;
+    const url = withoutHash(window.location.href);
     return url.replace('/-/blob/', '/-/raw/');
   }
 

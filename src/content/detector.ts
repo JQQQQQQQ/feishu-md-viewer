@@ -18,14 +18,14 @@ function isFileProtocolMarkdown(): boolean {
 }
 
 function isGitHubMarkdown(): boolean {
-  const url = window.location.href;
+  const url = withoutHash(window.location.href);
   if (!url.includes('github.com')) return false;
   // Match pattern: github.com/owner/repo/blob/branch/path.md
   return /github\.com\/[^/]+\/[^/]+\/blob\/[^/]+\/.+\.(md|markdown)$/i.test(url);
 }
 
 function isGitLabMarkdown(): boolean {
-  const url = window.location.href;
+  const url = withoutHash(window.location.href);
   if (!url.includes('gitlab.com')) return false;
   // Match pattern: gitlab.com/owner/repo/-/blob/branch/path.md
   return /gitlab\.com\/[^/]+\/[^/]+\/-\/blob\/[^/]+\/.+\.(md|markdown)$/i.test(url);
@@ -73,7 +73,7 @@ function extractGitLabContent(): string | null {
 
 export async function fetchGitHubRawContent(): Promise<string | null> {
   // Build raw URL from current GitHub URL
-  const url = window.location.href;
+  const url = withoutHash(window.location.href);
   const rawUrl = url
     .replace('github.com', 'raw.githubusercontent.com')
     .replace('/blob/', '/');
@@ -91,7 +91,7 @@ export async function fetchGitHubRawContent(): Promise<string | null> {
 
 export async function fetchGitLabRawContent(): Promise<string | null> {
   // Build raw URL from current GitLab URL
-  const url = window.location.href;
+  const url = withoutHash(window.location.href);
   const rawUrl = url.replace('/-/blob/', '/-/raw/');
 
   try {
@@ -103,6 +103,11 @@ export async function fetchGitLabRawContent(): Promise<string | null> {
     // Silently fail - will fall back to DOM extraction
   }
   return null;
+}
+
+/** URL fragments identify a heading in the rendered document, not the source file. */
+function withoutHash(url: string): string {
+  return url.split('#', 1)[0] ?? url;
 }
 
 export function detectMarkdownPage(): DetectionResult {

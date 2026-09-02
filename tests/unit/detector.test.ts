@@ -45,8 +45,28 @@ describe('detector', () => {
     expect(result.source).toBe('github');
   });
 
+  it('detects GitHub blob markdown when the URL contains an anchor', async () => {
+    setUrl('https://github.com/user/repo/blob/main/README.md#installation');
+
+    const { detectMarkdownPage } = await import('@/content/detector');
+    const result = detectMarkdownPage();
+
+    expect(result.isMarkdown).toBe(true);
+    expect(result.source).toBe('github');
+  });
+
   it('detects GitLab blob markdown', async () => {
     setUrl('https://gitlab.com/user/repo/-/blob/main/docs/guide.md');
+
+    const { detectMarkdownPage } = await import('@/content/detector');
+    const result = detectMarkdownPage();
+
+    expect(result.isMarkdown).toBe(true);
+    expect(result.source).toBe('gitlab');
+  });
+
+  it('detects GitLab blob markdown when the URL contains an anchor', async () => {
+    setUrl('https://gitlab.com/user/repo/-/blob/main/docs/guide.md#usage');
 
     const { detectMarkdownPage } = await import('@/content/detector');
     const result = detectMarkdownPage();

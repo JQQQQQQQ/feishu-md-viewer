@@ -16,9 +16,35 @@ interface MarkdownReadViewProps {
   sourceContext?: MarkdownSourceContext;
 }
 
+function decodeAnchorHash(hash: string): string | null {
+  if (!hash || hash === '#') return null;
+
+  const rawId = hash.startsWith('#') ? hash.slice(1) : hash;
+  if (!rawId) return null;
+
+  try {
+    return decodeURIComponent(rawId);
+  } catch {
+    // Keep the raw fragment when a URL contains malformed encoding.
+    return rawId;
+  }
+}
+
+function scrollToAnchor(root: HTMLElement, hash: string): void {
+  const targetId = decodeAnchorHash(hash);
+  if (!targetId) return;
+
+  const target = Array.from(root.querySelectorAll<HTMLElement>('[id]'))
+    .find((element) => element.id === targetId || element.id === `user-content-${targetId}`);
+  if (target && typeof target.scrollIntoView === 'function') {
+    target.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }
+}
+
 export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewProps) {
   const rendered = useMemo(() => parseMarkdown(content, sourceContext), [content, sourceContext]);
   const rootRef = useRef<HTMLDivElement>(null);
+  const initialAnchorHashRef = useRef<string | null>(null);
   const tableIdentityRecordsRef = useRef<TableIdentityRecord[] | null>(null);
   if (tableIdentityRecordsRef.current === null) {
     tableIdentityRecordsRef.current = readPersistedTableIdentities();
@@ -81,6 +107,13 @@ export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewPro
     };
 
     syncTableIdentities();
+    const anchorHash = typeof window !== 'undefined' ? window.location.hash : '';
+    if (anchorHash !== initialAnchorHashRef.current) {
+      initialAnchorHashRef.current = anchorHash;
+      const root = rootRef.current;
+      if (root) scrollToAnchor(root, anchorHash);
+    }
+
     window.addEventListener('feishu-table-identities-updated', syncTableIdentities);
     return () => window.removeEventListener('feishu-table-identities-updated', syncTableIdentities);
   }, [rendered]);
