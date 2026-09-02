@@ -521,6 +521,10 @@
   min-height: 1.6em;
 }
 
+.feishu-code-token--property {
+  color: var(--feishu-code-property, var(--feishu-code-function, #2f6fbd));
+}
+
 .feishu-code-token--comment {
   color: var(--feishu-code-comment, #86909c);
   font-style: italic;

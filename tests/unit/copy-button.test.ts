@@ -113,4 +113,11 @@ describe('CopyButton clipboard functionality', () => {
     expect(container.querySelector('.feishu-code-token--keyword')?.textContent).toBe('const');
     expect(container.querySelector('.feishu-code-token--string')?.textContent).toBe('"hello"');
   });
+
+  it('renders JSON property names separately from string values', () => {
+    const { container } = renderCodeBlock('{"name":"viewer"}', 'json');
+
+    expect(container.querySelector('.feishu-code-token--property')?.textContent).toBe('"name"');
+    expect(container.querySelector('.feishu-code-token--string')?.textContent).toBe('"viewer"');
+  });
 });

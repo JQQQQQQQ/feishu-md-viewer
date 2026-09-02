@@ -19,6 +19,7 @@
   --feishu-code-bg: #2d2d2d;
   --feishu-code-text: #d8dee9;
   --feishu-code-comment: #7f8b99;
+  --feishu-code-property: #8bb8ff;
   --feishu-code-string: #9ece6a;
   --feishu-code-keyword: #bb9af7;
   --feishu-code-number: #ff9e64;
@@ -110,7 +111,9 @@
 }
 
 .feishu-viewer--dark .feishu-callout {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .feishu-viewer--dark .feishu-callout__icon {
@@ -216,6 +219,7 @@
     --feishu-code-bg: #2d2d2d;
     --feishu-code-text: #d8dee9;
     --feishu-code-comment: #7f8b99;
+    --feishu-code-property: #8bb8ff;
     --feishu-code-string: #9ece6a;
     --feishu-code-keyword: #bb9af7;
     --feishu-code-number: #ff9e64;
@@ -296,7 +300,9 @@
   }
 
   .feishu-viewer--system .feishu-callout {
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   .feishu-viewer--system .feishu-callout__icon {
