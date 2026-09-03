@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify';
 const SAFE_DOT_URI = /^(?:(?:https?|mailto):|data:image\/(?:png|gif|jpeg|webp);base64,)/i;
 const SAFE_SVG_LENGTH = /^\d+(?:\.\d+)?(?:pt|px|em|ex|cm|mm|in|pc|%)?$/i;
 const SAFE_NUMBER_LIST = /^[\dEe+\-.,\s]+$/;
-const SAFE_TRANSFORM = /^[\dEe+\-.,\s()]+$/;
+const SAFE_TRANSFORM = /^(?:(?:matrix|translate|scale|rotate|skewX|skewY)\s*\(\s*[\dEe+\-.,\s]+\)\s*)+$/i;
 const SAFE_PATH = /^[\dEe+\-.,\sMmLlHhVvCcSsQqTtAaZz]+$/;
 const SAFE_TEXT_VALUE = /^[^<>"']{0,256}$/;
 const SAFE_GRAPHVIZ_ATTRS = new Set([

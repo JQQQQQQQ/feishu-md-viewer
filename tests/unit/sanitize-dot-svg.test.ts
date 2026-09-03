@@ -45,4 +45,11 @@ describe('sanitizeDotSvg', () => {
     expect(result).toMatch(/points="0,0 10,0 10,10"/);
     expect(result).toMatch(/d="M0 0 L10 10"/);
   });
+
+  it('保留 Graphviz 坐标系转换，避免内容被视口裁掉', () => {
+    const svg = '<svg viewBox="0 0 100 100"><g transform="scale(1 1) rotate(0) translate(4 40)"><path d="M0 0 L10 10" /></g></svg>';
+    const result = sanitizeDotSvg(svg);
+
+    expect(result).toMatch(/transform="scale\(1 1\) rotate\(0\) translate\(4 40\)"/);
+  });
 });
