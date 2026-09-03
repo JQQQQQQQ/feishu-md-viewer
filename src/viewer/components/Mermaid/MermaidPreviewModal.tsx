@@ -4,6 +4,10 @@ import { sanitizeMermaidSvg } from '../../utils/sanitize-svg';
 interface MermaidPreviewModalProps {
   svg: string;
   onClose: () => void;
+  title?: string;
+  ariaLabel?: string;
+  closeLabel?: string;
+  sanitizeSvg?: (svg: string) => string;
 }
 interface SvgSize {
   width: number;
@@ -106,7 +110,14 @@ function getD2ViewportPlan(canvas: HTMLDivElement, size: SvgSize): ViewportPlan 
   return { zoom: roundZoom(getFitZoom(canvas, size)), position: centerCanvas };
 }
 
-export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) {
+export function MermaidPreviewModal({
+  svg,
+  onClose,
+  title = 'Mermaid 预览',
+  ariaLabel = 'Mermaid diagram preview',
+  closeLabel = 'Close Mermaid preview',
+  sanitizeSvg = (value) => sanitizeMermaidSvg(value, { expandBounds: false }),
+}: MermaidPreviewModalProps) {
   const [zoom, setZoom] = useState(1);
   const [isViewportReady, setIsViewportReady] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
@@ -115,7 +126,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
   // The source SVG comes from the already-rendered MermaidBlock. It has
   // already had its bounds expanded once; expanding it again shifts the
   // viewBox and makes preview edges/nodes appear offset from the document.
-  const safeSvg = useMemo(() => sanitizeMermaidSvg(svg, { expandBounds: false }), [svg]);
+  const safeSvg = useMemo(() => sanitizeSvg(svg), [sanitizeSvg, svg]);
   const previewSize = useMemo(() => getSvgPreviewSize(safeSvg), [safeSvg]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -431,7 +442,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
       className="mermaid-preview-overlay mermaid-preview-dialog--fullscreen"
       role="dialog"
       aria-modal="true"
-      aria-label="Mermaid diagram preview"
+      aria-label={ariaLabel}
       data-preview-surface="fullscreen"
       onClick={(event) => {
         if (event.target === event.currentTarget) closePreview();
@@ -442,7 +453,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
           ref={closeButtonRef}
           className="mermaid-preview-close-button"
           type="button"
-          aria-label="Close Mermaid preview"
+          aria-label={closeLabel}
           onClick={closePreview}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -517,7 +528,7 @@ export function MermaidPreviewModal({ svg, onClose }: MermaidPreviewModalProps) 
           }}
           onKeyDown={() => showToolbar('keyboard')}
         >
-          <span className="mermaid-preview-toolbar__title">Mermaid 预览</span>
+          <span className="mermaid-preview-toolbar__title">{title}</span>
           <div className="mermaid-preview-toolbar__actions" aria-label="Mermaid preview controls">
             <button
               className="mermaid-preview-toolbar__button"
