@@ -1213,3 +1213,35 @@ flowchart TD
 | 任务列表、代码块、Mermaid | 待验收 | 待验收 | 混合块隔离 |
 | 安全过滤和降级 | 待验收 | 待验收 | 危险协议、脚本、iframe |
 | 长内容与主题 | 待验收 | 待验收 | 滚动、目录、浅色/深色 |
+
+## 12. DOT / Graphviz 图表
+
+### 12.1 基础 DOT
+
+```dot
+digraph Basic {
+  rankdir=LR;
+  Start -> Review -> Done;
+}
+```
+
+### 12.2 复杂 Graphviz 子图
+
+```graphviz
+digraph Pipeline {
+  node [shape=box, style="rounded"];
+  subgraph cluster_build { label="构建"; Lint -> Test -> Package; }
+  subgraph cluster_release { label="发布"; Package -> Deploy -> Monitor; }
+  Monitor -> Lint [label="反馈"];
+}
+```
+
+### 12.3 错误 DOT 降级
+
+```gv
+digraph Broken {
+  A -> ;
+}
+```
+
+预期：前两段显示 DOT 图表，第三段保留源码并显示“DOT 渲染失败”；三段均不影响目录、表格和 Mermaid。

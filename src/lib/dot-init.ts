@@ -70,7 +70,7 @@ export async function renderDot(code: string, engine: DotEngine = 'dot'): Promis
   try {
     const viz = await loadViz();
     const svg = viz.renderString(code, { format: 'svg', engine });
-    if (!svg.trim().startsWith('<svg')) {
+    if (!/<svg(?:\s|>)/i.test(svg)) {
       throw new Error('Graphviz 未返回有效 SVG');
     }
     cacheSvg(key, svg);

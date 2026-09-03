@@ -9,7 +9,7 @@ const SAFE_DOT_URI = /^(?:(?:https?|mailto):|data:image\/(?:png|gif|jpeg|webp);b
  * 因此使用独立白名单，避免把 Mermaid 的布局假设带入 Graphviz。
  */
 export function sanitizeDotSvg(svg: string): string {
-  if (!svg.trim().startsWith('<svg')) return '';
+  if (!/<svg(?:\s|>)/i.test(svg)) return '';
 
   const sanitized = DOMPurify.sanitize(svg, {
     USE_PROFILES: { svg: true, svgFilters: true },
@@ -76,5 +76,5 @@ export function sanitizeDotSvg(svg: string): string {
   });
 
   const normalized = sanitized.trim();
-  return normalized.startsWith('<svg') ? normalized : '';
+  return /<svg(?:\s|>)/i.test(normalized) ? normalized : '';
 }

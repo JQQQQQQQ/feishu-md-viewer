@@ -66,6 +66,149 @@
   outline-offset: 1px;
 }
 
+/* ===== DOT / 通用图表正文工具栏 ===== */
+.diagram-toolbar-wrapper {
+  position: relative;
+  margin: 1.25em 0;
+}
+
+.diagram-toolbar-wrapper > .feishu-dot {
+  margin: 0;
+}
+
+.diagram-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background-color: color-mix(in srgb, var(--feishu-bg-content) 92%, transparent);
+  border: 1px solid var(--feishu-border-lighter);
+  border-radius: var(--feishu-radius-sm);
+  box-shadow: 0 4px 14px rgba(31, 35, 41, 0.08);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.diagram-toolbar-wrapper:hover .diagram-toolbar,
+.diagram-toolbar-wrapper:focus-within .diagram-toolbar {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.diagram-toolbar__preview-btn,
+.diagram-toolbar__export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--feishu-border-light);
+  border-radius: var(--feishu-radius-sm);
+  background: var(--feishu-bg-content);
+  color: var(--feishu-text-secondary);
+  font-size: 12px;
+  font-family: var(--feishu-font-family);
+  cursor: pointer;
+}
+
+.diagram-toolbar__preview-btn:hover,
+.diagram-toolbar__export-btn:hover {
+  background-color: var(--feishu-bg-page);
+  color: var(--feishu-text-primary);
+}
+
+.diagram-toolbar__preview-btn:focus-visible,
+.diagram-toolbar__export-btn:focus-visible {
+  outline: 2px solid var(--feishu-brand-primary);
+  outline-offset: 1px;
+}
+
+/* DOT 输出的默认属性由主题变量覆盖，避免 Graphviz 的黑底或黑字在暗色主题中失去对比度。 */
+.feishu-dot {
+  position: relative;
+  min-height: 48px;
+  margin: 1.25em 0;
+  padding: 20px;
+  overflow: auto;
+  color: var(--feishu-dot-node-text);
+  background: var(--feishu-bg-content);
+  border: 1px solid transparent;
+  border-radius: var(--feishu-radius);
+}
+
+.feishu-dot__diagram {
+  display: flex;
+  justify-content: center;
+  min-width: max-content;
+}
+
+.feishu-dot svg {
+  display: block;
+  max-width: none;
+  color: var(--feishu-dot-node-text);
+}
+
+.feishu-dot svg .node polygon,
+.feishu-dot svg .node ellipse,
+.feishu-dot svg .node path,
+.feishu-dot svg .node rect {
+  fill: var(--feishu-dot-node-bg);
+  stroke: var(--feishu-dot-node-border);
+}
+
+.feishu-dot svg text,
+.feishu-dot svg .node text {
+  fill: var(--feishu-dot-node-text);
+}
+
+.feishu-dot svg .edge path,
+.feishu-dot svg .edge polygon {
+  stroke: var(--feishu-dot-edge);
+  fill: var(--feishu-dot-edge);
+}
+
+.feishu-dot--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--feishu-text-secondary);
+  border-color: var(--feishu-border-lighter);
+}
+
+.feishu-dot--error {
+  border-color: color-mix(in srgb, #f54a45 45%, var(--feishu-border-light));
+}
+
+.feishu-dot__error-header {
+  margin-bottom: 6px;
+  color: #d83931;
+  font-weight: 600;
+}
+
+.feishu-dot__error-message {
+  margin-bottom: 12px;
+  color: var(--feishu-text-secondary);
+  font-size: var(--feishu-font-size-small);
+}
+
+.feishu-dot__source {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  background: var(--feishu-code-bg);
+  color: var(--feishu-code-text);
+  border-radius: var(--feishu-radius-sm);
+  font-family: var(--feishu-font-mono);
+  font-size: var(--feishu-font-size-small);
+  line-height: 1.55;
+}
+
 .mermaid-preview-overlay {
   position: fixed;
   inset: 0;

@@ -98,6 +98,45 @@ test.describe('浏览器 Markdown 预览', () => {
     }
   });
 
+  test('DOT 图表正常渲染、全屏预览并在错误时降级', async () => {
+    const fixture = await createTempMarkdownFixture(`# DOT 验收
+
+\`\`\`dot
+digraph Basic {
+  rankdir=LR;
+  Start -> Done;
+}
+\`\`\`
+
+\`\`\`gv
+digraph Broken {
+  A -> ;
+}
+\`\`\`
+`);
+    const context = await createBrowserContext();
+    try {
+      const page = await context.newPage();
+      await page.goto(fixture.url, { waitUntil: 'domcontentloaded' });
+      await waitForViewer(page);
+
+      await expect(viewerLocator(page, '.feishu-dot:not(.feishu-dot--error) svg')).toBeVisible({ timeout: 15_000 });
+      await expect(viewerLocator(page, '.feishu-dot--error')).toBeVisible({ timeout: 15_000 });
+
+      const toolbar = viewerLocator(page, '.diagram-toolbar-wrapper--dot').first();
+      await toolbar.hover();
+      await toolbar.locator('button[aria-label="预览 DOT 图表"]').click();
+      const dialog = viewerLocator(page, '[role="dialog"][aria-label="DOT 图表预览"]');
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('img')).toBeVisible();
+      await dialog.getByRole('button', { name: '× 退出' }).click();
+      await expect(dialog).toHaveCount(0);
+    } finally {
+      await context.close();
+      await fixture.cleanup();
+    }
+  });
+
   test('主题切换后正文与 Mermaid 预览保持可见', async () => {
     const fixture = await createTempMarkdownFixture();
     const context = await createBrowserContext();

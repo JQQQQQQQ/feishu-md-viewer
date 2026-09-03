@@ -24,4 +24,10 @@ describe('sanitizeDotSvg', () => {
   it('非 SVG 输入返回空字符串', () => {
     expect(sanitizeDotSvg('<div>not svg</div>')).toBe('');
   });
+
+  it('接受 Graphviz 常见的 XML 声明和 DOCTYPE 前缀', () => {
+    const svg = '<?xml version="1.0"?><!DOCTYPE svg><svg><text>Graphviz</text></svg>';
+
+    expect(sanitizeDotSvg(svg)).toContain('<text>Graphviz</text>');
+  });
 });

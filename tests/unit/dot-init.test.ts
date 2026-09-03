@@ -43,4 +43,11 @@ describe('dot-init', () => {
 
     await expect(renderDot('digraph { A -> ; }')).rejects.toThrow('syntax error');
   });
+
+  it('接受 Graphviz 带 XML 声明的 SVG 输出', async () => {
+    mockRenderString.mockReturnValue('<?xml version="1.0"?><!DOCTYPE svg><svg><g /></svg>');
+    const { renderDot } = await import('@/lib/dot-init');
+
+    await expect(renderDot('digraph G { A -> B; }')).resolves.toContain('<svg>');
+  });
 });
