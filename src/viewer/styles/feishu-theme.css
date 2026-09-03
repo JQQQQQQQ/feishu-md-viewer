@@ -50,6 +50,10 @@
   --feishu-mermaid-edge-label-bg: transparent;
   --feishu-mermaid-cluster-bg: #f7f9fc;
   --feishu-mermaid-cluster-border: #d7e2ff;
+  --feishu-dot-node-bg: #ffffff;
+  --feishu-dot-node-border: #8f9bad;
+  --feishu-dot-node-text: #1f2329;
+  --feishu-dot-edge: #667085;
   --feishu-scrollbar-track: transparent;
   --feishu-scrollbar-thumb: #d8dbe1;
   --feishu-scrollbar-thumb-hover: #bfc3cc;

@@ -45,6 +45,10 @@
   --feishu-mermaid-edge-label-bg: transparent;
   --feishu-mermaid-cluster-bg: #202938;
   --feishu-mermaid-cluster-border: #40547a;
+  --feishu-dot-node-bg: #252a35;
+  --feishu-dot-node-border: #8fa7d8;
+  --feishu-dot-node-text: #f1f4fb;
+  --feishu-dot-edge: #b6c8f2;
   --feishu-scrollbar-track: #1f1f1f;
   --feishu-scrollbar-thumb: #4a4a4a;
   --feishu-scrollbar-thumb-hover: #5f5f5f;
@@ -83,6 +87,30 @@
 .feishu-viewer--dark .feishu-mermaid {
   background-color: var(--feishu-bg-content);
   border-color: var(--feishu-border-light);
+}
+
+.feishu-viewer--dark .feishu-dot {
+  background-color: var(--feishu-bg-content);
+  border-color: var(--feishu-border-light);
+}
+
+.feishu-viewer--dark .feishu-dot svg .node polygon,
+.feishu-viewer--dark .feishu-dot svg .node ellipse,
+.feishu-viewer--dark .feishu-dot svg .node path,
+.feishu-viewer--dark .feishu-dot svg .node rect {
+  fill: var(--feishu-dot-node-bg);
+  stroke: var(--feishu-dot-node-border);
+}
+
+.feishu-viewer--dark .feishu-dot svg text,
+.feishu-viewer--dark .feishu-dot svg .node text {
+  fill: var(--feishu-dot-node-text);
+}
+
+.feishu-viewer--dark .feishu-dot svg .edge path,
+.feishu-viewer--dark .feishu-dot svg .edge polygon {
+  stroke: var(--feishu-dot-edge);
+  fill: var(--feishu-dot-edge);
 }
 
 .feishu-viewer--dark .mermaid-toolbar {
