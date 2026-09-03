@@ -30,4 +30,11 @@ describe('sanitizeDotSvg', () => {
 
     expect(sanitizeDotSvg(svg)).toContain('<text>Graphviz</text>');
   });
+
+  it('保留 Graphviz 根 SVG 的宽高，避免复杂图表退回默认尺寸', () => {
+    const svg = '<svg width="143pt" height="416pt" viewBox="0 0 143 416"><text>Graphviz</text></svg>';
+
+    expect(sanitizeDotSvg(svg)).toMatch(/width="143pt"/);
+    expect(sanitizeDotSvg(svg)).toMatch(/height="416pt"/);
+  });
 });

@@ -1,6 +1,30 @@
 import DOMPurify from 'dompurify';
 
 const SAFE_DOT_URI = /^(?:(?:https?|mailto):|data:image\/(?:png|gif|jpeg|webp);base64,)/i;
+const SAFE_SVG_LENGTH = /^\d+(?:\.\d+)?(?:pt|px|em|ex|cm|mm|in|pc|%)?$/i;
+
+function readSafeDimension(svg: string, name: 'width' | 'height'): string | null {
+  const match = svg.match(new RegExp(`${name}\\s*=\\s*["']([^"']+)["']`, 'i'));
+  const value = match?.[1]?.trim();
+  return value && SAFE_SVG_LENGTH.test(value) ? value : null;
+}
+
+function restoreGraphvizDimensions(sanitized: string, source: string): string {
+  const width = readSafeDimension(source, 'width');
+  const height = readSafeDimension(source, 'height');
+  if (!width && !height) return sanitized;
+
+  return sanitized.replace(/^<svg\b([^>]*)>/i, (_openingTag, attributes: string) => {
+    let nextAttributes = attributes;
+    if (width && !/\bwidth\s*=/i.test(nextAttributes)) {
+      nextAttributes += ` width="${width}"`;
+    }
+    if (height && !/\bheight\s*=/i.test(nextAttributes)) {
+      nextAttributes += ` height="${height}"`;
+    }
+    return `<svg${nextAttributes}>`;
+  });
+}
 
 /**
  * 清洗 Graphviz 输出的 SVG。
@@ -32,6 +56,8 @@ export function sanitizeDotSvg(svg: string): string {
     ADD_ATTR: [
       'xmlns',
       'xmlns:xlink',
+      'width',
+      'height',
       'viewBox',
       'class',
       'id',
@@ -75,6 +101,6 @@ export function sanitizeDotSvg(svg: string): string {
     ALLOWED_URI_REGEXP: SAFE_DOT_URI,
   });
 
-  const normalized = sanitized.trim();
+  const normalized = restoreGraphvizDimensions(sanitized.trim(), svg);
   return /<svg(?:\s|>)/i.test(normalized) ? normalized : '';
 }
