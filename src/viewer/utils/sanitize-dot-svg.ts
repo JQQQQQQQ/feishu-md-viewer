@@ -2,27 +2,90 @@ import DOMPurify from 'dompurify';
 
 const SAFE_DOT_URI = /^(?:(?:https?|mailto):|data:image\/(?:png|gif|jpeg|webp);base64,)/i;
 const SAFE_SVG_LENGTH = /^\d+(?:\.\d+)?(?:pt|px|em|ex|cm|mm|in|pc|%)?$/i;
+const SAFE_NUMBER_LIST = /^[\dEe+\-.,\s]+$/;
+const SAFE_TRANSFORM = /^[\dEe+\-.,\s()]+$/;
+const SAFE_PATH = /^[\dEe+\-.,\sMmLlHhVvCcSsQqTtAaZz]+$/;
+const SAFE_TEXT_VALUE = /^[^<>"']{0,256}$/;
+const SAFE_GRAPHVIZ_ATTRS = new Set([
+  'width',
+  'height',
+  'viewbox',
+  'class',
+  'id',
+  'fill',
+  'fill-opacity',
+  'stroke',
+  'stroke-width',
+  'stroke-linecap',
+  'stroke-linejoin',
+  'stroke-dasharray',
+  'marker-start',
+  'marker-mid',
+  'marker-end',
+  'transform',
+  'cx',
+  'cy',
+  'rx',
+  'ry',
+  'x',
+  'y',
+  'dx',
+  'dy',
+  'd',
+  'points',
+  'text-anchor',
+  'font-family',
+  'font-size',
+  'font-weight',
+  'font-style',
+]);
 
-function readSafeDimension(svg: string, name: 'width' | 'height'): string | null {
-  const match = svg.match(new RegExp(`${name}\\s*=\\s*["']([^"']+)["']`, 'i'));
-  const value = match?.[1]?.trim();
-  return value && SAFE_SVG_LENGTH.test(value) ? value : null;
+function readAttributes(rawAttributes: string): Map<string, string> {
+  const attributes = new Map<string, string>();
+  for (const match of rawAttributes.matchAll(/([:\w-]+)\s*=\s*["']([^"']*)["']/g)) {
+    const name = match[1]?.toLowerCase();
+    const value = match[2];
+    if (name && value !== undefined) attributes.set(name, value);
+  }
+  return attributes;
 }
 
-function restoreGraphvizDimensions(sanitized: string, source: string): string {
-  const width = readSafeDimension(source, 'width');
-  const height = readSafeDimension(source, 'height');
-  if (!width && !height) return sanitized;
+function isSafeGraphvizAttribute(name: string, value: string): boolean {
+  if (!SAFE_GRAPHVIZ_ATTRS.has(name)) return false;
+  if (name === 'width' || name === 'height') return SAFE_SVG_LENGTH.test(value);
+  if (name === 'd') return SAFE_PATH.test(value);
+  if (name === 'points') return SAFE_NUMBER_LIST.test(value);
+  if (name === 'transform') {
+    return SAFE_TRANSFORM.test(value);
+  }
+  if (['cx', 'cy', 'rx', 'ry', 'x', 'y', 'dx', 'dy', 'font-size', 'stroke-width', 'fill-opacity'].includes(name)) {
+    return SAFE_NUMBER_LIST.test(value);
+  }
+  return SAFE_TEXT_VALUE.test(value);
+}
 
-  return sanitized.replace(/^<svg\b([^>]*)>/i, (_openingTag, attributes: string) => {
-    let nextAttributes = attributes;
-    if (width && !/\bwidth\s*=/i.test(nextAttributes)) {
-      nextAttributes += ` width="${width}"`;
+function restoreGraphvizAttributes(sanitized: string, source: string): string {
+  const sourceOpeningTags = [...source.matchAll(/<([A-Za-z][\w:.-]*)(?:\s+([^<>]*?))?\s*\/?>/g)];
+  let sourceIndex = 0;
+
+  return sanitized.replace(/<([A-Za-z][\w:.-]*)(\s[^<>]*?)?>/g, (openingTag, tagName: string, rawAttributes = '') => {
+    const normalizedTag = tagName.toLowerCase();
+    let sourceMatch = sourceOpeningTags[sourceIndex];
+    while (sourceMatch && sourceMatch[1]?.toLowerCase() !== normalizedTag) {
+      sourceIndex += 1;
+      sourceMatch = sourceOpeningTags[sourceIndex];
     }
-    if (height && !/\bheight\s*=/i.test(nextAttributes)) {
-      nextAttributes += ` height="${height}"`;
+    if (!sourceMatch) return openingTag;
+    sourceIndex += 1;
+
+    const sanitizedAttributes = readAttributes(rawAttributes);
+    const sourceAttributes = readAttributes(sourceMatch[2] ?? '');
+    let restoredAttributes = rawAttributes;
+    for (const [name, value] of sourceAttributes) {
+      if (sanitizedAttributes.has(name) || !isSafeGraphvizAttribute(name, value)) continue;
+      restoredAttributes += ` ${name}="${value}"`;
     }
-    return `<svg${nextAttributes}>`;
+    return `<${tagName}${restoredAttributes}>`;
   });
 }
 
@@ -68,6 +131,8 @@ export function sanitizeDotSvg(svg: string): string {
       'stroke-linecap',
       'stroke-linejoin',
       'stroke-dasharray',
+      'd',
+      'points',
       'marker-start',
       'marker-mid',
       'marker-end',
@@ -101,6 +166,6 @@ export function sanitizeDotSvg(svg: string): string {
     ALLOWED_URI_REGEXP: SAFE_DOT_URI,
   });
 
-  const normalized = restoreGraphvizDimensions(sanitized.trim(), svg);
+  const normalized = restoreGraphvizAttributes(sanitized.trim(), svg);
   return /<svg(?:\s|>)/i.test(normalized) ? normalized : '';
 }
