@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyTableColumnWidths,
+  getTableColumnWidths,
   getTableWidthStorageKey,
   persistTableColumnWidths,
   readPersistedTableColumnWidths,
@@ -19,6 +20,21 @@ function createTable(rows: string[][], tableId?: string): HTMLTableElement {
     });
   });
 
+  return table;
+}
+
+function createMergedTable(): HTMLTableElement {
+  const table = document.createElement('table');
+  table.innerHTML = `
+    <thead>
+      <tr><th rowspan="2">项目</th><th colspan="2">进度</th></tr>
+      <tr><th>负责人</th><th>状态</th></tr>
+    </thead>
+    <tbody>
+      <tr><td rowspan="2">Markdown 预览</td><td>小 Q</td><td>已完成</td></tr>
+      <tr><td colspan="2">后续进行 GitHub README 兼容性验收</td></tr>
+    </tbody>
+  `;
   return table;
 }
 
@@ -144,6 +160,21 @@ describe('FeishuTableColumnWidths', () => {
     expect(table.rows[1].cells[0].style.minWidth).toBe('144px');
     expect(table.rows[1].cells[0].style.maxWidth).toBe('144px');
     expect(table.rows[2].cells[1].style.width).toBe('288px');
+  });
+
+  it('applies independent logical column widths when cells are merged', () => {
+    const table = createMergedTable();
+
+    applyTableColumnWidths(table, [120, 180, 220]);
+
+    const cols = table.querySelectorAll(':scope > colgroup > col');
+    expect(cols).toHaveLength(3);
+    expect(Array.from(cols).map((col) => col.getAttribute('style'))).toEqual([
+      'width: 120px; min-width: 120px; max-width: 120px;',
+      'width: 180px; min-width: 180px; max-width: 180px;',
+      'width: 220px; min-width: 220px; max-width: 220px;',
+    ]);
+    expect(getTableColumnWidths(table)).toEqual([120, 180, 220]);
   });
 
   it('ignores invalid storage payloads', () => {

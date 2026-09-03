@@ -6,6 +6,7 @@ export interface TOCItem {
   text: string;
   level: number;
   children: TOCItem[];
+  isDocumentTitle?: boolean;
 }
 
 export function useTOC(markdown: string): TOCItem[] {
@@ -14,21 +15,24 @@ export function useTOC(markdown: string): TOCItem[] {
 
 export function extractHeadings(markdown: string): TOCItem[] {
   const headingRegex = /^(#{1,6})\s+(.+)$/gm;
-  const flat: { id: string; text: string; level: number }[] = [];
+  const flat: { id: string; text: string; level: number; isDocumentTitle: boolean }[] = [];
   let match: RegExpExecArray | null;
+  let hasDocumentTitle = false;
   const getUniqueId = createUniqueHeadingIdFactory();
 
   while ((match = headingRegex.exec(markdown)) !== null) {
     const level = match[1]?.length ?? 1;
     const text = (match[2] ?? '').trim();
     const id = getUniqueId(text);
-    flat.push({ id, text, level });
+    const isDocumentTitle: boolean = level === 1 && !hasDocumentTitle;
+    if (isDocumentTitle) hasDocumentTitle = true;
+    flat.push({ id, text, level, isDocumentTitle });
   }
 
   return buildTree(flat);
 }
 
-function buildTree(flat: { id: string; text: string; level: number }[]): TOCItem[] {
+function buildTree(flat: { id: string; text: string; level: number; isDocumentTitle: boolean }[]): TOCItem[] {
   const root: TOCItem[] = [];
   const stack: { item: TOCItem; level: number }[] = [];
 

@@ -1,4 +1,5 @@
 import type { TableIdentityRecord } from './FeishuTableIdentity';
+import { createTableGrid } from './FeishuTableSelection';
 
 const STORAGE_PREFIX = 'feishu-md-viewer:table-column-widths:v1';
 const STORAGE_VERSION = 1;
@@ -47,7 +48,31 @@ function getCellText(cell: HTMLTableCellElement): string {
 }
 
 function getColumnCount(table: HTMLTableElement): number {
-  return Math.max(...Array.from(table.rows).map((row) => row.cells.length), 0);
+  return createTableGrid(table).columnCount;
+}
+
+function getDirectColumnGroup(table: HTMLTableElement): HTMLTableColElement | null {
+  return Array.from(table.children)
+    .find((child) => child.tagName.toLowerCase() === 'colgroup') as HTMLTableColElement | null;
+}
+
+export function ensureTableColumnGroup(table: HTMLTableElement): HTMLTableColElement[] {
+  let columnGroup = getDirectColumnGroup(table) as HTMLTableColElement | null;
+  if (!columnGroup) {
+    columnGroup = document.createElement('colgroup') as unknown as HTMLTableColElement;
+    table.insertBefore(columnGroup, table.firstChild);
+  }
+
+  const columnCount = getColumnCount(table);
+  while (columnGroup.children.length < columnCount) {
+    columnGroup.appendChild(document.createElement('col'));
+  }
+  while (columnGroup.children.length > columnCount) {
+    columnGroup.lastElementChild?.remove();
+  }
+
+  return Array.from(columnGroup.children)
+    .filter((child): child is HTMLTableColElement => child.tagName.toLowerCase() === 'col');
 }
 
 function getTableFingerprint(table: HTMLTableElement): string {
@@ -82,17 +107,25 @@ function parseWidth(value: string): number | null {
 }
 
 function getColumnWidth(table: HTMLTableElement, colIndex: number): number | null {
-  const cells = Array.from(table.rows)
-    .map((row) => row.cells[colIndex])
-    .filter((cell): cell is HTMLTableCellElement => Boolean(cell));
+  const column = getDirectColumnGroup(table)?.children[colIndex];
+  if (column instanceof HTMLElement) {
+    const columnWidth = parseWidth(column.style.width);
+    if (columnWidth !== null) return columnWidth;
+  }
+
+  const grid = createTableGrid(table);
+  const cells = grid.ranges
+    .filter((range) => range.colStart <= colIndex && range.colEnd >= colIndex)
+    .map((range) => range.cell);
 
   for (const cell of cells) {
     const styleWidth = parseWidth(cell.style.width);
     if (styleWidth !== null) return styleWidth;
   }
 
-  const measuredWidth = cells
-    .map((cell) => parseWidth(`${cell.getBoundingClientRect().width}`))
+  const measuredWidth = grid.ranges
+    .filter((range) => range.colStart <= colIndex && range.colEnd >= colIndex)
+    .map((range) => parseWidth(`${range.cell.getBoundingClientRect().width / (range.colEnd - range.colStart + 1)}`))
     .find((width): width is number => width !== null);
 
   return measuredWidth ?? null;
@@ -103,18 +136,34 @@ export function getTableColumnWidths(table: HTMLTableElement): number[] {
 }
 
 export function applyTableColumnWidths(table: HTMLTableElement, widths: number[]): void {
+  const columns = ensureTableColumnGroup(table);
+  const grid = createTableGrid(table);
+
   widths.forEach((width, colIndex) => {
     if (!Number.isFinite(width) || width < MIN_STORED_WIDTH) return;
 
-    Array.from(table.rows).forEach((row) => {
-      const cell = row.cells[colIndex];
-      if (!cell) return;
+    const roundedWidth = Math.round(width);
+    const column = columns[colIndex];
+    if (column) {
+      column.style.width = `${roundedWidth}px`;
+      column.style.minWidth = `${roundedWidth}px`;
+      column.style.maxWidth = `${roundedWidth}px`;
+    }
 
-      cell.style.width = `${Math.round(width)}px`;
-      cell.style.minWidth = `${Math.round(width)}px`;
-      cell.style.maxWidth = `${Math.round(width)}px`;
-    });
+    grid.ranges
+      .filter((range) => range.colStart === colIndex && range.colEnd === colIndex)
+      .forEach(({ cell }) => {
+        cell.style.width = `${roundedWidth}px`;
+        cell.style.minWidth = `${roundedWidth}px`;
+        cell.style.maxWidth = `${roundedWidth}px`;
+      });
   });
+}
+
+export function applyTableColumnWidth(table: HTMLTableElement, colIndex: number, width: number): void {
+  const widths = getTableColumnWidths(table);
+  widths[colIndex] = width;
+  applyTableColumnWidths(table, widths);
 }
 
 export function readPersistedTableColumnWidths(table: HTMLTableElement): number[] | null {

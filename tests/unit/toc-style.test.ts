@@ -26,16 +26,37 @@ describe('table of contents styles', () => {
     expect(activeRule).not.toMatch(/background-color|border-left|font-weight/);
   });
 
-  it('makes major headings darker and heavier in the default state', () => {
+  it('makes major headings gray and heavier in the default state', () => {
     expect(stylesheet).toMatch(/\.feishu-toc__link--major\s*\{[^}]*font-weight:\s*700/);
     expect(stylesheet).toMatch(
-      /\.feishu-toc__link--major\s*\{[^}]*color:\s*var\(--feishu-text-primary\)/,
+      /\.feishu-toc__link--major\s*\{[^}]*color:\s*var\(--feishu-text-secondary\)/,
+    );
+  });
+
+  it('reserves a fixed toggle slot and reveals triangles on hover or focus', () => {
+    expect(stylesheet).toMatch(
+      /\.feishu-toc__toggle-slot\s*\{[^}]*width:\s*20px[^}]*flex:\s*0 0 20px/,
+    );
+    expect(stylesheet).toMatch(
+      /\.feishu-toc__toggle\s*\{[^}]*opacity:\s*0[^}]*pointer-events:\s*none/,
+    );
+    expect(stylesheet).toMatch(
+      /\.feishu-toc__link:hover\s+\.feishu-toc__toggle[^}]*opacity:\s*1[^}]*pointer-events:\s*auto/,
+    );
+    expect(stylesheet).toMatch(
+      /\.feishu-toc__link:focus-within\s+\.feishu-toc__toggle[^}]*opacity:\s*1[^}]*pointer-events:\s*auto/,
     );
   });
 
   it('allows the directory item font size to follow the reading setting', () => {
     expect(stylesheet).toMatch(
       /\.feishu-toc__link\s*\{[^}]*font-size:\s*var\(--feishu-toc-font-size,\s*13px\)/,
+    );
+  });
+
+  it('makes the document title larger than the regular directory items', () => {
+    expect(stylesheet).toMatch(
+      /\.feishu-toc__link--document-title\s*\{[^}]*font-size:\s*calc\(var\(--feishu-toc-font-size,\s*13px\)\s*\+\s*3px\)/,
     );
   });
 

@@ -566,7 +566,12 @@
 
 .feishu-toc__link--major {
   font-weight: 700;
-  color: var(--feishu-text-primary);
+  color: var(--feishu-text-secondary);
+}
+
+.feishu-toc__link--document-title {
+  font-size: calc(var(--feishu-toc-font-size, 13px) + 3px);
+  line-height: 1.35;
 }
 
 .feishu-toc__link:hover {
@@ -577,6 +582,15 @@
   color: var(--feishu-brand-primary);
 }
 
+.feishu-toc__toggle-slot {
+  width: 20px;
+  flex: 0 0 20px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .feishu-toc__toggle {
   width: 16px;
   height: 16px;
@@ -584,12 +598,20 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-right: 4px;
+  margin: 0;
   border: none;
   background: none;
   cursor: pointer;
   color: inherit;
+  opacity: 0;
+  pointer-events: none;
   transition: transform 0.2s;
+}
+
+.feishu-toc__link:hover .feishu-toc__toggle,
+.feishu-toc__link:focus-within .feishu-toc__toggle {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .feishu-toc__toggle--expanded {

@@ -41,6 +41,15 @@ describe('extractHeadings', () => {
     expect(h6.level).toBe(6);
   });
 
+  it('marks only the first level-one heading as the document title', () => {
+    const result = extractHeadings(`# 文档标题
+## 第一章
+# 第二个一级标题`);
+
+    expect(result[0].isDocumentTitle).toBe(true);
+    expect(result[1].isDocumentTitle).toBe(false);
+  });
+
   it('builds tree structure (H2 under H1, H3 under H2)', () => {
     const md = `# Introduction
 ## Background

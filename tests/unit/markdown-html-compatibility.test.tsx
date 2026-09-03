@@ -90,4 +90,31 @@ describe('GitHub README HTML compatibility', () => {
     expect(container.querySelector('img[src^="javascript:"]')).toBeNull();
     expect(container.querySelector('script')).toBeNull();
   });
+
+  it('renders table captions as Feishu title bands and preserves merged-cell semantics', () => {
+    const result = parseMarkdown(`
+<table>
+  <caption>项目进度总览</caption>
+  <thead>
+    <tr><th rowspan="2">项目</th><th colspan="2">进度</th></tr>
+    <tr><th>负责人</th><th>状态</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Markdown 预览</td><td colspan="2">已完成</td></tr>
+  </tbody>
+</table>`, githubContext);
+    const { container } = render(result);
+    const table = container.querySelector('.feishu-table__scrollport > table.feishu-table');
+    const caption = table?.querySelector('caption.feishu-table__caption');
+    const projectHeader = table?.querySelector('th');
+    const progressHeader = table?.querySelector('thead tr:first-child th:nth-child(2)');
+    const completedCell = table?.querySelector('tbody td:last-child');
+
+    expect(table).not.toBeNull();
+    expect(caption?.textContent).toBe('项目进度总览');
+    expect(caption?.getAttribute('colspan')).toBeNull();
+    expect(projectHeader?.getAttribute('rowspan')).toBe('2');
+    expect(progressHeader?.getAttribute('colspan')).toBe('2');
+    expect(completedCell?.getAttribute('colspan')).toBe('2');
+  });
 });

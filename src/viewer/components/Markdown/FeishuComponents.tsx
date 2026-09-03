@@ -166,6 +166,9 @@ export const feishuComponents: ComponentMap = {
     return <code className="feishu-inline-code" {...props}>{children}</code>;
   },
   table: FeishuTable as ComponentType<HTMLAttributes<HTMLElement>>,
+  caption: ({ children, className, ...props }) => (
+    <caption {...props} className={mergeClassName('feishu-table__caption', className)}>{children}</caption>
+  ),
   thead: ({ children, className, ...props }) => (
     <thead {...props} className={mergeClassName('feishu-table__head', className)}>{children}</thead>
   ),

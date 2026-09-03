@@ -35,6 +35,22 @@ function WideTableHarness() {
   );
 }
 
+function MergedTableHarness() {
+  return (
+    <FeishuTable>
+      <caption>项目进度总览</caption>
+      <thead>
+        <tr><th rowSpan={2}>项目</th><th colSpan={2}>进度</th></tr>
+        <tr><th>负责人</th><th>状态</th></tr>
+      </thead>
+      <tbody>
+        <tr><td rowSpan={2}>Markdown 预览</td><td>小 Q</td><td>已完成</td></tr>
+        <tr><td colSpan={2}>后续进行 GitHub README 兼容性验收</td></tr>
+      </tbody>
+    </FeishuTable>
+  );
+}
+
 function readSelectedDataRows(table: HTMLTableElement): Array<{ row: number; selectedCells: number }> {
   return Array.from(table.rows)
     .map((tr, row) => ({
@@ -96,6 +112,63 @@ describe('FeishuTable selection', () => {
     expect(stickyLeftReveal?.hasAttribute('inert')).toBe(true);
   });
 
+  it('floats the table caption and every merged header row as one block', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const { container } = render(<MergedTableHarness />);
+    const table = getSourceTable(container);
+    const wrapper = container.querySelector('.feishu-table-wrapper') as HTMLElement;
+    const scrollport = container.querySelector('.feishu-table__scrollport') as HTMLElement;
+    const head = table.tHead as HTMLTableSectionElement;
+    const caption = table.caption as HTMLTableCaptionElement;
+    const stickyHead = container.querySelector('.feishu-table__sticky-head') as HTMLElement;
+    const stickyTable = container.querySelector('.feishu-table__sticky-head > table') as HTMLTableElement;
+    const stickyLeftRevealTable = container.querySelector('.feishu-table__sticky-left-reveal > table') as HTMLTableElement;
+
+    wrapper.getBoundingClientRect = () => ({
+      x: 300, y: 0, top: 0, left: 300, right: 800, bottom: 600, width: 500, height: 600,
+      toJSON: () => '',
+    });
+    table.getBoundingClientRect = () => ({
+      x: 300, y: 0, top: 0, left: 300, right: 1200, bottom: 600, width: 900, height: 600,
+      toJSON: () => '',
+    });
+    scrollport.getBoundingClientRect = wrapper.getBoundingClientRect;
+    head.getBoundingClientRect = () => ({
+      x: 300, y: 0, top: 0, left: 300, right: 1200, bottom: 72, width: 900, height: 72,
+      toJSON: () => '',
+    });
+    caption.getBoundingClientRect = () => ({
+      x: 300, y: 0, top: 0, left: 300, right: 1200, bottom: 28, width: 900, height: 28,
+      toJSON: () => '',
+    });
+    Array.from(head.rows).forEach((row, index) => {
+      row.getBoundingClientRect = () => ({
+        x: 300, y: index * 36, top: index * 36, left: 300, right: 1200,
+        bottom: (index + 1) * 36, width: 900, height: 36,
+        toJSON: () => '',
+      });
+    });
+    Object.defineProperty(scrollport, 'scrollLeft', { configurable: true, value: 10, writable: true });
+    Object.defineProperty(scrollport, 'scrollWidth', { configurable: true, value: 900 });
+    Object.defineProperty(scrollport, 'clientWidth', { configurable: true, value: 500 });
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1366 });
+
+    fireEvent.scroll(scrollport);
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(stickyTable.caption?.textContent).toBe('项目进度总览');
+    expect(stickyTable.tHead?.rows).toHaveLength(2);
+    expect(stickyTable.querySelectorAll(':scope > colgroup > col')).toHaveLength(3);
+    expect(stickyLeftRevealTable.caption?.textContent).toBe('项目进度总览');
+    expect(stickyHead.style.display).toBe('block');
+    expect(stickyHead.style.height).toBe('100px');
+  });
+
   it('removes descendant IDs from readonly and sticky clones', () => {
     const { container } = render(
       <FeishuTable id="source-table">
@@ -139,6 +212,53 @@ describe('FeishuTable selection', () => {
     expect(leftReveal?.querySelectorAll('th')).toHaveLength(2);
     expect(leftReveal?.querySelectorAll('td')).toHaveLength(4);
     expect(leftReveal?.textContent).toContain('H1');
+  });
+
+  it('extends the table caption into the left reveal without hiding its text', () => {
+    const { container } = render(
+      <FeishuTable>
+        <caption>项目进度总览</caption>
+        <thead><tr><th>项目</th><th>状态</th></tr></thead>
+        <tbody><tr><td>Markdown</td><td>已完成</td></tr></tbody>
+      </FeishuTable>,
+    );
+    const sourceTable = getSourceTable(container);
+    const leftRevealTable = revealLeftTable(container);
+
+    expect(sourceTable.querySelector('caption')?.textContent).toBe('项目进度总览');
+    const leftRevealCaption = leftRevealTable.querySelector('caption');
+    expect(leftRevealCaption?.textContent).toBe('项目进度总览');
+    expect(leftRevealCaption?.classList.contains('feishu-table__caption--left-reveal-spacer')).toBe(false);
+    expect(leftRevealCaption?.getAttribute('aria-hidden')).toBeNull();
+  });
+
+  it('selects the final logical column when dragging across a merged header row', () => {
+    const { container } = render(<MergedTableHarness />);
+    const table = getSourceTable(container);
+    const ownerCell = table.rows[1]?.cells[0] as HTMLTableCellElement;
+    const statusCell = table.rows[1]?.cells[1] as HTMLTableCellElement;
+
+    fireEvent.mouseDown(ownerCell, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.mouseOver(statusCell, { clientX: 300, clientY: 100 });
+    fireEvent.mouseUp(document);
+
+    expect(ownerCell.classList.contains('feishu-table__header--selected')).toBe(true);
+    expect(statusCell.classList.contains('feishu-table__header--selected')).toBe(true);
+  });
+
+  it('extends a cell drag through the full width of a merged destination cell', () => {
+    const { container } = render(<MergedTableHarness />);
+    const table = getSourceTable(container);
+    const ownerCell = table.rows[1]?.cells[0] as HTMLTableCellElement;
+    const statusCell = table.rows[1]?.cells[1] as HTMLTableCellElement;
+    const mergedBodyCell = table.rows[3]?.cells[0] as HTMLTableCellElement;
+
+    fireEvent.mouseDown(ownerCell, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.mouseOver(mergedBodyCell, { clientX: 300, clientY: 220 });
+    fireEvent.mouseUp(document);
+
+    expect(ownerCell.classList.contains('feishu-table__header--selected')).toBe(true);
+    expect(statusCell.classList.contains('feishu-table__header--selected')).toBe(true);
   });
 
   it('maps a left reveal cell click to the corresponding source cell selection', () => {

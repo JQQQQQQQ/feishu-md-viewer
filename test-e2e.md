@@ -776,3 +776,440 @@ sequenceDiagram
 5. 切换浅色/深色主题，确认节点、文字、箭头、工具栏和滚动阴影都有足够对比度。
 6. 点击“10.7 有效图表旁的非法语法”中的非法图表，确认只有当前图表降级，前后有效图表仍可用。
 7. 在文档中切换其他选项卡再切回来，确认不会回到顶部、不会重复创建多个画布，也不会造成目录闪动。
+
+## 第 11 节：GitHub README 兼容性验收
+
+本节用于验证常见 GitHub README 结构在 Chrome 本地 `file://` 页面和 VS Code Webview 中的显示结果。每项都记录为 `PASS`、`DEGRADED`、`UNSUPPORTED` 或 `BLOCKED`，不能把“单元测试通过”直接当作 Chrome / VS Code 实机通过。
+
+### 11.1 GitHub 特有的 HTML 展示结构
+
+预期：安全的展示性 HTML 被保留或安全转换；不支持的结构保留可读文本并给出合理降级，不应阻塞后续 Markdown 内容。
+
+<details open>
+  <summary>已展开的 README 说明</summary>
+
+`details` 内可以包含段落、列表和代码：
+
+- 展开状态在首次加载时可见
+- 点击 summary 可以收起和重新展开
+- 收起后正文后续内容仍可正常滚动
+
+```bash
+echo "details content"
+```
+</details>
+
+<details>
+  <summary>默认收起的 README 说明</summary>
+
+这段内容首次加载时应隐藏，点击 summary 后显示。
+</details>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/github/explore/main/topics/markdown/markdown.png" />
+  <source media="(prefers-color-scheme: light)" srcset="./assets/light-demo.png" />
+  <img src="https://raw.githubusercontent.com/github/explore/main/topics/markdown/markdown.png" alt="picture 回退图片" loading="lazy" decoding="async" width="320" height="160" />
+</picture>
+
+快捷键说明：<kbd>Ctrl</kbd> + <kbd>Enter</kbd> 提交，<kbd>Esc</kbd> 关闭预览。
+
+<video controls preload="metadata" poster="./assets/video-poster.png" width="480" height="270">
+  <source src="./assets/demo.mp4" type="video/mp4" />
+  当前环境不支持视频播放，请显示这段回退文本。
+</video>
+
+<div align="center">
+  <strong>GitHub README 居中内容</strong>
+</div>
+
+<div class="readme-demo-row">
+  <span>布局块 A</span>
+  <span>布局块 B</span>
+</div>
+
+检查：
+
+1. `details` / `summary` 的展开、收起状态可操作，且不会造成页面横向溢出。
+2. `picture` 优先显示可用的 `img` 回退内容，`source` 不应产生空白占位。
+3. `kbd` 显示为清晰的快捷键标签，不应被当成代码块或标题。
+4. `video` 保留用户控制按钮；资源不存在时显示回退文本，不阻塞后续内容。
+5. `div align="center"` 保留合理的居中效果；未知 class 不应注入任意样式。
+
+### 11.2 GitHub 图片、徽章和贡献者区域
+
+预期：外链图片、Raw 图片、徽章、贡献者图片和懒加载属性都能安全处理；加载失败时显示可识别的替代文本或失败状态。
+
+![GitHub Raw 图片](https://raw.githubusercontent.com/github/explore/main/topics/markdown/markdown.png "Raw 图片")
+
+![构建徽章](https://img.shields.io/badge/build-passing-brightgreen "构建通过")
+
+[![贡献者](https://contrib.rocks/image?repo=JQQQQQQQ/feishu-md-viewer)](https://github.com/JQQQQQQQ/feishu-md-viewer/graphs/contributors)
+
+<img src="./assets/lazy-demo.png" alt="相对路径懒加载图片" loading="lazy" decoding="async" width="240" height="120" />
+
+检查：
+
+1. 点击图片进入图片预览，预览内容不应被额外的黑色图片框包裹。
+2. 图片预览工具栏显示上一张、当前位置、总数、下一张；点击图片外部可以关闭。
+3. 徽章和贡献者图片可以正常显示或安全降级，不能把图片地址渲染为普通代码文本。
+4. `loading="lazy"` 和 `decoding="async"` 不会被误解析成可见文本。
+5. 本地相对图片不存在时，显示失败状态但不影响目录、表格和 Mermaid。
+
+### 11.3 GFM 表格与原生 HTML 表格
+
+预期：GFM 表格和 HTML 表格都保留表头语义、圆角、交替行背景和原生水平滚动体验。
+
+| README 场景 | Chrome | VS Code | 预期处理 |
+| --- | --- | --- | --- |
+| GFM 表格 | 待验收 | 待验收 | 使用现有表格选择和复制逻辑 |
+| HTML 表格 | 待验收 | 待验收 | 保留 `thead` / `tbody` 结构 |
+| 超宽表格 | 待验收 | 待验收 | 外框固定，表格内部原生滚动 |
+
+<table id="html-table">
+  <caption>HTML Table 兼容性检查</caption>
+  <thead>
+    <tr>
+      <th>项目</th>
+      <th>状态</th>
+      <th>备注</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>表头复制</td>
+      <td>待验收</td>
+      <td>粘贴到 Excel 后应识别为表格列</td>
+    </tr>
+    <tr>
+      <td>长内容</td>
+      <td>待验收</td>
+      <td>列宽调整不应挤压其他列</td>
+    </tr>
+  </tbody>
+</table>
+
+检查：
+
+1. 点击 HTML 表格上边框可以选择整列，点击左边框可以选择整行。
+2. 选中隐藏滚动区域后拖动，表格会自动向对应方向滚动，不要求鼠标始终停在边框热区内。
+3. 复制表头和数据后粘贴到 Excel，列和行仍能被识别，不应全部拼接成一段普通文本。
+4. 表格缩放、目录收起和正文居中不会在外框与表格之间产生空白缝隙。
+
+#### 11.3.1 合并单元格展示
+
+预期：`rowspan` 和 `colspan` 保留原生合并关系，不生成假的空白单元格；合并区域的边框、背景、内边距和文字垂直对齐与普通单元格一致。
+
+<table>
+  <caption>项目进度总览</caption>
+  <thead>
+    <tr>
+      <th rowspan="2">项目</th>
+      <th colspan="2">进度</th>
+    </tr>
+    <tr>
+      <th>负责人</th>
+      <th>状态</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2">Markdown 预览</td>
+      <td>小 Q</td>
+      <td>已完成</td>
+    </tr>
+    <tr>
+      <td colspan="2">后续进行 GitHub README 兼容性验收</td>
+    </tr>
+  </tbody>
+</table>
+
+检查：
+
+1. `项目进度总览` 显示为飞书风格的表格标题栏，不参与行列选择。
+2. `进度` 横向跨两列，`项目` 纵向跨两行，表格网格没有额外的空白占位格。
+3. 合并区域的文字保持可读，长文本不会撑破外框；超出时仍使用表格内部水平滚动。
+4. 浅色和深色主题下，合并区域的背景、边框和文字对比度保持一致。
+5. 点击合并区域时，至少应将该合并单元格作为一个视觉单元高亮；如果行列选择暂不覆盖复杂合并关系，记录为 `DEGRADED`，不能影响普通表格。
+
+#### 11.3.2 多级表头与分类合并
+
+预期：多层表头在预览中保持层级关系，横向和纵向合并不生成重复文字或假空白格；复制到 Excel 后每一层表头都位于表头区域并保留背景色。
+
+<table>
+  <caption>季度项目资源分配</caption>
+  <thead>
+    <tr>
+      <th rowspan="3">团队</th>
+      <th rowspan="3">项目</th>
+      <th colspan="4">2026 年上半年</th>
+      <th colspan="2">汇总</th>
+    </tr>
+    <tr>
+      <th colspan="2">第一季度</th>
+      <th colspan="2">第二季度</th>
+      <th rowspan="2">总人日</th>
+      <th rowspan="2">完成率</th>
+    </tr>
+    <tr>
+      <th>计划</th>
+      <th>实际</th>
+      <th>计划</th>
+      <th>实际</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2">阅读体验组</td>
+      <td>Markdown 预览</td>
+      <td>24</td>
+      <td>22</td>
+      <td>30</td>
+      <td>28</td>
+      <td>50</td>
+      <td>92%</td>
+    </tr>
+    <tr>
+      <td>表格交互</td>
+      <td>18</td>
+      <td>20</td>
+      <td>26</td>
+      <td>24</td>
+      <td>44</td>
+      <td>100%</td>
+    </tr>
+    <tr>
+      <td>图表组</td>
+      <td>Mermaid 画布</td>
+      <td>16</td>
+      <td>14</td>
+      <td>22</td>
+      <td>25</td>
+      <td>39</td>
+      <td>88%</td>
+    </tr>
+  </tbody>
+</table>
+
+检查：
+
+1. `团队` 和 `项目` 在三层表头中保持正确的纵向合并，不在后续表头行重复出现。
+2. `2026 年上半年` 横向跨越四个季度明细列，`第一季度`、`第二季度`各自跨越计划/实际两列。
+3. `总人日`、`完成率`在第二、第三层表头中保持纵向合并，右侧不出现假的空白单元格。
+4. 从“计划”拖到“实际”以及从第一季度拖到第二季度，单元格框选可以覆盖完整的逻辑列范围。
+5. 复制整张表到 Excel，三行表头都应处于表头区域并显示浅灰色背景。
+
+#### 11.3.3 行列交叉合并与空值
+
+预期：行列同时存在合并、空值和跨区域说明时，表格仍按逻辑网格布局；空值只表示真正空白，不被错误补成重复单元格。
+
+<table>
+  <caption>发布验收矩阵</caption>
+  <thead>
+    <tr>
+      <th rowspan="2">验收阶段</th>
+      <th colspan="3">浏览器</th>
+      <th colspan="2">VS Code</th>
+      <th rowspan="2">结论</th>
+    </tr>
+    <tr>
+      <th>浅色</th>
+      <th>深色</th>
+      <th>自动刷新</th>
+      <th>Webview</th>
+      <th>文件更新</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2">Markdown 兼容性</td>
+      <td>通过</td>
+      <td>通过</td>
+      <td>通过</td>
+      <td>通过</td>
+      <td></td>
+      <td rowspan="2">可发布</td>
+    </tr>
+    <tr>
+      <td colspan="2">需要人工确认长表格颜色</td>
+      <td>通过</td>
+      <td></td>
+      <td>通过</td>
+    </tr>
+    <tr>
+      <td>Mermaid 图表</td>
+      <td colspan="3">流程图、时序图和长图均已验证</td>
+      <td>通过</td>
+      <td>通过</td>
+      <td>可发布</td>
+    </tr>
+    <tr>
+      <td>复制到 Excel</td>
+      <td colspan="5">需要检查多行表头背景色、rowspan/colspan 和空值位置</td>
+      <td>待验收</td>
+    </tr>
+  </tbody>
+</table>
+
+检查：
+
+1. `验收阶段` 和 `结论`分别纵向跨两行，第二行不能再次出现重复文字。
+2. “需要人工确认长表格颜色”横向跨越浅色/深色两列，两个单元格之间不能出现额外的空白占位格。
+3. “流程图、时序图和长图均已验证”横向跨越浏览器三列，长文本应换行而不是撑破外框。
+4. 点击空值单元格时只选中真实空白格，不应连带选中相邻单元格；从空值拖向右侧时仍能选到目标列。
+5. 复制到 Excel 后，空值位置保持为空，合并说明保持合并，表头区域保持颜色。
+
+#### 11.3.4 宽表与富内容压力测试
+
+预期：超过 8 列的宽表进入宽表模式，表格外框保持稳定，横向滚动使用原生滚动条；单元格中的代码、链接、任务列表和长文本不影响选择与复制。
+
+<table>
+  <caption>跨平台发布检查清单</caption>
+  <thead>
+    <tr>
+      <th rowspan="2">编号</th>
+      <th rowspan="2">检查项</th>
+      <th colspan="2">浏览器</th>
+      <th colspan="2">VS Code</th>
+      <th rowspan="2">负责人</th>
+      <th rowspan="2">状态</th>
+      <th rowspan="2">备注</th>
+    </tr>
+    <tr>
+      <th>浅色</th>
+      <th>深色</th>
+      <th>本地文件</th>
+      <th>Webview</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>01</td>
+      <td>多行表头</td>
+      <td><code>passed</code></td>
+      <td><code>passed</code></td>
+      <td><a href="./docs/browser.md">测试记录</a></td>
+      <td><a href="./docs/vscode.md">测试记录</a></td>
+      <td>阅读体验组</td>
+      <td>完成</td>
+      <td>需要拖动横向滚动条，确认左侧展示层不会遮挡单元格。</td>
+    </tr>
+    <tr>
+      <td>02</td>
+      <td>Excel 复制</td>
+      <td colspan="2">- [x] 表头颜色和合并关系</td>
+      <td colspan="2">- [x] 空值和长文本</td>
+      <td>质量组</td>
+      <td>进行中</td>
+      <td>复制后检查 `rowspan`、`colspan`、`bgcolor` 和 `background-color`。</td>
+    </tr>
+    <tr>
+      <td>03</td>
+      <td>长文本换行</td>
+      <td>通过</td>
+      <td>通过</td>
+      <td>通过</td>
+      <td>通过</td>
+      <td>质量组</td>
+      <td>通过</td>
+      <td>这是一段用于压力测试的长备注：当表格列宽被拖到很大、正文区域需要横向滚动时，文字应保持可读，表格外框应与实际表格内容同步，不出现额外空白或错位。</td>
+    </tr>
+  </tbody>
+</table>
+
+检查：
+
+1. 表格超过 8 列后进入宽表模式，右侧外框限制稳定，表格内容通过内部原生滚动条浏览。
+2. 向右拖动滚动条后，左侧隐藏列可以通过左侧展示层查看；目录显隐不应改变正文居中位置。
+3. 在显示区域内从“检查项”拖到“备注”，单元格框选应覆盖中间所有逻辑列；拖到滚动边界时应自动滚动并继续选择。
+4. 代码、链接和任务列表只影响单元格内容渲染，不应抢占表格选择手势；需要复制部分文字时仍可进行原生文字框选。
+5. 复制到 Excel 后，宽表列顺序、两层表头颜色、合并单元格、空值和长文本都应保持一致。
+
+### 11.4 相对路径资源、内部锚点和混合链接
+
+预期：图片、普通 Markdown 链接、下载链接、内部锚点和外部网页分别使用正确的解析策略。
+
+<h3 id="github-readme-anchor">GitHub README 内部锚点目标</h3>
+
+- [返回 HTML 表格](#html-table)
+- [相对 Markdown 文档](./docs/guide.md)
+- [下载资源](./assets/demo.zip)
+- [GitHub Raw 图片](https://raw.githubusercontent.com/github/explore/main/topics/markdown/markdown.png)
+- [外部网页](https://github.com/JQQQQQQQ/feishu-md-viewer)
+- [发送邮件](mailto:viewer@example.com)
+
+检查：
+
+1. 点击 `[返回 HTML 表格]` 在当前预览内滚动定位，不打开新标签页。
+2. 目标标题出现临时选中背景约 2 秒，定位后目录选中状态保持正确。
+3. `./docs/guide.md` 按当前 Markdown 文件所在目录解析；不存在时显示明确失败状态。
+4. `./assets/demo.zip` 作为下载或文档资源链接处理，不被当作图片渲染。
+5. GitHub Raw 图片保持绝对地址；外部网页和 `mailto:` 链接按链接策略打开。
+6. query string 和 fragment 在解析后保留，危险协议不执行。
+
+### 11.5 GitHub 任务列表、代码块和 Mermaid 混合内容
+
+预期：README 中常见的任务列表、代码块、JSON 键名着色和 Mermaid 图表可以连续出现，任意一块失败都不影响其他块。
+
+- [ ] 检查 Chrome 本地文件预览
+- [x] 检查 VS Code Webview 预览
+- [ ] 检查浅色/深色主题切换
+
+```json
+{
+  "name": "github-readme-fixture",
+  "enabled": true,
+  "retryCount": 3,
+  "features": ["html", "links", "mermaid"],
+  "nested": {
+    "theme": "dark",
+    "nullable": null
+  }
+}
+```
+
+```mermaid
+flowchart TD
+    A[加载 README] --> B{资源是否安全}
+    B -->|是| C[渲染 HTML 与 Markdown]
+    B -->|否| D[安全降级]
+    C --> E[保留目录和滚动状态]
+    D --> E
+```
+
+检查：
+
+1. JSON 键名和字符串值颜色不同，数组中的字符串不能被误判为键名。
+2. 任务列表中的复选框只读，背景、边框和白色勾选标记在两种主题下都清楚。
+3. Mermaid 正常显示时可以点击进入全屏画布；画布滚轮只滚动图表视口。
+4. 任一非法 HTML、资源失败或 Mermaid 错误只影响当前块，后续内容、目录和表格仍可用。
+
+### 11.6 HTML 安全边界与降级
+
+以下内容只用于验证安全过滤，预期不会执行脚本、事件处理器或危险 URL：
+
+<div onclick="alert('xss')">带事件属性的文本</div>
+
+<a href="javascript:alert('xss')">危险协议链接</a>
+
+<script>alert('xss')</script>
+
+<iframe src="https://example.com"></iframe>
+
+检查：
+
+1. `script`、`iframe` 和事件属性被移除或安全降级。
+2. `javascript:`、`vbscript:`、`data:` 等危险协议不产生可执行链接。
+3. 安全文本仍可阅读，过滤一个块不应让整篇 README 变空白。
+4. Chrome 和 VS Code Webview 的降级结果一致。
+
+### 11.7 GitHub README 兼容性验收记录
+
+| 验收项 | Chrome 本地 | VS Code Webview | 备注 |
+| --- | --- | --- | --- |
+| HTML 展示结构 | 待验收 | 待验收 | details / picture / kbd / video / div |
+| 图片、徽章、贡献者 | 待验收 | 待验收 | Raw、相对路径、懒加载 |
+| GFM / HTML 表格 | 待验收 | 待验收 | 选择、复制、滚动、列宽 |
+| 相对资源和链接 | 待验收 | 待验收 | 图片、文档、下载、锚点、外链 |
+| 任务列表、代码块、Mermaid | 待验收 | 待验收 | 混合块隔离 |
+| 安全过滤和降级 | 待验收 | 待验收 | 危险协议、脚本、iframe |
+| 长内容与主题 | 待验收 | 待验收 | 滚动、目录、浅色/深色 |

@@ -11,12 +11,20 @@ import {
 import {
   clearTableSelection,
   getWholeTableSelection,
+  createTableGrid,
+  getLogicalCellAt,
+  getLogicalCellFocusPoint,
+  getLogicalCellPoint,
   renderTableSelection,
   renderTableSelectionHtml,
-  type CellPoint,
   type SelectionState,
 } from './FeishuTableSelection';
-import { persistTableColumnWidths, restorePersistedTableColumnWidths } from './FeishuTableColumnWidths';
+import {
+  applyTableColumnWidth,
+  getTableColumnWidths,
+  persistTableColumnWidths,
+  restorePersistedTableColumnWidths,
+} from './FeishuTableColumnWidths';
 import { hasNativeTextSelection } from './table-native-selection';
 import { resolveTablePointerIntent } from './table-pointer-intent';
 
@@ -91,6 +99,19 @@ function getStickyTopOffset(wrapper: HTMLElement): number {
   return Number.isFinite(topbarHeight) ? topbarHeight : 56;
 }
 
+function getTableHeaderHeight(head: HTMLTableSectionElement): number {
+  const measuredHeight = head.getBoundingClientRect().height;
+  if (measuredHeight > 0) return Math.round(measuredHeight);
+
+  return Math.round(Array.from(head.rows)
+    .reduce((total, row) => total + row.getBoundingClientRect().height, 0));
+}
+
+function getTableFloatingHeaderHeight(table: HTMLTableElement, head: HTMLTableSectionElement): number {
+  const captionHeight = table.caption?.getBoundingClientRect().height ?? 0;
+  return Math.round(Math.max(0, captionHeight) + getTableHeaderHeight(head));
+}
+
 function focusWithoutScroll(node: HTMLElement | null): void {
   if (!node) return;
   try {
@@ -115,13 +136,19 @@ function getSourceCellFromLeftReveal(
   source: HTMLTableElement | null,
   leftRevealCell: HTMLTableCellElement,
 ): HTMLTableCellElement | null {
-  if (!source || !(leftRevealCell.parentElement instanceof HTMLTableRowElement)) return null;
-  return source.rows[leftRevealCell.parentElement.rowIndex]?.cells[leftRevealCell.cellIndex] ?? null;
+  if (!source) return null;
+  const revealTable = leftRevealCell.closest('table');
+  if (!(revealTable instanceof HTMLTableElement)) return null;
+  const point = getLogicalCellPoint(revealTable, leftRevealCell);
+  return getLogicalCellAt(source, point.row, point.col);
 }
 
 function syncReadonlyTableClone(source: HTMLTableElement, clone: HTMLTableElement | null, cloneClass: string): void {
   if (!clone) return;
 
+  // The reveal table occupies the exact slice that the source table has
+  // scrolled out of view.  Cloning the caption normally therefore extends
+  // its title text across the seam without creating a duplicate overlap.
   clone.replaceChildren(...Array.from(source.children).map((child) => child.cloneNode(true)));
   clone.className = `${source.className} ${cloneClass}`;
   removeCloneIds(clone);
@@ -172,34 +199,20 @@ function getActiveElement(node: HTMLElement): Element | null {
   return root instanceof ShadowRoot ? root.activeElement : document.activeElement;
 }
 
-function getCellPoint(cell: HTMLTableCellElement): CellPoint {
-  return {
-    row: cell.parentElement instanceof HTMLTableRowElement ? cell.parentElement.rowIndex : 0,
-    col: cell.cellIndex,
-  };
-}
-
-function getResizableColumnIndex(cell: HTMLTableCellElement, clientX: number): number | null {
+function getResizableColumnIndex(table: HTMLTableElement, cell: HTMLTableCellElement, clientX: number): number | null {
   const rect = cell.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return null;
 
+  const range = createTableGrid(table).rangeOf(cell);
+  const colStart = range?.colStart ?? cell.cellIndex;
+  const colEnd = range?.colEnd ?? cell.cellIndex;
+
   const nearRightEdge = Math.abs(clientX - rect.right) <= RESIZE_EDGE_THRESHOLD;
-  const nearLeftEdge = cell.cellIndex > 0 && Math.abs(clientX - rect.left) <= RESIZE_EDGE_THRESHOLD;
+  const nearLeftEdge = colStart > 0 && Math.abs(clientX - rect.left) <= RESIZE_EDGE_THRESHOLD;
 
-  if (nearRightEdge) return cell.cellIndex;
-  if (nearLeftEdge) return cell.cellIndex - 1;
+  if (nearRightEdge) return colEnd;
+  if (nearLeftEdge) return colStart - 1;
   return null;
-}
-
-function applyColumnWidth(table: HTMLTableElement, colIndex: number, width: number): void {
-  Array.from(table.rows).forEach((row) => {
-    const cell = row.cells[colIndex];
-    if (!cell) return;
-
-    cell.style.width = `${width}px`;
-    cell.style.minWidth = `${width}px`;
-    cell.style.maxWidth = `${width}px`;
-  });
 }
 
 interface SelectionRailSegment {
@@ -220,12 +233,21 @@ interface RailSelection {
 
 function getSelectionRails(table: HTMLTableElement): SelectionRails {
   const rows = Array.from(table.rows);
+  const grid = createTableGrid(table);
   const firstRow = rows[0];
   const columns = firstRow
-    ? Array.from(firstRow.cells).map((cell) => ({
-        offset: cell.offsetLeft,
-        size: cell.offsetWidth || 1,
-      }))
+    ? Array.from({ length: grid.columnCount }, (_, colIndex) => {
+        const cell = grid.cellAt(0, colIndex);
+        if (!cell) return { offset: 0, size: 1 };
+        const range = grid.rangeOf(cell);
+        const width = cell.offsetWidth || 1;
+        const colSpan = range ? range.colEnd - range.colStart + 1 : 1;
+        const segmentWidth = width / colSpan;
+        return {
+          offset: cell.offsetLeft + segmentWidth * (colIndex - (range?.colStart ?? colIndex)),
+          size: segmentWidth,
+        };
+      })
     : [];
   return {
     columns,
@@ -445,7 +467,9 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
   const extendSelectionToCell = useCallback((cell: HTMLTableCellElement, clientY: number) => {
     if (!selectionRef.current) return;
     const selection = selectionRef.current;
-    const nextFocus = getCellPoint(cell);
+    const table = tableRef.current;
+    if (!table) return;
+    const nextFocus = getLogicalCellFocusPoint(table, cell, selection.anchor);
     if (
       dragStartYRef.current !== null
       && anchorRowHeightRef.current !== null
@@ -483,7 +507,9 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     if (!cell) return;
 
     const table = tableRef.current;
-    const resizableColIndex = getResizableColumnIndex(cell, event.clientX);
+    const resizableColIndex = table
+      ? getResizableColumnIndex(table, cell, event.clientX)
+      : null;
     if (table && resizableColIndex !== null) {
       event.preventDefault();
       event.stopPropagation();
@@ -494,18 +520,19 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       dragStartYRef.current = null;
       anchorRowHeightRef.current = null;
 
-      const referenceCell = Array.from(table.rows)
-        .map((row) => row.cells[resizableColIndex])
-        .find(Boolean);
       const startX = event.clientX;
-      const startWidth = referenceCell?.getBoundingClientRect().width ?? cell.getBoundingClientRect().width;
+      const storedWidths = getTableColumnWidths(table);
+      const cellRange = createTableGrid(table).rangeOf(cell);
+      const cellWidth = cell.getBoundingClientRect().width;
+      const fallbackWidth = cellWidth / (cellRange ? cellRange.colEnd - cellRange.colStart + 1 : 1);
+      const startWidth = storedWidths[resizableColIndex] || fallbackWidth;
 
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
 
       const handleResizeMove = (moveEvent: globalThis.MouseEvent) => {
         const nextWidth = Math.max(MIN_COLUMN_WIDTH, startWidth + moveEvent.clientX - startX);
-        applyColumnWidth(table, resizableColIndex, nextWidth);
+        applyTableColumnWidth(table, resizableColIndex, nextWidth);
 
         const resizeWrapper = wrapperRef.current;
         const resizeScrollport = scrollportRef.current;
@@ -556,12 +583,13 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       return;
     }
     if (pointerIntent === 'interactive') return;
+    if (!table) return;
 
     event.preventDefault();
     window.getSelection()?.removeAllRanges();
     focusWithoutScroll(wrapperRef.current);
 
-    const point = getCellPoint(cell);
+    const point = getLogicalCellPoint(table, cell);
     isDraggingRef.current = true;
     dragStartYRef.current = event.clientY;
     const anchorRowHeight = cell.getBoundingClientRect().height;
@@ -584,7 +612,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       return;
     }
 
-    const colCount = table.rows[anchor]?.cells.length ?? 0;
+    const colCount = createTableGrid(table).columnCount;
     applySelection(
       { anchor: { row: anchor, col: 0 }, focus: { row: focus, col: Math.max(0, colCount - 1) } },
       { axis, start, end },
@@ -611,7 +639,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     window.getSelection()?.removeAllRanges();
     focusWithoutScroll(wrapperRef.current);
 
-    const point = getCellPoint(sourceCell);
+    const point = getLogicalCellPoint(tableRef.current!, sourceCell);
     isDraggingRef.current = true;
     dragStartYRef.current = event.clientY;
     const anchorRowHeight = sourceCell.getBoundingClientRect().height;
@@ -640,7 +668,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
         railDrag.axis,
         railDrag.anchor,
         railDrag.axis === 'column'
-          ? cell.cellIndex
+          ? getLogicalCellPoint(tableRef.current!, cell).col
           : cell.parentElement instanceof HTMLTableRowElement
             ? cell.parentElement.rowIndex
             : railDrag.anchor,
@@ -868,7 +896,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
           return;
         }
 
-        wrapper.style.cursor = getResizableColumnIndex(cell, event.clientX) === null ? '' : 'col-resize';
+        wrapper.style.cursor = getResizableColumnIndex(table, cell, event.clientX) === null ? '' : 'col-resize';
         return;
       }
 
@@ -980,6 +1008,11 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       stickyLeftRevealTable.replaceChildren();
       if (!head) return;
 
+      const caption = table.caption;
+      if (caption) {
+        stickyTable.appendChild(caption.cloneNode(true));
+        stickyLeftRevealTable.appendChild(caption.cloneNode(true));
+      }
       stickyTable.appendChild(head.cloneNode(true));
       stickyLeftRevealTable.appendChild(head.cloneNode(true));
       stickyTable.className = `${table.className} feishu-table--sticky-clone`;
@@ -994,20 +1027,33 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
     };
 
     const syncCloneColumnWidthsFor = (cloneTable: HTMLTableElement) => {
-      const sourceRow = table.tHead?.rows[0];
-      const clonedRow = cloneTable.tHead?.rows[0];
-      if (!sourceRow || !clonedRow) return;
+      const columnCount = createTableGrid(table).columnCount;
+      if (columnCount <= 0) return;
 
-      const sourceCells = Array.from(sourceRow.cells);
-      const cloneCells = Array.from(clonedRow.cells);
-      sourceCells.forEach((cell, index) => {
-        const cloneCell = cloneCells[index];
-        if (!(cloneCell instanceof HTMLElement)) return;
+      let columnGroup = Array.from(cloneTable.children)
+        .find((child) => child.tagName.toLowerCase() === 'colgroup');
+      if (!(columnGroup instanceof HTMLElement)) {
+        columnGroup = document.createElement('colgroup');
+        cloneTable.insertBefore(columnGroup, cloneTable.firstChild);
+      }
 
-        const width = Math.round(cell.getBoundingClientRect().width);
-        cloneCell.style.width = `${width}px`;
-        cloneCell.style.minWidth = `${width}px`;
-        cloneCell.style.maxWidth = `${width}px`;
+      while (columnGroup.children.length < columnCount) {
+        columnGroup.appendChild(document.createElement('col'));
+      }
+      while (columnGroup.children.length > columnCount) {
+        columnGroup.lastElementChild?.remove();
+      }
+
+      const widths = getTableColumnWidths(table);
+      Array.from(columnGroup.children).forEach((column, index) => {
+        if (!(column instanceof HTMLElement)) return;
+        const width = widths[index] ?? 0;
+        if (!Number.isFinite(width) || width <= 0) return;
+
+        const roundedWidth = Math.round(width);
+        column.style.width = `${roundedWidth}px`;
+        column.style.minWidth = `${roundedWidth}px`;
+        column.style.maxWidth = `${roundedWidth}px`;
       });
     };
 
@@ -1027,7 +1073,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       const topOffset = getStickyTopOffset(wrapper);
       const tableRect = table.getBoundingClientRect();
       const scrollportRect = scrollport.getBoundingClientRect();
-      const headerHeight = Math.round(sourceRow.getBoundingClientRect().height);
+      const headerHeight = getTableFloatingHeaderHeight(table, table.tHead as HTMLTableSectionElement);
       const maxScrollLeft = Math.max(0, scrollport.scrollWidth - scrollport.clientWidth);
       const nativeScrollLeft = maxScrollLeft > 1
         ? Math.min(Math.max(0, scrollport.scrollLeft), maxScrollLeft)

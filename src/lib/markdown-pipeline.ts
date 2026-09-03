@@ -18,6 +18,7 @@ const markdownHtmlSchema = {
   ...defaultSchema,
   tagNames: [
     ...(defaultSchema.tagNames ?? []),
+    'caption',
     'video',
   ],
   attributes: {
@@ -31,6 +32,11 @@ const markdownHtmlSchema = {
     h4: [...(defaultSchema.attributes?.h4 ?? []), 'id'],
     h5: [...(defaultSchema.attributes?.h5 ?? []), 'id'],
     h6: [...(defaultSchema.attributes?.h6 ?? []), 'id'],
+    // Keep semantic HTML table titles and merged-cell geometry.  These are
+    // presentation/data attributes only; scripts and event handlers remain
+    // excluded by rehype-sanitize's default schema.
+    th: [...(defaultSchema.attributes?.th ?? []), 'rowSpan', 'colSpan'],
+    td: [...(defaultSchema.attributes?.td ?? []), 'rowSpan', 'colSpan'],
     // remark-gfm emits `checked` for completed task-list inputs.  The
     // GitHub-style default schema permits only the checkbox type/disabled
     // attributes, so preserve this harmless boolean explicitly.

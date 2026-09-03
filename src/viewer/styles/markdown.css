@@ -31,6 +31,18 @@
   word-wrap: break-word;
   overflow-wrap: break-word;
   font-size: var(--feishu-font-size-body);
+  color: var(--feishu-text-body);
+}
+
+.feishu-markdown-body strong,
+.feishu-markdown-body b {
+  color: var(--feishu-text-primary);
+}
+
+/* Keep bold text inside links on the link's brand color. */
+.feishu-markdown-body .feishu-link strong,
+.feishu-markdown-body .feishu-link b {
+  color: inherit;
 }
 
 /* Keep collapse state stable for React-managed blocks (for example table wrappers). */
@@ -343,6 +355,12 @@
 .feishu-list {
   padding-left: 1.5em;
   margin: 0.75em 0;
+}
+
+/* Nested lists should not repeat the outer block's large vertical spacing. */
+.feishu-list .feishu-list {
+  padding-left: 1.25em;
+  margin: 0.125em 0;
 }
 
 .feishu-list--ordered {
@@ -812,6 +830,19 @@
   font-size: var(--feishu-font-size-body);
 }
 
+.feishu-table__caption {
+  caption-side: top;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--feishu-border-light);
+  background: var(--feishu-bg-content);
+  color: var(--feishu-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+}
+
 .feishu-table__head {
   background-color: var(--feishu-table-header-bg);
 }
@@ -836,8 +867,8 @@
 
 .feishu-table__cell {
   padding: 8px 12px;
-  border-right: 1px solid var(--feishu-border-lighter);
-  border-bottom: 1px solid var(--feishu-border-lighter);
+  border-right: 1px solid var(--feishu-table-cell-border, var(--feishu-border-lighter));
+  border-bottom: 1px solid var(--feishu-table-cell-border, var(--feishu-border-lighter));
   line-height: 1.4;
   height: 40px;
   vertical-align: middle;

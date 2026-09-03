@@ -39,6 +39,20 @@ describe('TOCItem', () => {
     expect(screen.getByRole('link').classList.contains('feishu-toc__link--major')).toBe(false);
   });
 
+  it('uses a dedicated larger style for the document title', () => {
+    render(
+      <ul role="tree">
+        <TOCItem
+          item={createItem({ level: 1, ...({ isDocumentTitle: true } as Partial<TOCItemType>) })}
+          activeId=""
+          onNavigate={vi.fn()}
+          tocPath="root"
+        />
+      </ul>,
+    );
+    expect(screen.getByRole('link').classList.contains('feishu-toc__link--document-title')).toBe(true);
+  });
+
   it('renders item text', () => {
     const item = createItem({ text: 'Introduction' });
     render(
@@ -185,5 +199,44 @@ describe('TOCItem', () => {
 
     expect(screen.queryByText('Child 1')).toBeNull();
     expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it('reserves the same toggle slot for items with and without children', () => {
+    const parent = createItem({
+      id: 'parent',
+      text: 'Parent',
+      children: [createItem({ id: 'child', text: 'Child', level: 3 })],
+    });
+    const leaf = createItem({ id: 'leaf', text: 'Leaf', level: 2 });
+
+    render(
+      <ul role="tree">
+        <TOCItem item={parent} activeId="" onNavigate={vi.fn()} tocPath="parent" />
+        <TOCItem item={leaf} activeId="" onNavigate={vi.fn()} tocPath="leaf" />
+      </ul>,
+    );
+
+    const slots = Array.from(document.querySelectorAll('.feishu-toc__toggle-slot'));
+    expect(slots).toHaveLength(3);
+    expect(slots[0].classList.contains('feishu-toc__toggle-slot')).toBe(true);
+    expect(slots[1].classList.contains('feishu-toc__toggle-slot')).toBe(true);
+    expect(slots[2].classList.contains('feishu-toc__toggle-slot')).toBe(true);
+    expect(slots[0].querySelector('button')).not.toBeNull();
+    expect(slots[1].querySelector('button')).toBeNull();
+    expect(slots[2].querySelector('button')).toBeNull();
+  });
+
+  it('keeps the triangle hidden by default through the toggle class', () => {
+    const item = createItem({
+      children: [createItem({ id: 'child', text: 'Child', level: 3 })],
+    });
+
+    render(
+      <ul role="tree">
+        <TOCItem item={item} activeId="" onNavigate={vi.fn()} tocPath="root" />
+      </ul>,
+    );
+
+    expect(screen.getByLabelText('Collapse section').classList.contains('feishu-toc__toggle')).toBe(true);
   });
 });
