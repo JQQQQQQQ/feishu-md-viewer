@@ -30,6 +30,7 @@
     "perf:budget:strict": "node scripts/perf/check-budgets.mjs --strict"
   },
   "dependencies": {
+    "@viz-js/viz": "^3.30.0",
     "dompurify": "^3.1.6",
     "lucide-react": "^0.441.0",
     "mermaid": "^11.2.0",
