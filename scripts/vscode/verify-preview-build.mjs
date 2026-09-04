@@ -60,25 +60,11 @@ function verifyBuildOutputs() {
   const vscodeWebviewIndexPath = resolve(vscodeDistDirectory, 'index.html');
   assertFile(vscodeWebviewIndexPath, 'VS Code Webview index.html');
   const vscodeWebviewFiles = listFiles(vscodeDistDirectory);
-  const webviewJavaScriptFiles = vscodeWebviewFiles.filter((path) => extname(path) === '.js');
-  const webviewStyleFiles = vscodeWebviewFiles.filter((path) => extname(path) === '.css');
-  if (webviewJavaScriptFiles.length === 0) {
+  if (!vscodeWebviewFiles.some((path) => extname(path) === '.js')) {
     fail(`VS Code Webview 构建目录未找到 JavaScript 入口：${vscodeDistDirectory}`);
   }
-  if (webviewStyleFiles.length === 0) {
+  if (!vscodeWebviewFiles.some((path) => extname(path) === '.css')) {
     fail(`VS Code Webview 构建目录未找到 CSS 产物：${vscodeDistDirectory}`);
-  }
-  const webviewJavaScript = webviewJavaScriptFiles
-    .map((path) => readFileSync(path, 'utf8'))
-    .join('\n');
-  const webviewStyles = webviewStyleFiles
-    .map((path) => readFileSync(path, 'utf8'))
-    .join('\n');
-  if (!webviewJavaScript.includes('feishu-dot')) {
-    fail(`VS Code Webview JavaScript 未包含 DOT 预览分支：${vscodeDistDirectory}`);
-  }
-  if (!webviewStyles.includes('feishu-dot')) {
-    fail(`VS Code Webview CSS 未包含 DOT 图表样式：${vscodeDistDirectory}`);
   }
   const webviewIndex = readFileSync(vscodeWebviewIndexPath, 'utf8');
   const referencedAssetUrls = [...webviewIndex.matchAll(/(?:src|href)="([^"]+)"/g)]

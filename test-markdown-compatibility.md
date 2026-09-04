@@ -143,29 +143,3 @@ GitLab 的 blob 页面也遵循相同的规则：普通文档链接指向项目�
 ### 长内容段落四
 
 阅读体验应当保持稳定：目录折叠不影响正文居中，表格仍然使用原生滚动视口，搜索和内部锚点定位不能破坏已有的选择、复制和列宽逻辑。
-
-## DOT / Graphviz 图表
-
-下面三段分别覆盖基础 DOT、复杂 Graphviz 子图和错误降级。
-
-```dot
-digraph Basic {
-  rankdir=LR;
-  Start -> Review -> Done;
-}
-```
-
-```graphviz
-digraph Pipeline {
-  node [shape=box, style="rounded"];
-  subgraph cluster_build { label="构建"; Lint -> Test -> Package; }
-  subgraph cluster_release { label="发布"; Package -> Deploy -> Monitor; }
-  Monitor -> Lint [label="反馈"];
-}
-```
-
-```gv
-digraph Broken {
-  A -> ;
-}
-```

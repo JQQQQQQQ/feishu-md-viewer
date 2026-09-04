@@ -37,10 +37,10 @@ function createBuildFixture({
     );
   }
   if (writeJavaScriptEntry) {
-    writeFileSync(join(fixtureRoot, 'vscode-extension/dist/assets/index.js'), 'console.log("VS Code Webview feishu-dot");\n');
+    writeFileSync(join(fixtureRoot, 'vscode-extension/dist/assets/index.js'), 'console.log("VS Code Webview");\n');
   }
   if (writeStylesheetEntry) {
-    writeFileSync(join(fixtureRoot, 'vscode-extension/dist/assets/index.css'), '.feishu-dot {}\n');
+    writeFileSync(join(fixtureRoot, 'vscode-extension/dist/assets/index.css'), 'body {}\n');
   }
   writeFileSync(join(fixtureRoot, 'vscode-extension/out/extension.js'), 'exports.activate = () => undefined;\n');
   writeFileSync(

@@ -7,7 +7,6 @@ import {
 import { Check, Copy } from 'lucide-react';
 import { MermaidBlock } from '../MermaidBlock';
 import { MermaidToolbar } from '../../Mermaid/MermaidToolbar';
-import { DotBlock } from '../DotBlock';
 import { highlightCode } from './highlighter';
 
 let mermaidIndex = 0;
@@ -50,10 +49,7 @@ export function FeishuCodeBlock({
   ...props
 }: HTMLAttributes<HTMLPreElement> & { children?: ReactNode }) {
   const childElement = children as { props?: { className?: string; children?: string } } | undefined;
-  const lang = (childElement?.props?.className ?? '')
-    .replace(/^language-/, '')
-    .trim()
-    .toLowerCase();
+  const lang = childElement?.props?.className?.replace('language-', '') ?? '';
   const code = childElement?.props?.children ?? '';
 
   if (lang === 'mermaid' && typeof code === 'string') {
@@ -63,12 +59,6 @@ export function FeishuCodeBlock({
         <MermaidBlock code={code} index={idx} />
       </MermaidToolbar>
     );
-  }
-
-  const isDotLanguage = lang === 'dot' || lang === 'graphviz' || lang === 'gv';
-  if (isDotLanguage && typeof code === 'string') {
-    const idx = mermaidIndex++;
-    return <DotBlock code={code} index={idx} />;
   }
 
   const codeText = typeof code === 'string' ? code : '';
