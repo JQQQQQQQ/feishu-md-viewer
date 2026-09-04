@@ -88,6 +88,15 @@ describe('Mermaid modern visual theme', () => {
     expect(markdownStylesheet).toContain('marker-height: 6;');
   });
 
+  it('保留 DOT 源码声明的节点和连线颜色，仅为未声明颜色的元素提供默认值', () => {
+    expect(mermaidStylesheet).toContain('.feishu-dot svg .node polygon:not([fill])');
+    expect(mermaidStylesheet).toContain('.feishu-dot svg .node ellipse:not([fill])');
+    expect(mermaidStylesheet).toContain('.feishu-dot svg .edge path:not([stroke])');
+    expect(mermaidStylesheet).not.toMatch(/\.feishu-dot svg \.node polygon\s*\{[^}]*fill:/i);
+    expect(darkStylesheet).toContain('.feishu-viewer--dark .feishu-dot svg .node polygon:not([fill])');
+    expect(darkStylesheet).not.toMatch(/\.feishu-viewer--dark \.feishu-dot svg \.node polygon\s*\{[^}]*fill:/i);
+  });
+
   it('keeps Mermaid toolbar surfaces quiet and consistent with the diagram card', () => {
     expect(mermaidStylesheet).toMatch(
       /\.mermaid-toolbar\s*\{[^}]*background-color:\s*color-mix\(in srgb, var\(--feishu-bg-content\) 92%, transparent\);/i,
