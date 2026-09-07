@@ -11,6 +11,8 @@ import { resetMermaidRenderCounter } from '../viewer/components/Markdown/CodeBlo
 import type { MarkdownSourceContext } from './markdown-resource-resolver';
 import { resolveMarkdownSrcSet, resolveMarkdownUrl } from './markdown-resource-resolver';
 import type { ReactElement } from 'react';
+import { createUniqueHeadingIdFactory } from '../viewer/utils/heading-slug';
+import type { MarkdownBlock } from './markdown-blocks';
 import {
   getMarkdownContentHash,
   getMarkdownRenderCacheKey,
@@ -73,6 +75,25 @@ interface HastElement extends HastNode {
 interface HastRoot extends HastNode {
   type: 'root';
   children: HastNode[];
+}
+
+export interface MarkdownHeadingMetadata {
+  id: string;
+  level: number;
+  text: string;
+  path: string[];
+  isDocumentTitle: boolean;
+}
+
+export interface MarkdownTableMetadata {
+  path: string;
+  ordinal: number;
+  id: string;
+}
+
+export interface MarkdownDocumentMetadata {
+  headings: Map<string, MarkdownHeadingMetadata>;
+  tables: Map<string, MarkdownTableMetadata>;
 }
 
 function isElement(node: HastNode): node is HastElement {
@@ -212,7 +233,8 @@ function rehypeResolveMarkdownResources() {
  * edited, while the ordinal disambiguates multiple tables in one section.
  */
 function rehypeAssignTableIds() {
-  return (tree: HastRoot) => {
+  return (tree: HastRoot, file: { data?: Record<string, unknown> }) => {
+    const metadata = file.data?.markdownDocumentMetadata as MarkdownDocumentMetadata | undefined;
     const headingCounts = new Map<number, number>();
     const tableCounts = new Map<string, number>();
     const headingPath: string[] = [];
@@ -235,15 +257,45 @@ function rehypeAssignTableIds() {
           const tableOrdinal = (tableCounts.get(pathKey) ?? 0) + 1;
           tableCounts.set(pathKey, tableOrdinal);
           node.properties ??= {};
-          node.properties.dataFeishuTableId = `table-${hashStableTableIdentity(`${pathKey}:table-${tableOrdinal}`)}`;
-          node.properties.dataFeishuTablePath = pathKey;
-          node.properties.dataFeishuTableOrdinal = String(tableOrdinal);
+          const tableMetadata = metadata?.tables.get(`${pathKey}:table-${tableOrdinal}`);
+          node.properties.dataFeishuTableId = tableMetadata?.id
+            ?? `table-${hashStableTableIdentity(`${pathKey}:table-${tableOrdinal}`)}`;
+          node.properties.dataFeishuTablePath = tableMetadata?.path ?? pathKey;
+          node.properties.dataFeishuTableOrdinal = String(tableMetadata?.ordinal ?? tableOrdinal);
         }
       }
 
       node.children?.forEach(visit);
     };
 
+    visit(tree);
+  };
+}
+
+function rehypeAssignHeadingIds() {
+  return (tree: HastRoot, file: { data?: Record<string, unknown> }) => {
+    const metadata = file.data?.markdownDocumentMetadata as MarkdownDocumentMetadata | undefined;
+    if (!metadata) return;
+
+    const headingCounts = new Map<number, number>();
+    const headingPath: string[] = [];
+    const visit = (node: HastNode): void => {
+      if (isElement(node)) {
+        const level = getHeadingLevel(node);
+        if (level !== null) {
+          while (headingPath.length >= level) headingPath.pop();
+          const occurrence = (headingCounts.get(level) ?? 0) + 1;
+          headingCounts.set(level, occurrence);
+          headingPath.push(`${level}:${occurrence}`);
+          const headingMetadata = metadata.headings.get(headingPath.join('/'));
+          if (headingMetadata) {
+            node.properties ??= {};
+            node.properties.id = headingMetadata.id;
+          }
+        }
+      }
+      node.children?.forEach(visit);
+    };
     visit(tree);
   };
 }
@@ -260,11 +312,81 @@ const processor = unified()
   .use(rehypeNormalizeTaskCheckboxes)
   .use(rehypeResolveMarkdownResources)
   .use(rehypeAssignTableIds)
+  .use(rehypeAssignHeadingIds)
   .use(rehypeSectionHierarchy)
   .use(rehypeReact, {
     ...production,
     components: feishuComponents,
   });
+
+function processMarkdown(
+  content: string,
+  sourceContext?: MarkdownSourceContext,
+  metadata?: MarkdownDocumentMetadata,
+): ReactElement {
+  const file = processor.processSync({
+    value: content,
+    data: {
+      markdownSourceContext: sourceContext,
+      markdownDocumentMetadata: metadata,
+    },
+  });
+  return file.result as ReactElement;
+}
+
+function getHeadingSourceDetails(source: string): { level: number; text: string } | null {
+  const match = /^\s{0,3}(#{1,6})(?:\s+|$)(.*)$/.exec(source.trim());
+  if (!match?.[1]) return null;
+  return { level: match[1].length, text: (match[2] ?? '').replace(/\s+#+\s*$/, '').trim() };
+}
+
+export function collectMarkdownDocumentMetadata(blocks: MarkdownBlock[]): MarkdownDocumentMetadata {
+  const headings = new Map<string, MarkdownHeadingMetadata>();
+  const tables = new Map<string, MarkdownTableMetadata>();
+  const getUniqueId = createUniqueHeadingIdFactory();
+  let hasDocumentTitle = false;
+  const tableCounts = new Map<string, number>();
+
+  blocks.forEach((block) => {
+    if (block.kind === 'heading') {
+      const details = getHeadingSourceDetails(block.source);
+      if (!details) return;
+      const id = getUniqueId(details.text);
+      const isDocumentTitle = details.level === 1 && !hasDocumentTitle;
+      if (isDocumentTitle) hasDocumentTitle = true;
+      headings.set(block.headingPath.join('/'), {
+        id,
+        level: details.level,
+        text: details.text,
+        path: [...block.headingPath],
+        isDocumentTitle,
+      });
+      return;
+    }
+
+    if (block.kind === 'table') {
+      const path = block.headingPath.join('/') || 'root';
+      const ordinal = (tableCounts.get(path) ?? 0) + 1;
+      tableCounts.set(path, ordinal);
+      const key = `${path}:table-${ordinal}`;
+      tables.set(key, {
+        path,
+        ordinal,
+        id: `table-${hashStableTableIdentity(key)}`,
+      });
+    }
+  });
+
+  return { headings, tables };
+}
+
+export function parseMarkdownBlock(
+  block: MarkdownBlock,
+  sourceContext: MarkdownSourceContext | undefined,
+  metadata: MarkdownDocumentMetadata,
+): ReactElement {
+  return processMarkdown(block.source, sourceContext, metadata);
+}
 
 export function parseMarkdown(content: string, sourceContext?: MarkdownSourceContext): ReactElement {
   const contentHash = getMarkdownContentHash(content);
@@ -280,13 +402,7 @@ export function parseMarkdown(content: string, sourceContext?: MarkdownSourceCon
 
   // Keep Mermaid block indices stable for each parse round.
   resetMermaidRenderCounter();
-  const rendered = measureMarkdownPhase('markdown-parse', () => {
-    const file = processor.processSync({
-      value: content,
-      data: { markdownSourceContext: sourceContext },
-    });
-    return file.result as ReactElement;
-  });
+  const rendered = measureMarkdownPhase('markdown-parse', () => processMarkdown(content, sourceContext));
 
   if (cacheable) {
     setCachedMarkdownRender(cacheKey, {

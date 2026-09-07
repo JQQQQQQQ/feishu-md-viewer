@@ -79,11 +79,12 @@ function updateHiddenMarker(element: HTMLElement, marker: string, hidden: boolea
 interface FeishuHeadingProps extends HTMLAttributes<HTMLHeadingElement> {
   level: 1 | 2 | 3 | 4 | 5 | 6;
   children?: ReactNode;
+  id?: string;
 }
 
-export function FeishuHeading({ level, children, ...props }: FeishuHeadingProps) {
+export function FeishuHeading({ level, children, id: providedId, ...props }: FeishuHeadingProps) {
   const Tag = `h${level}` as const;
-  const id = createHeadingId(getNodeText(children));
+  const id = providedId ?? createHeadingId(getNodeText(children));
   const [collapsed, setCollapsed] = useState(false);
   const [copied, setCopied] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);

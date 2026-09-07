@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
-import { parseMarkdown, extractMermaidBlocks } from '@/lib/markdown-pipeline';
+import {
+  collectMarkdownDocumentMetadata,
+  parseMarkdown,
+  parseMarkdownBlock,
+  extractMermaidBlocks,
+} from '@/lib/markdown-pipeline';
+import { indexMarkdownBlocks } from '@/lib/markdown-blocks';
 
 describe('markdown-pipeline', () => {
   describe('parseMarkdown', () => {
@@ -69,6 +75,25 @@ describe('markdown-pipeline', () => {
 
       expect(container.querySelector('.feishu-table')).not.toBeNull();
       expect(container.querySelector('.feishu-table__cell')).not.toBeNull();
+    });
+
+    it('keeps heading ids stable when an earlier block is inserted', () => {
+      const before = collectMarkdownDocumentMetadata(indexMarkdownBlocks('# A\n\n## Same\n\n## Same'));
+      const after = collectMarkdownDocumentMetadata(indexMarkdownBlocks('# A\n\nnew\n\n## Same\n\n## Same'));
+
+      expect(after.headings.get('1:1')?.id).toBe(before.headings.get('1:1')?.id);
+      expect(after.headings.get('1:1/2:1')?.id).toBe(before.headings.get('1:1/2:1')?.id);
+      expect(after.headings.get('1:1/2:2')?.id).toBe(before.headings.get('1:1/2:2')?.id);
+      expect(new Set(Array.from(after.headings.values()).map((heading) => heading.id)).size).toBe(3);
+    });
+
+    it('injects stable heading metadata when parsing one block', () => {
+      const blocks = indexMarkdownBlocks('# Stable title');
+      const metadata = collectMarkdownDocumentMetadata(blocks);
+      const { container } = render(parseMarkdownBlock(blocks[0]!, undefined, metadata));
+
+      expect(container.querySelector('h1')?.id).toBe(metadata.headings.get('1:1')?.id);
+      expect(container.querySelector('h1')?.className).toContain('feishu-heading');
     });
 
     it('assigns stable ids to table blocks so content edits do not change their width key', () => {
