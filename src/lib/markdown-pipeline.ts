@@ -11,6 +11,13 @@ import { resetMermaidRenderCounter } from '../viewer/components/Markdown/CodeBlo
 import type { MarkdownSourceContext } from './markdown-resource-resolver';
 import { resolveMarkdownSrcSet, resolveMarkdownUrl } from './markdown-resource-resolver';
 import type { ReactElement } from 'react';
+import {
+  getMarkdownContentHash,
+  getMarkdownRenderCacheKey,
+  getMarkdownSourceContextKey,
+  measureMarkdownPhase,
+} from './markdown-performance';
+import { getCachedMarkdownRender, setCachedMarkdownRender } from './markdown-render-cache';
 
 const production = { Fragment: prod.Fragment, jsx: prod.jsx, jsxs: prod.jsxs };
 
@@ -260,13 +267,38 @@ const processor = unified()
   });
 
 export function parseMarkdown(content: string, sourceContext?: MarkdownSourceContext): ReactElement {
+  const contentHash = getMarkdownContentHash(content);
+  const cacheKey = getMarkdownRenderCacheKey(contentHash, sourceContext);
+  // Mermaid blocks receive a parse-round-local toolbar index. Reusing the whole
+  // React element would preserve a stale index and break the existing reset
+  // semantics, so whole-document caching is limited to non-Mermaid documents.
+  const cacheable = !/```mermaid(?:\r?\n|$)/i.test(content);
+  if (cacheable) {
+    const cached = getCachedMarkdownRender(cacheKey);
+    if (cached) return cached.rendered;
+  }
+
   // Keep Mermaid block indices stable for each parse round.
   resetMermaidRenderCounter();
-  const file = processor.processSync({
-    value: content,
-    data: { markdownSourceContext: sourceContext },
+  const rendered = measureMarkdownPhase('markdown-parse', () => {
+    const file = processor.processSync({
+      value: content,
+      data: { markdownSourceContext: sourceContext },
+    });
+    return file.result as ReactElement;
   });
-  return file.result as ReactElement;
+
+  if (cacheable) {
+    setCachedMarkdownRender(cacheKey, {
+      key: cacheKey,
+      contentHash,
+      sourceContextKey: getMarkdownSourceContextKey(sourceContext),
+      rendered,
+      createdAt: Date.now(),
+    });
+  }
+
+  return rendered;
 }
 
 export function extractMermaidBlocks(content: string): { code: string; index: number }[] {
