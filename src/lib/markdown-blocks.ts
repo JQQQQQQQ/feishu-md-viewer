@@ -20,6 +20,7 @@ export interface MarkdownBlock {
   endLine: number;
   contentHash: string;
   headingPath: string[];
+  tableOrdinal?: number;
   renderKey: string;
   boundaryConfidence: 'safe' | 'unsafe';
 }
@@ -97,11 +98,29 @@ function isTableStart(lines: string[], index: number): boolean {
 }
 
 const pairedHtmlTags = new Set([
-  'details', 'div', 'section', 'article', 'table', 'thead', 'tbody', 'tfoot', 'ul', 'ol',
-  'blockquote', 'figure', 'picture', 'video', 'pre', 'aside', 'header', 'footer',
+  'details',
+  'div',
+  'section',
+  'article',
+  'table',
+  'thead',
+  'tbody',
+  'tfoot',
+  'ul',
+  'ol',
+  'blockquote',
+  'figure',
+  'picture',
+  'video',
+  'pre',
+  'aside',
+  'header',
+  'footer',
 ]);
 
-function readHtmlTag(line: string): { name: string; closing: boolean; selfClosing: boolean } | null {
+function readHtmlTag(
+  line: string,
+): { name: string; closing: boolean; selfClosing: boolean } | null {
   const match = /^\s*<\/?([A-Za-z][\w-]*)(?:\s[^>]*)?>\s*$/.exec(line);
   if (!match?.[1]) return null;
   return {
@@ -119,14 +138,14 @@ function isHtmlBlockStart(line: string): boolean {
 function isPotentialBlockStart(lines: string[], index: number): boolean {
   const line = lines[index] ?? '';
   return Boolean(
-    readFence(line)
-    || isHeading(line)
-    || isListItem(line)
-    || isBlockquote(line)
-    || isThematicBreak(line)
-    || isImageOnly(line)
-    || isHtmlBlockStart(line)
-    || isTableStart(lines, index),
+    readFence(line) ||
+    isHeading(line) ||
+    isListItem(line) ||
+    isBlockquote(line) ||
+    isThematicBreak(line) ||
+    isImageOnly(line) ||
+    isHtmlBlockStart(line) ||
+    isTableStart(lines, index),
   );
 }
 
@@ -167,6 +186,7 @@ export function indexMarkdownBlocks(content: string): MarkdownBlock[] {
   const renderOccurrences = new Map<string, number>();
   const headingCounts = new Map<number, number>();
   const headingPath: string[] = [];
+  const tableOrdinals = new Map<string, number>();
   let index = 0;
 
   const append = (
@@ -175,7 +195,14 @@ export function indexMarkdownBlocks(content: string): MarkdownBlock[] {
     end: number,
     confidence: 'safe' | 'unsafe' = 'safe',
   ) => {
-    blocks.push(createBlock(kind, lines, start, end, headingPath, confidence, renderOccurrences));
+    const block = createBlock(kind, lines, start, end, headingPath, confidence, renderOccurrences);
+    if (kind === 'table') {
+      const path = headingPath.join('/') || 'root';
+      const ordinal = (tableOrdinals.get(path) ?? 0) + 1;
+      tableOrdinals.set(path, ordinal);
+      block.tableOrdinal = ordinal;
+    }
+    blocks.push(block);
   };
 
   while (index < lines.length) {
@@ -191,7 +218,12 @@ export function indexMarkdownBlocks(content: string): MarkdownBlock[] {
       index += 1;
       while (index < lines.length && !isClosingFence(lines[index] ?? '', fence)) index += 1;
       if (index >= lines.length) {
-        append(fence.language === 'mermaid' ? 'mermaid' : 'code', start, lines.length - 1, 'unsafe');
+        append(
+          fence.language === 'mermaid' ? 'mermaid' : 'code',
+          start,
+          lines.length - 1,
+          'unsafe',
+        );
         break;
       }
       append(fence.language === 'mermaid' ? 'mermaid' : 'code', start, index);
@@ -229,7 +261,8 @@ export function indexMarkdownBlocks(content: string): MarkdownBlock[] {
 
     if (isTableStart(lines, index)) {
       index += 2;
-      while (index < lines.length && !isBlank(lines[index]) && hasTablePipe(lines[index] ?? '')) index += 1;
+      while (index < lines.length && !isBlank(lines[index]) && hasTablePipe(lines[index] ?? ''))
+        index += 1;
       append('table', start, index - 1);
       continue;
     }
@@ -297,7 +330,10 @@ export function indexMarkdownBlocks(content: string): MarkdownBlock[] {
           index += 1;
           continue;
         }
-        if (isBlank(next) && (isListItem(lines[index + 1] ?? '') || leadingSpaces(lines[index + 1] ?? '') > baseIndent)) {
+        if (
+          isBlank(next) &&
+          (isListItem(lines[index + 1] ?? '') || leadingSpaces(lines[index + 1] ?? '') > baseIndent)
+        ) {
           index += 1;
           continue;
         }
@@ -348,7 +384,10 @@ export function diffMarkdownBlocks(
 
   const previousHeadings = headingSignatures(previous);
   const nextHeadings = headingSignatures(next);
-  if (previousHeadings.length !== nextHeadings.length || previousHeadings.some((signature, index) => signature !== nextHeadings[index])) {
+  if (
+    previousHeadings.length !== nextHeadings.length ||
+    previousHeadings.some((signature, index) => signature !== nextHeadings[index])
+  ) {
     return {
       unchanged: [],
       added: next,

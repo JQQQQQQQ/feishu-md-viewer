@@ -17,6 +17,7 @@
     "verify:release": "node scripts/release/verify-release.mjs",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
+    "perf:fixtures": "node scripts/perf/generate-markdown-fixtures.mjs",
     "extension:reload": "node scripts/extension/reload-extension.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

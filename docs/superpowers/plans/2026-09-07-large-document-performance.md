@@ -30,6 +30,7 @@
 - 创建 `src/lib/markdown-blocks.ts`：逐行 Markdown 顶层块扫描、内容指纹、块匹配和差异计算。
 - 创建 `src/lib/markdown-performance.ts`：开发环境性能采样的 mark/measure 封装，生产环境为空操作。
 - 创建 `src/lib/markdown-render-cache.ts`：按内容指纹和来源上下文缓存解析后的 React 元素及块元数据。
+- 创建 `src/content/markdown-refresh-plan.ts`：把文件内容哈希、块差异和整篇回退原因封装成纯刷新计划。
 - 修改 `src/lib/markdown-pipeline.ts`：抽取可复用的全局元数据扫描、单块解析入口和稳定元数据注入。
 - 修改 `src/viewer/components/Markdown/Heading.tsx`：支持传入稳定标题 ID，保留现有默认 ID 行为作为兼容回退。
 - 修改 `src/viewer/components/Markdown/MarkdownReadView.tsx`：从整篇 `useMemo` 改为块列表渲染，并保留表格身份、目录定位和锚点恢复副作用。
@@ -313,9 +314,11 @@ git commit -m "perf: 让 Markdown 阅读视图按块复用"
 
 **Files:**
 - Modify: `src/content/index.tsx:73-171`
+- Create: `src/content/markdown-refresh-plan.ts`
 - Create: `scripts/perf/generate-markdown-fixtures.mjs`
 - Create: `tests/e2e/browser/large-document-performance.spec.ts`
 - Create: `tests/fixtures/large-documents/.gitkeep`
+- Create: `tests/unit/markdown-refresh-plan.test.ts`
 - Modify: `package.json`（增加 `perf:fixtures` 脚本）
 
 **Interfaces:**

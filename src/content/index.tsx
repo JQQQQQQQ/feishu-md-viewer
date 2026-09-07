@@ -15,6 +15,7 @@ import tailwindStyles from '../viewer/styles/tailwind-output.css?inline';
 import darkThemeStyles from '../viewer/styles/dark-theme.css?inline';
 import printStyles from '../viewer/styles/print.css?inline';
 import { createMarkdownSourceContext } from '../lib/markdown-resource-resolver';
+import { createMarkdownRefreshPlan } from './markdown-refresh-plan';
 import { getViewerSettingsSyncPatch } from './settings-sync';
 
 const DEV_MESSAGE_SOURCE = 'feishu-md-viewer-devtools';
@@ -116,25 +117,31 @@ async function main(): Promise<void> {
     // Capture before the asynchronous file read so a short read delay cannot
     // turn a user's scroll into the new restore position.
     const viewport = capturePreviewViewport(shadowRoot);
+    const nextContent = detectedContent ?? pendingContent ?? await adapter.getFreshContent();
+    if (typeof nextContent !== 'string' || nextContent.trim().length === 0) return;
+
+    const refreshPlan = createMarkdownRefreshPlan(currentContent, nextContent, sourceContext);
+    pendingContent = null;
+    monitor?.setBaseline(nextContent);
+
+    if (refreshPlan.mode === 'noop') {
+      // A monitor can deliver the same snapshot more than once while an editor
+      // is saving. Keep the baseline fresh without touching the React tree.
+      contentUpdateAvailable = false;
+      return;
+    }
+
     contentUpdateRefreshing = true;
     renderApp();
-    const nextContent = detectedContent ?? pendingContent ?? await adapter.getFreshContent();
-    if (typeof nextContent === 'string' && nextContent.trim().length > 0) {
-      const contentChanged = nextContent !== currentContent;
-      currentContent = nextContent;
-      pendingContent = null;
-      contentUpdateAvailable = false;
-      monitor?.setBaseline(nextContent);
-      renderApp();
+    currentContent = nextContent;
+    contentUpdateAvailable = false;
+    renderApp();
 
-      if (contentChanged) {
-        const restore = () => restorePreviewViewport(shadowRoot, viewport);
-        if (typeof window.requestAnimationFrame === 'function') {
-          window.requestAnimationFrame(restore);
-        } else {
-          restore();
-        }
-      }
+    const restore = () => restorePreviewViewport(shadowRoot, viewport);
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(restore);
+    } else {
+      restore();
     }
 
     contentUpdateRefreshing = false;
