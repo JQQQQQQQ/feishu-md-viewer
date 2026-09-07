@@ -235,6 +235,7 @@ function rehypeResolveMarkdownResources() {
 function rehypeAssignTableIds() {
   return (tree: HastRoot, file: { data?: Record<string, unknown> }) => {
     const metadata = file.data?.markdownDocumentMetadata as MarkdownDocumentMetadata | undefined;
+    const block = file.data?.markdownBlock as MarkdownBlock | undefined;
     const headingCounts = new Map<number, number>();
     const tableCounts = new Map<string, number>();
     const headingPath: string[] = [];
@@ -253,8 +254,12 @@ function rehypeAssignTableIds() {
           headingCounts.set(headingLevel, occurrence);
           headingPath.push(`${headingLevel}:${occurrence}`);
         } else if (node.tagName === 'table') {
-          const pathKey = headingPath.join('/') || 'root';
-          const tableOrdinal = (tableCounts.get(pathKey) ?? 0) + 1;
+          const pathKey = block?.kind === 'table'
+            ? block.headingPath.join('/') || 'root'
+            : headingPath.join('/') || 'root';
+          const tableOrdinal = block?.kind === 'table' && block.tableOrdinal
+            ? block.tableOrdinal
+            : (tableCounts.get(pathKey) ?? 0) + 1;
           tableCounts.set(pathKey, tableOrdinal);
           node.properties ??= {};
           const tableMetadata = metadata?.tables.get(`${pathKey}:table-${tableOrdinal}`);
@@ -276,9 +281,11 @@ function rehypeAssignHeadingIds() {
   return (tree: HastRoot, file: { data?: Record<string, unknown> }) => {
     const metadata = file.data?.markdownDocumentMetadata as MarkdownDocumentMetadata | undefined;
     if (!metadata) return;
+    const block = file.data?.markdownBlock as MarkdownBlock | undefined;
 
     const headingCounts = new Map<number, number>();
     const headingPath: string[] = [];
+    let blockHeadingApplied = false;
     const visit = (node: HastNode): void => {
       if (isElement(node)) {
         const level = getHeadingLevel(node);
@@ -287,10 +294,14 @@ function rehypeAssignHeadingIds() {
           const occurrence = (headingCounts.get(level) ?? 0) + 1;
           headingCounts.set(level, occurrence);
           headingPath.push(`${level}:${occurrence}`);
-          const headingMetadata = metadata.headings.get(headingPath.join('/'));
+          const headingKey = block?.kind === 'heading' && !blockHeadingApplied
+            ? block.headingPath.join('/')
+            : headingPath.join('/');
+          const headingMetadata = metadata.headings.get(headingKey);
           if (headingMetadata) {
             node.properties ??= {};
             node.properties.id = headingMetadata.id;
+            blockHeadingApplied = true;
           }
         }
       }
@@ -323,12 +334,14 @@ function processMarkdown(
   content: string,
   sourceContext?: MarkdownSourceContext,
   metadata?: MarkdownDocumentMetadata,
+  block?: MarkdownBlock,
 ): ReactElement {
   const file = processor.processSync({
     value: content,
     data: {
       markdownSourceContext: sourceContext,
       markdownDocumentMetadata: metadata,
+      markdownBlock: block,
     },
   });
   return file.result as ReactElement;
@@ -385,7 +398,7 @@ export function parseMarkdownBlock(
   sourceContext: MarkdownSourceContext | undefined,
   metadata: MarkdownDocumentMetadata,
 ): ReactElement {
-  return processMarkdown(block.source, sourceContext, metadata);
+  return measureMarkdownPhase('markdown-parse', () => processMarkdown(block.source, sourceContext, metadata, block));
 }
 
 export function parseMarkdown(content: string, sourceContext?: MarkdownSourceContext): ReactElement {

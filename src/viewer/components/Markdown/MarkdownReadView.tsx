@@ -1,6 +1,18 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import { parseMarkdown } from '../../../lib/markdown-pipeline';
+import {
+  collectMarkdownDocumentMetadata,
+  parseMarkdown,
+  parseMarkdownBlock,
+  type MarkdownDocumentMetadata,
+} from '../../../lib/markdown-pipeline';
+import {
+  diffMarkdownBlocks,
+  indexMarkdownBlocks,
+  type MarkdownBlock,
+} from '../../../lib/markdown-blocks';
 import type { MarkdownSourceContext } from '../../../lib/markdown-resource-resolver';
+import { getMarkdownSourceContextKey, markMarkdownPhase, measureMarkdownPhase } from '../../../lib/markdown-performance';
+import { resetMermaidRenderCounter, setMermaidRenderCounter } from './CodeBlock/CodeBlock';
 import {
   areTableIdentityRecordsEqual,
   getTableIdentityCandidate,
@@ -10,6 +22,7 @@ import {
   type TableIdentityRecord,
 } from './FeishuTableIdentity';
 import { ImagePreviewProvider } from './ImagePreview';
+import { MarkdownBlockView } from './MarkdownBlockView';
 
 interface MarkdownReadViewProps {
   content: string;
@@ -41,8 +54,62 @@ function scrollToAnchor(root: HTMLElement, hash: string): void {
   }
 }
 
+interface MarkdownRenderModel {
+  blocks: MarkdownBlock[];
+  metadata: MarkdownDocumentMetadata;
+  renderedByKey: Map<string, ReturnType<typeof parseMarkdownBlock>>;
+  fullRendered?: ReturnType<typeof parseMarkdown>;
+  sourceContextKey: string;
+}
+
 export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewProps) {
-  const rendered = useMemo(() => parseMarkdown(content, sourceContext), [content, sourceContext]);
+  const previousModelRef = useRef<MarkdownRenderModel | null>(null);
+  const model = useMemo<MarkdownRenderModel>(() => {
+    const blocks = measureMarkdownPhase('markdown-index', () => indexMarkdownBlocks(content));
+    const metadata = collectMarkdownDocumentMetadata(blocks);
+    const sourceContextKey = getMarkdownSourceContextKey(sourceContext);
+    const previous = previousModelRef.current;
+    const canDiff = previous?.sourceContextKey === sourceContextKey;
+    const diff = canDiff && previous
+      ? diffMarkdownBlocks(previous.blocks, blocks)
+      : undefined;
+
+    if (diff?.requiresFullParse) {
+      const fullRendered = parseMarkdown(content, sourceContext);
+      const nextModel: MarkdownRenderModel = {
+        blocks,
+        metadata,
+        renderedByKey: new Map(),
+        fullRendered,
+        sourceContextKey,
+      };
+      previousModelRef.current = nextModel;
+      return nextModel;
+    }
+
+    const renderedByKey = new Map<string, ReturnType<typeof parseMarkdownBlock>>();
+    resetMermaidRenderCounter();
+    let mermaidCount = 0;
+    blocks.forEach((block) => {
+      const reused = previous?.renderedByKey.get(block.renderKey);
+      if (reused) {
+        renderedByKey.set(block.renderKey, reused);
+      } else {
+        setMermaidRenderCounter(mermaidCount);
+        renderedByKey.set(block.renderKey, parseMarkdownBlock(block, sourceContext, metadata));
+      }
+      if (block.kind === 'mermaid') mermaidCount += 1;
+    });
+
+    const nextModel: MarkdownRenderModel = {
+      blocks,
+      metadata,
+      renderedByKey,
+      sourceContextKey,
+    };
+    previousModelRef.current = nextModel;
+    return nextModel;
+  }, [content, sourceContext]);
   const rootRef = useRef<HTMLDivElement>(null);
   const initialAnchorHashRef = useRef<string | null>(null);
   const tableIdentityRecordsRef = useRef<TableIdentityRecord[] | null>(null);
@@ -51,6 +118,7 @@ export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewPro
   }
 
   useLayoutEffect(() => {
+    markMarkdownPhase('markdown-react-commit');
     const syncTableIdentities = () => {
       const root = rootRef.current;
       if (!root) return;
@@ -116,12 +184,22 @@ export function MarkdownReadView({ content, sourceContext }: MarkdownReadViewPro
 
     window.addEventListener('feishu-table-identities-updated', syncTableIdentities);
     return () => window.removeEventListener('feishu-table-identities-updated', syncTableIdentities);
-  }, [rendered]);
+  }, [model]);
 
   return (
     <ImagePreviewProvider>
       <div ref={rootRef} className="feishu-markdown-body">
-        {rendered}
+        {model.fullRendered
+          ? <div data-feishu-block-key="full-document">{model.fullRendered}</div>
+          : model.blocks.map((block) => (
+              <MarkdownBlockView
+                key={block.renderKey}
+                block={block}
+                metadata={model.metadata}
+                rendered={model.renderedByKey.get(block.renderKey)}
+                sourceContext={sourceContext}
+              />
+            ))}
       </div>
     </ImagePreviewProvider>
   );

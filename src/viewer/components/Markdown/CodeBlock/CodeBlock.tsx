@@ -15,6 +15,10 @@ export function resetMermaidRenderCounter() {
   mermaidIndex = 0;
 }
 
+export function setMermaidRenderCounter(index: number) {
+  mermaidIndex = Math.max(0, Math.floor(index));
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
