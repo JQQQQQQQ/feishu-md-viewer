@@ -34,6 +34,12 @@
   color: var(--feishu-text-body);
 }
 
+/* Large documents append content in batches. Let the browser skip layout and
+   paint work for completed batches that are far outside the reading viewport. */
+.feishu-markdown-batch {
+  content-visibility: auto;
+}
+
 .feishu-markdown-body strong,
 .feishu-markdown-body b {
   color: var(--feishu-text-primary);
@@ -802,7 +808,8 @@
 }
 
 .feishu-table-wrapper--wide-right,
-.feishu-table-wrapper--wide-balanced {
+.feishu-table-wrapper--wide-balanced,
+.feishu-table-wrapper--fit {
   width: min(var(--feishu-table-wide-width, 100%), 80vw);
   max-width: 80vw;
   box-sizing: border-box;
@@ -816,8 +823,23 @@
   margin-left: var(--feishu-table-wide-offset, 0);
 }
 
+/* Medium-width tables should remain readable without asking readers to
+ * discover horizontal scrolling.  Long text wraps inside its natural column
+ * while the table itself fills the existing wide reading frame. */
+.feishu-table-wrapper--fit .feishu-table {
+  width: 100%;
+}
+
+.feishu-table-wrapper--fit .feishu-table__header,
+.feishu-table-wrapper--fit .feishu-table__cell {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
 .feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-right,
-.feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-balanced {
+.feishu-app-shell__main--collapsed .feishu-table-wrapper--wide-balanced,
+.feishu-app-shell__main--collapsed .feishu-table-wrapper--fit {
   width: min(var(--feishu-table-wide-width, 100%), 80vw);
   max-width: 80vw;
 }
@@ -1443,10 +1465,10 @@
   line-height: 1.2;
 }
 
-.feishu-mermaid svg foreignObject div,
-.feishu-mermaid svg foreignObject span,
-.feishu-mermaid svg foreignObject *,
-.feishu-mermaid svg .nodeLabel,
+.feishu-mermaid svg foreignObject div:not([data-feishu-mermaid-custom-color]),
+.feishu-mermaid svg foreignObject span:not([data-feishu-mermaid-custom-color]),
+.feishu-mermaid svg foreignObject *:not([data-feishu-mermaid-custom-color]),
+.feishu-mermaid svg .nodeLabel:not([data-feishu-mermaid-custom-color]),
 .feishu-mermaid svg .edgeLabel,
 .feishu-mermaid svg .edgeLabel span,
 .feishu-mermaid svg .sequenceNumber,
@@ -1457,10 +1479,10 @@
 .feishu-mermaid svg .taskText,
 .feishu-mermaid svg .taskTextOutsideRight,
 .feishu-mermaid svg .taskTextOutsideLeft,
-.mermaid-preview-zoom svg foreignObject div,
-.mermaid-preview-zoom svg foreignObject span,
-.mermaid-preview-zoom svg foreignObject *,
-.mermaid-preview-zoom svg .nodeLabel,
+.mermaid-preview-zoom svg foreignObject div:not([data-feishu-mermaid-custom-color]),
+.mermaid-preview-zoom svg foreignObject span:not([data-feishu-mermaid-custom-color]),
+.mermaid-preview-zoom svg foreignObject *:not([data-feishu-mermaid-custom-color]),
+.mermaid-preview-zoom svg .nodeLabel:not([data-feishu-mermaid-custom-color]),
 .mermaid-preview-zoom svg .edgeLabel,
 .mermaid-preview-zoom svg .edgeLabel span,
 .mermaid-preview-zoom svg .sequenceNumber,
@@ -1471,21 +1493,39 @@
 .mermaid-preview-zoom svg .taskText,
 .mermaid-preview-zoom svg .taskTextOutsideRight,
 .mermaid-preview-zoom svg .taskTextOutsideLeft {
-  color: var(--feishu-mermaid-node-text) !important;
+  color: var(--feishu-mermaid-node-text);
 }
 
-.feishu-mermaid svg .node rect,
-.mermaid-preview-zoom svg .node rect,
-.feishu-mermaid svg .node polygon,
-.mermaid-preview-zoom svg .node polygon,
-.feishu-mermaid svg .node circle,
-.mermaid-preview-zoom svg .node circle,
-.feishu-mermaid svg .node ellipse,
-.mermaid-preview-zoom svg .node ellipse,
-.feishu-mermaid svg .node path,
-.mermaid-preview-zoom svg .node path {
+.feishu-mermaid svg .node:not([data-feishu-mermaid-custom-color]) rect,
+.mermaid-preview-zoom svg .node:not([data-feishu-mermaid-custom-color]) rect,
+.feishu-mermaid svg .node:not([data-feishu-mermaid-custom-color]) polygon,
+.mermaid-preview-zoom svg .node:not([data-feishu-mermaid-custom-color]) polygon,
+.feishu-mermaid svg .node:not([data-feishu-mermaid-custom-color]) circle,
+.mermaid-preview-zoom svg .node:not([data-feishu-mermaid-custom-color]) circle,
+.feishu-mermaid svg .node:not([data-feishu-mermaid-custom-color]) ellipse,
+.mermaid-preview-zoom svg .node:not([data-feishu-mermaid-custom-color]) ellipse,
+.feishu-mermaid svg .node:not([data-feishu-mermaid-custom-color]) path,
+.mermaid-preview-zoom svg .node:not([data-feishu-mermaid-custom-color]) path {
+  /* Theme values are fallbacks for nodes without explicit Mermaid colors. */
   fill: var(--feishu-mermaid-node-bg) !important;
   stroke: var(--feishu-mermaid-node-border) !important;
+}
+
+.feishu-mermaid svg .stateGroup:has(.state-title) > rect,
+.mermaid-preview-zoom svg .stateGroup:has(.state-title) > rect {
+  fill: var(--feishu-mermaid-node-bg) !important;
+  stroke: var(--feishu-mermaid-node-border) !important;
+}
+
+.feishu-mermaid svg .stateGroup .state-title,
+.feishu-mermaid svg .stateGroup .state-description,
+.feishu-mermaid svg .stateGroup .state-description tspan,
+.mermaid-preview-zoom svg .stateGroup .state-title,
+.mermaid-preview-zoom svg .stateGroup .state-description,
+.mermaid-preview-zoom svg .stateGroup .state-description tspan {
+  color: var(--feishu-mermaid-node-text) !important;
+  fill: var(--feishu-mermaid-node-text) !important;
+  -webkit-text-fill-color: var(--feishu-mermaid-node-text) !important;
 }
 
 .feishu-mermaid svg text,
@@ -1494,23 +1534,23 @@
 .mermaid-preview-zoom svg .messageText,
 .feishu-mermaid svg .labelText,
 .mermaid-preview-zoom svg .labelText {
-  fill: var(--feishu-mermaid-node-text) !important;
+  fill: var(--feishu-mermaid-node-text);
 }
 
 /* Node labels can be emitted as SVG text or as HTML inside foreignObject.
  * Target the label subtree explicitly so Mermaid's primaryTextColor does not
  * leave node text dark while edge labels are light in a dark theme. */
-.feishu-mermaid svg .nodeLabel,
-.feishu-mermaid svg .nodeLabel text,
-.feishu-mermaid svg .nodeLabel tspan,
-.feishu-mermaid svg .nodeLabel *,
-.mermaid-preview-zoom svg .nodeLabel,
-.mermaid-preview-zoom svg .nodeLabel text,
-.mermaid-preview-zoom svg .nodeLabel tspan,
-.mermaid-preview-zoom svg .nodeLabel * {
-  color: var(--feishu-mermaid-node-text) !important;
-  fill: var(--feishu-mermaid-node-text) !important;
-  -webkit-text-fill-color: var(--feishu-mermaid-node-text) !important;
+.feishu-mermaid svg .nodeLabel:not([data-feishu-mermaid-custom-color]),
+.feishu-mermaid svg .nodeLabel text:not([data-feishu-mermaid-custom-color]),
+.feishu-mermaid svg .nodeLabel tspan:not([data-feishu-mermaid-custom-color]),
+.feishu-mermaid svg .nodeLabel *:not([data-feishu-mermaid-custom-color]),
+.mermaid-preview-zoom svg .nodeLabel:not([data-feishu-mermaid-custom-color]),
+.mermaid-preview-zoom svg .nodeLabel text:not([data-feishu-mermaid-custom-color]),
+.mermaid-preview-zoom svg .nodeLabel tspan:not([data-feishu-mermaid-custom-color]),
+.mermaid-preview-zoom svg .nodeLabel *:not([data-feishu-mermaid-custom-color]) {
+  color: var(--feishu-mermaid-node-text);
+  fill: var(--feishu-mermaid-node-text);
+  -webkit-text-fill-color: var(--feishu-mermaid-node-text);
 }
 
 .feishu-mermaid svg rect.actor,
@@ -1527,6 +1567,22 @@
   stroke: var(--feishu-mermaid-node-border) !important;
 }
 
+/* Sequence diagrams keep their default actor paint in an SVG-internal rule
+ * rooted at the generated diagram id. Use the same priority for actor labels
+ * so dark mode does not leave pale boxes with low-contrast text. */
+.feishu-mermaid svg text.actor,
+.feishu-mermaid svg text.actor tspan,
+.feishu-mermaid svg .actor-box,
+.feishu-mermaid svg .actor-box tspan,
+.mermaid-preview-zoom svg text.actor,
+.mermaid-preview-zoom svg text.actor tspan,
+.mermaid-preview-zoom svg .actor-box,
+.mermaid-preview-zoom svg .actor-box tspan {
+  color: var(--feishu-mermaid-node-text) !important;
+  fill: var(--feishu-mermaid-node-text) !important;
+  -webkit-text-fill-color: var(--feishu-mermaid-node-text) !important;
+}
+
 /* Connection lines: only stroke, never fill. Mermaid ships .flowchart-link
  * with fill: none; if a theme override paints fill onto the line element
  * (directly or via inheritance) the open path renders as a thick filled band
@@ -1535,7 +1591,7 @@
 .mermaid-preview-zoom svg .edgePath .path,
 .feishu-mermaid svg .flowchart-link,
 .mermaid-preview-zoom svg .flowchart-link {
-  stroke: var(--feishu-mermaid-edge) !important;
+  stroke: var(--feishu-mermaid-edge);
   fill: none !important;
   stroke-width: 1.5px;
 }
@@ -1544,8 +1600,8 @@
  * triangle is visible. */
 .feishu-mermaid svg marker path,
 .mermaid-preview-zoom svg marker path {
-  stroke: var(--feishu-mermaid-edge) !important;
-  fill: var(--feishu-mermaid-edge) !important;
+  stroke: var(--feishu-mermaid-edge);
+  fill: var(--feishu-mermaid-edge);
 }
 
 /* Mermaid 11 declares arrow markers with markerWidth=8 markerHeight=8 and

@@ -166,6 +166,18 @@ export function applyTableColumnWidth(table: HTMLTableElement, colIndex: number,
   applyTableColumnWidths(table, widths);
 }
 
+export function clearTableAutoFitColumnWidths(table: HTMLTableElement): void {
+  if (table.dataset.feishuTableAutoFit !== 'true') return;
+
+  table.querySelector('colgroup')?.remove();
+  table.querySelectorAll<HTMLTableCellElement>('th,td').forEach((cell) => {
+    cell.style.removeProperty('width');
+    cell.style.removeProperty('min-width');
+    cell.style.removeProperty('max-width');
+  });
+  table.dataset.feishuTableAutoFit = 'false';
+}
+
 export function readPersistedTableColumnWidths(table: HTMLTableElement): number[] | null {
   const stableTableKey = getTablePersistenceKey(table);
   const legacyTableKey = getTableFingerprintKey(table);

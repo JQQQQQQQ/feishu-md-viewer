@@ -261,6 +261,162 @@ graph TD
     D --> B
 ```
 
+### Flowchart with light logic colors
+
+```mermaid
+flowchart TD
+    Start([开始]):::start --> Input[读取输入]:::process
+    Input --> Decision{校验通过?}:::decision
+    Decision -->|是| Success([完成]):::success
+    Decision -->|否| Warning[提示并重试]:::warning
+    Warning --> Decision
+    Input --> External[(外部系统)]:::external
+    External --> Error([处理失败]):::error
+
+    classDef start fill:#eaf7ef,stroke:#67c587,color:#1f6b3a
+    classDef process fill:#edf4ff,stroke:#91b4f8,color:#2f5597
+    classDef decision fill:#fff7e0,stroke:#e6b94d,color:#7a5a00
+    classDef success fill:#e8f8ee,stroke:#73c991,color:#216b3a
+    classDef warning fill:#fff1e8,stroke:#f2a36b,color:#87451d
+    classDef error fill:#fff0f1,stroke:#ec8f9a,color:#8b2635
+    classDef external fill:#f3edff,stroke:#b39bea,color:#5b3a91
+```
+
+### Complex order fulfillment flow with light logic colors
+
+```mermaid
+flowchart TD
+    subgraph legend["颜色图例"]
+        legendEntry("入口")
+        legendValidation("校验与风控")
+        legendOrchestration("订单编排")
+        legendInventory("库存协调")
+        legendFulfillment("异步履约")
+        legendException("异常处理")
+        legendOutcome("完成 / 退款")
+    end
+
+    subgraph intake["请求接入"]
+        user(["用户提交订单"])
+        gateway("API 网关")
+        user --> gateway
+        legendEntry ~~~ user
+    end
+
+    subgraph validation["校验与风控"]
+        auth{"身份与权限通过？"}
+        risk{"风险评分正常？"}
+        reject(["拒绝请求并记录原因"])
+
+        gateway --> auth
+        auth -->|否| reject
+        auth -->|是| risk
+        risk -->|否| reject
+    end
+
+    subgraph orchestration["订单编排"]
+        create("创建订单")
+        split("拆分履约任务")
+        queue("写入异步队列")
+
+        risk -->|是| create
+        create --> split
+        split --> queue
+    end
+
+    subgraph inventory["库存协调"]
+        inventoryCheck("读取库存")
+        available{"库存可用？"}
+        backorder("登记缺货订单")
+        replenish("发起补货请求")
+        waiting{"补货完成？"}
+
+        create --> inventoryCheck
+        inventoryCheck --> available
+        available -->|否| backorder
+        backorder --> replenish
+        replenish --> waiting
+        waiting -->|否| backorder
+        waiting -->|是| inventoryCheck
+        available -->|是| split
+    end
+
+    subgraph fulfillment["异步履约"]
+        worker("履约 Worker")
+        route{"选择配送方式？"}
+        warehouse("仓库拣货与打包")
+        pickup("门店自提备货")
+        shipping("创建配送任务")
+        delivered{"配送完成？"}
+        signed{"用户确认收货？"}
+
+        queue -. "异步消费" .-> worker
+        worker --> route
+        route -->|快递配送| warehouse
+        route -->|同城配送| shipping
+        route -->|门店自提| pickup
+        warehouse --> shipping
+        shipping --> delivered
+        pickup --> signed
+        delivered -->|否| shipping
+        delivered -->|是| signed
+    end
+
+    subgraph exception["异常与人工处理"]
+        exceptionTicket("创建异常工单")
+        manualReview("人工审核处理")
+        retry{"是否允许重试？"}
+        retryTask("重新创建配送任务")
+        cancel("取消履约并退款")
+
+        delivered -->|配送异常| exceptionTicket
+        signed -->|拒收或争议| exceptionTicket
+        exceptionTicket --> manualReview
+        manualReview --> retry
+        retry -->|是| retryTask
+        retryTask --> shipping
+        retry -->|否| cancel
+    end
+
+    subgraph settlement["状态同步与结算"]
+        event("接收履约状态事件")
+        reconcile("更新订单与库存状态")
+        payment("确认支付与结算")
+        success(["订单履约完成"])
+        failure(["订单关闭并完成退款"])
+
+        worker -. "状态回调" .-> event
+        event --> reconcile
+        signed -->|是| reconcile
+        reconcile --> payment
+        payment --> success
+        cancel --> failure
+    end
+
+    classDef entry fill:#F2F3F5,stroke:#8F959E,stroke-width:2px,color:#373C43
+    classDef validation fill:#FFECEC,stroke:#F54A45,stroke-width:2px,color:#A61D24
+    classDef orchestration fill:#E8F3FF,stroke:#3370FF,stroke-width:2px,color:#1D39C4
+    classDef inventory fill:#FFF3E0,stroke:#F59E0B,stroke-width:2px,color:#92400E
+    classDef fulfillment fill:#E6FFFB,stroke:#13C2C2,stroke-width:2px,color:#006D75
+    classDef exception fill:#F3E8FF,stroke:#8B5CF6,stroke-width:2px,color:#5B21B6
+    classDef outcome fill:#E8FFEA,stroke:#34A853,stroke-width:2px,color:#176B2C
+
+    class user,gateway entry
+    class legendEntry entry
+    class auth,risk,reject validation
+    class legendValidation validation
+    class create,split,queue orchestration
+    class legendOrchestration orchestration
+    class inventoryCheck,available,backorder,replenish,waiting inventory
+    class legendInventory inventory
+    class worker,route,warehouse,pickup,shipping,delivered,signed,event,reconcile,payment fulfillment
+    class legendFulfillment fulfillment
+    class exceptionTicket,manualReview,retry,retryTask exception
+    class legendException exception
+    class cancel,success,failure outcome
+    class legendOutcome outcome
+```
+
 ### Sequence Diagram
 
 ```mermaid

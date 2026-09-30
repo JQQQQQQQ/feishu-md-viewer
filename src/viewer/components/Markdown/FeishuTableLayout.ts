@@ -1,4 +1,6 @@
-export type TableLayoutMode = 'normal' | 'right' | 'balanced';
+export type TableLayoutMode = 'normal' | 'right' | 'balanced' | 'fit';
+
+import { createTableGrid } from './FeishuTableSelection';
 
 export interface TableScrollPresentation {
   leftReveal: number;
@@ -85,6 +87,9 @@ const CONTENT_AWARE_COLUMN_THRESHOLD = 4;
 const RIGHT_WIDE_COLUMN_THRESHOLD = 6;
 const BALANCED_WIDE_COLUMN_THRESHOLD = 9;
 const BALANCED_CONTENT_COLUMN_THRESHOLD = 7;
+const AUTO_FIT_MIN_COLUMN_WIDTH = 64;
+const AUTO_FIT_COMPACT_MAX_WIDTH = 144;
+const AUTO_FIT_TEXT_MAX_WIDTH = 320;
 const LONG_CELL_TEXT_THRESHOLD = 56;
 const VERY_LONG_CELL_TEXT_THRESHOLD = 150;
 const LONG_UNBROKEN_TEXT_THRESHOLD = 24;
@@ -100,7 +105,115 @@ interface TableBaseBox {
 }
 
 function getColumnCount(table: HTMLTableElement): number {
-  return Math.max(...Array.from(table.rows).map((row) => row.cells.length), 0);
+  return Math.max(...Array.from(table.rows).map((row) => Array.from(row.cells)
+    .reduce((count, cell) => count + Math.max(1, cell.colSpan), 0)), 0);
+}
+
+const COMPACT_COLUMN_LABEL = /(?:编号|序号|状态|类型|优先级|日期|时间|负责人|作者|数量|价格|版本|id|key)/i;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * 根据表头语义和内容长度分配一次性首屏列宽。
+ * 返回 null 表示最低可读宽度本身就超过阅读区，应继续使用原生横向滚动。
+ */
+export function getTableAutoFitColumnWidths(
+  table: HTMLTableElement,
+  availableWidth: number,
+): number[] | null {
+  const safeAvailableWidth = Math.floor(availableWidth);
+  if (safeAvailableWidth <= 0) return null;
+
+  const grid = createTableGrid(table);
+  const columnCount = grid.columnCount;
+  if (columnCount === 0) return null;
+
+  const columns = Array.from({ length: columnCount }, () => ({
+    headerLength: 0,
+    contentLength: 0,
+    label: '',
+  }));
+
+  grid.ranges.forEach((range) => {
+    const text = (range.cell.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const lengthPerColumn = Math.max(1, Math.ceil(text.length / Math.max(1, range.colEnd - range.colStart + 1)));
+    for (let index = range.colStart; index <= range.colEnd; index += 1) {
+      const column = columns[index];
+      if (!column) continue;
+      if (range.cell.tagName.toLowerCase() === 'th') {
+        column.headerLength = Math.max(column.headerLength, lengthPerColumn);
+        column.label = text;
+      } else {
+        column.contentLength = Math.max(column.contentLength, lengthPerColumn);
+      }
+    }
+  });
+
+  const minimumWidths = columns.map((column) => (
+    COMPACT_COLUMN_LABEL.test(column.label) ? AUTO_FIT_MIN_COLUMN_WIDTH : AUTO_FIT_MIN_COLUMN_WIDTH + 8
+  ));
+  const minimumTotal = minimumWidths.reduce((sum, width) => sum + width, 0);
+  if (minimumTotal > safeAvailableWidth) return null;
+
+  const desiredWidths = columns.map((column, index) => {
+    const compact = COMPACT_COLUMN_LABEL.test(column.label);
+    const textLength = Math.max(column.headerLength, column.contentLength);
+    const contentWidth = (compact ? 4.5 : 6) * textLength;
+    const minimumWidth = minimumWidths[index] ?? AUTO_FIT_MIN_COLUMN_WIDTH;
+    return clamp(
+      minimumWidth + contentWidth,
+      minimumWidth,
+      compact ? AUTO_FIT_COMPACT_MAX_WIDTH : AUTO_FIT_TEXT_MAX_WIDTH,
+    );
+  });
+  const desiredTotal = desiredWidths.reduce((sum, width) => sum + width, 0);
+  const widths = desiredTotal <= safeAvailableWidth
+    ? [...desiredWidths]
+    : desiredWidths.map((width, index) => {
+      const availableAboveMinimum = safeAvailableWidth - minimumTotal;
+      const desiredAboveMinimum = desiredTotal - minimumTotal;
+      const minimumWidth = minimumWidths[index] ?? AUTO_FIT_MIN_COLUMN_WIDTH;
+      return minimumWidth
+        + (desiredAboveMinimum > 0
+          ? (width - minimumWidth) * availableAboveMinimum / desiredAboveMinimum
+          : 0);
+    });
+
+  const flexibleColumns = columns
+    .map((column, index) => ({ column, index }))
+    .filter(({ column }) => !COMPACT_COLUMN_LABEL.test(column.label));
+  const extra = safeAvailableWidth - widths.reduce((sum, width) => sum + width, 0);
+  if (extra > 0) {
+    const recipients = flexibleColumns.length > 0 ? flexibleColumns : columns.map((_, index) => ({ column: columns[index], index }));
+    recipients.forEach(({ index }) => {
+      if (widths[index] !== undefined) widths[index] += extra / recipients.length;
+    });
+  }
+
+  const rounded = widths.map((width) => Math.max(1, Math.round(width)));
+  const roundingDelta = safeAvailableWidth - rounded.reduce((sum, width) => sum + width, 0);
+  const lastIndex = rounded.length - 1;
+  if (lastIndex >= 0 && rounded[lastIndex] !== undefined) {
+    rounded[lastIndex] += roundingDelta;
+  }
+  return rounded;
+}
+
+export function getTableAutoFitAvailableWidth(wrapper: HTMLElement): number {
+  const parent = wrapper.parentElement;
+  const rect = parent?.getBoundingClientRect() ?? wrapper.getBoundingClientRect();
+  const style = parent ? getComputedStyle(parent) : null;
+  const paddingLeft = Number.parseFloat(style?.paddingLeft ?? '') || 0;
+  const paddingRight = Number.parseFloat(style?.paddingRight ?? '') || 0;
+  const contentLeft = rect.left + paddingLeft;
+  const rightBoundary = window.innerWidth * TABLE_VIEWPORT_RIGHT_RATIO;
+  return Math.floor(Math.min(
+    MAX_WIDE_TABLE_WIDTH,
+    window.innerWidth * 0.8,
+    Math.max(0, rightBoundary - contentLeft - paddingRight),
+  ));
 }
 
 function getLongestUnbrokenTextLength(text: string): number {
@@ -173,6 +286,12 @@ export function getTableLayoutMode(table: HTMLTableElement): TableLayoutMode {
 function setModeClass(wrapper: HTMLElement, mode: TableLayoutMode): void {
   wrapper.classList.toggle('feishu-table-wrapper--wide-right', mode === 'right');
   wrapper.classList.toggle('feishu-table-wrapper--wide-balanced', mode === 'balanced');
+  wrapper.classList.toggle('feishu-table-wrapper--fit', mode === 'fit');
+}
+
+function canFitTableToViewport(wrapper: HTMLElement, table: HTMLTableElement): boolean {
+  return table.dataset.feishuTableCustomWidths !== 'true'
+    && getTableAutoFitColumnWidths(table, getTableAutoFitAvailableWidth(wrapper)) !== null;
 }
 
 function hasHorizontalOverflow(wrapper: HTMLElement, table: HTMLTableElement): boolean {
@@ -188,6 +307,7 @@ function withTemporaryLayoutMode<T>(
 ): T {
   const prevIsRight = wrapper.classList.contains('feishu-table-wrapper--wide-right');
   const prevIsBalanced = wrapper.classList.contains('feishu-table-wrapper--wide-balanced');
+  const prevIsFit = wrapper.classList.contains('feishu-table-wrapper--fit');
   const prevWideWidth = wrapper.style.getPropertyValue('--feishu-table-wide-width');
   const prevWideOffset = wrapper.style.getPropertyValue('--feishu-table-wide-offset');
 
@@ -199,6 +319,7 @@ function withTemporaryLayoutMode<T>(
   } finally {
     wrapper.classList.toggle('feishu-table-wrapper--wide-right', prevIsRight);
     wrapper.classList.toggle('feishu-table-wrapper--wide-balanced', prevIsBalanced);
+    wrapper.classList.toggle('feishu-table-wrapper--fit', prevIsFit);
     if (prevWideWidth) {
       wrapper.style.setProperty('--feishu-table-wide-width', prevWideWidth);
     } else {
@@ -218,15 +339,28 @@ export function resolveTableLayoutMode(
   table: HTMLTableElement,
   preferredMode: TableLayoutMode,
 ): TableLayoutMode {
-  if (preferredMode !== 'right') {
+  if (
+    table.dataset.feishuTableAutoFit === 'true'
+    && table.dataset.feishuTableCustomWidths !== 'true'
+  ) {
+    return 'fit';
+  }
+
+  if (preferredMode === 'normal') {
     return preferredMode;
+  }
+
+  if (preferredMode === 'balanced' && canFitTableToViewport(wrapper, table)) {
+    return 'fit';
   }
 
   const overflowAfterRightExpand = withTemporaryLayoutMode(wrapper, 'right', () =>
     hasHorizontalOverflow(wrapper, table),
   );
 
-  return overflowAfterRightExpand ? 'balanced' : 'right';
+  if (!overflowAfterRightExpand) return 'right';
+
+  return canFitTableToViewport(wrapper, table) ? 'fit' : 'balanced';
 }
 
 function getTableBaseBox(wrapper: HTMLElement): TableBaseBox {

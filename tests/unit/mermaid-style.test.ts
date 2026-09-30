@@ -40,23 +40,51 @@ describe('Mermaid modern visual theme', () => {
     expect(markdownStylesheet).toContain('fill: var(--feishu-mermaid-node-bg) !important;');
     expect(markdownStylesheet).toContain('stroke: var(--feishu-mermaid-node-border) !important;');
     expect(markdownStylesheet).toContain('stroke: var(--feishu-mermaid-edge) !important;');
-    expect(markdownStylesheet).toContain('fill: var(--feishu-mermaid-node-text) !important;');
-    expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg .node rect');
+    expect(markdownStylesheet).toContain('fill: var(--feishu-mermaid-node-text);');
+    expect(markdownStylesheet).toContain(
+      '.mermaid-preview-zoom svg .node:not([data-feishu-mermaid-custom-color]) rect',
+    );
+    expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg rect.actor');
+    expect(markdownStylesheet).toContain('fill: var(--feishu-mermaid-node-bg) !important;');
+    expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg text.actor tspan');
+    expect(markdownStylesheet).toContain(
+      '.mermaid-preview-zoom svg foreignObject *:not([data-feishu-mermaid-custom-color])',
+    );
     expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg .edgePath .path');
     expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg rect.actor');
   });
 
+  it('lets explicit Mermaid logic colors win over default theme fallbacks', () => {
+    const nodeRule = markdownStylesheet.match(
+      /\.feishu-mermaid svg \.node:not\(\[data-feishu-mermaid-custom-color\]\) rect,[\s\S]*?\.mermaid-preview-zoom svg \.node:not\(\[data-feishu-mermaid-custom-color\]\) path\s*\{[^}]*\}/,
+    );
+    expect(nodeRule, 'expected the default Mermaid node fallback rule').toBeTruthy();
+    expect(nodeRule?.[0]).toContain(':not([data-feishu-mermaid-custom-color])');
+    expect(nodeRule?.[0]).toContain('fill: var(--feishu-mermaid-node-bg) !important;');
+    expect(nodeRule?.[0]).toContain('stroke: var(--feishu-mermaid-node-border) !important;');
+
+    const labelRule = markdownStylesheet.match(
+      /\.feishu-mermaid svg \.nodeLabel:not\(\[data-feishu-mermaid-custom-color\]\), \.feishu-mermaid svg \.nodeLabel text:not\(\[data-feishu-mermaid-custom-color\]\), \.feishu-mermaid svg \.nodeLabel tspan:not\(\[data-feishu-mermaid-custom-color\]\), \.feishu-mermaid svg \.nodeLabel \*:not\(\[data-feishu-mermaid-custom-color\]\), \.mermaid-preview-zoom svg \.nodeLabel:not\(\[data-feishu-mermaid-custom-color\]\), \.mermaid-preview-zoom svg \.nodeLabel text:not\(\[data-feishu-mermaid-custom-color\]\), \.mermaid-preview-zoom svg \.nodeLabel tspan:not\(\[data-feishu-mermaid-custom-color\]\), \.mermaid-preview-zoom svg \.nodeLabel \*:not\(\[data-feishu-mermaid-custom-color\]\)\s*\{[^}]*\}/,
+    );
+    expect(labelRule, 'expected the Mermaid node label fallback rule').toBeTruthy();
+    expect(labelRule?.[0]).not.toContain('!important');
+  });
+
   it('keeps Mermaid foreignObject and auxiliary labels readable in dark mode', () => {
     expect(markdownStylesheet).toContain('foreignObject *');
-    expect(markdownStylesheet).toContain('color: var(--feishu-mermaid-node-text) !important;');
-    expect(markdownStylesheet).toContain('fill: var(--feishu-mermaid-node-text) !important;');
+    expect(markdownStylesheet).toContain('color: var(--feishu-mermaid-node-text);');
+    expect(markdownStylesheet).toContain('fill: var(--feishu-mermaid-node-text);');
     expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg .edgeLabel');
     expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg .sequenceNumber');
-    expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg .node path');
-    expect(markdownStylesheet).toContain('.feishu-mermaid svg .node path');
+    expect(markdownStylesheet).toContain(
+      '.mermaid-preview-zoom svg .node:not([data-feishu-mermaid-custom-color]) path',
+    );
+    expect(markdownStylesheet).toContain(
+      '.feishu-mermaid svg .node:not([data-feishu-mermaid-custom-color]) path',
+    );
     expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg .nodeLabel text');
     expect(markdownStylesheet).toContain(
-      '-webkit-text-fill-color: var(--feishu-mermaid-node-text) !important;',
+      '-webkit-text-fill-color: var(--feishu-mermaid-node-text);',
     );
     expect(markdownStylesheet).toContain('.mermaid-preview-zoom svg .edgeLabel p');
     expect(markdownStylesheet).toContain(
@@ -64,6 +92,14 @@ describe('Mermaid modern visual theme', () => {
     );
     expect(mermaidStylesheet).toMatch(/\.mermaid-preview-canvas\s*\{[^}]*cursor:\s*grab;/i);
     expect(mermaidStylesheet).toContain('user-select: none;');
+  });
+
+  it('styles stateDiagram-v2 groups and labels with the active Mermaid theme', () => {
+    expect(markdownStylesheet).toContain('.stateGroup:has(.state-title) > rect');
+    expect(markdownStylesheet).toContain('.stateGroup .state-title');
+    expect(markdownStylesheet).toContain('.stateGroup .state-description');
+    expect(markdownStylesheet).toContain('fill: var(--feishu-mermaid-node-bg) !important;');
+    expect(markdownStylesheet).toContain('fill: var(--feishu-mermaid-node-text) !important;');
   });
 
   it('keeps Mermaid edge strokes thin and prevents fill on connection lines', () => {
@@ -75,13 +111,13 @@ describe('Mermaid modern visual theme', () => {
     );
     expect(lineRule, 'expected a .feishu-mermaid svg .flowchart-link rule').toBeTruthy();
     expect(lineRule?.[0]).toContain('fill: none !important;');
-    expect(lineRule?.[0]).toContain('stroke: var(--feishu-mermaid-edge) !important;');
+    expect(lineRule?.[0]).toContain('stroke: var(--feishu-mermaid-edge);');
     expect(lineRule?.[0]).toMatch(/stroke-width:\s*[0-9.]+px/);
 
     const markerRule = markdownStylesheet.match(/\.feishu-mermaid svg marker path[^{}]*\{[^}]*\}/);
     expect(markerRule, 'expected a marker path rule').toBeTruthy();
-    expect(markerRule?.[0]).toContain('fill: var(--feishu-mermaid-edge) !important;');
-    expect(markerRule?.[0]).toContain('stroke: var(--feishu-mermaid-edge) !important;');
+    expect(markerRule?.[0]).toContain('fill: var(--feishu-mermaid-edge);');
+    expect(markerRule?.[0]).toContain('stroke: var(--feishu-mermaid-edge);');
 
     // Mermaid 11 ships markerWidth=8 with markerUnits=userSpaceOnUse; cap it.
     expect(markdownStylesheet).toContain('marker-width: 6;');

@@ -3,9 +3,15 @@ import { type PageSource } from '../content/detector';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { MarkdownReadView } from './components/Markdown/MarkdownReadView';
 import { AppShell } from './components/Layout/AppShell';
+import { countTOCItems } from './components/TOC/TableOfContents';
 import { useTOC } from './hooks/useTOC';
 import { useViewerStore, type ThemeMode } from './store';
 import type { MarkdownSourceContext } from '../lib/markdown-resource-resolver';
+import {
+  LARGE_DOCUMENT_BLOCK_THRESHOLD,
+  LARGE_DOCUMENT_MERMAID_THRESHOLD,
+  LARGE_DOCUMENT_HEADING_THRESHOLD,
+} from '../lib/markdown-progressive-render';
 
 export interface PreviewRootProps {
   markdown: string;
@@ -51,6 +57,11 @@ export function PreviewRoot({
   const tocFontSize = useViewerStore((s) => s.tocFontSize);
   const contentAlignment = useViewerStore((s) => s.contentAlignment);
   const tocItems = useTOC(markdown);
+  const largeDocumentMode = useMemo(() => (
+    countTOCItems(tocItems) >= LARGE_DOCUMENT_HEADING_THRESHOLD
+    || (markdown.match(/^```mermaid\b/gim)?.length ?? 0) >= LARGE_DOCUMENT_MERMAID_THRESHOLD
+    || markdown.split(/\r?\n\s*\r?\n/).filter((block) => block.trim()).length >= LARGE_DOCUMENT_BLOCK_THRESHOLD
+  ), [markdown, tocItems]);
   const title = useMemo(() => extractTitle(markdown), [markdown]);
   const themeClass = getThemeClass(themeOverride ?? storedTheme);
   const viewerClasses = [
@@ -84,6 +95,7 @@ export function PreviewRoot({
           contentUpdateAvailable={contentUpdateAvailable}
           contentUpdateRefreshing={contentUpdateRefreshing}
           onRefreshContent={onRefreshContent}
+          largeDocumentMode={largeDocumentMode}
         >
           <div className="feishu-viewer__page" data-mode="read">
             <div className="feishu-viewer__content" data-mode="read">

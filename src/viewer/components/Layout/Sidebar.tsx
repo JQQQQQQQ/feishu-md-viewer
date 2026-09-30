@@ -11,6 +11,7 @@ interface SidebarProps {
   dividerVisible?: boolean;
   onClose: () => void;
   onWidthChange: (width: number) => void;
+  largeDocumentMode?: boolean;
 }
 
 export function Sidebar({
@@ -22,6 +23,7 @@ export function Sidebar({
   dividerVisible = true,
   onClose,
   onWidthChange,
+  largeDocumentMode = false,
 }: SidebarProps) {
   const sidebarRef = useRef<HTMLElement>(null);
   const isResizingRef = useRef(false);
@@ -119,7 +121,7 @@ export function Sidebar({
         aria-hidden={!isOpen || isTableScrollHidden}
       >
         <div className="feishu-sidebar__content">
-          <TableOfContents items={items} containerRef={containerRef} />
+          <TableOfContents items={items} containerRef={containerRef} largeDocumentMode={largeDocumentMode} />
         </div>
         {!isDrawerMode && isOpen && (
           <div

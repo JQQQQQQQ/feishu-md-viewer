@@ -112,4 +112,88 @@ describe('sanitizeMermaidSvg', () => {
       '<tspan x="80" dy="0" style="overflow: visible; color: var(--feishu-mermaid-node-text) !important; fill: var(--feishu-mermaid-node-text) !important;',
     );
   });
+
+  it('preserves explicit Mermaid colors for logic-colored nodes and labels', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 240 100"><g class="node"><rect style="fill:#e8f8ee;stroke:#34a853"/><text class="nodeLabel" style="color:#14532d;fill:#14532d">完成</text></g></svg>',
+      { expandBounds: false },
+    );
+
+    expect(result).toMatch(/style="[^"]*fill:#e8f8ee[^"]*stroke:#34a853/i);
+    expect(result).toMatch(/style="[^"]*color:#14532d[^"]*fill:#14532d/i);
+    expect(result).not.toContain('var(--feishu-mermaid-node-text) !important');
+  });
+
+  it('keeps classDef colors from Mermaid embedded styles on custom nodes', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 240 100"><style>.node.start rect{fill:#e8f8ee;stroke:#73c991}.node.start .nodeLabel{color:#216b3a;fill:#216b3a}</style><g class="node start"><rect/><text class="nodeLabel">完成</text></g></svg>',
+      { expandBounds: false },
+    );
+
+    expect(result).toContain('.node.start .nodeLabel');
+    expect(result).toContain('data-feishu-mermaid-custom-color="true"');
+    expect(result).not.toContain('var(--feishu-mermaid-node-text) !important');
+  });
+
+  it('recognizes Mermaid 11 classDef selectors and preserves their label colors', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 240 100"><style>#flow-check .start&gt;*{fill:#eaf7ef!important;stroke:#67c587!important;color:#1f6b3a!important}#flow-check .start span{fill:#eaf7ef!important;stroke:#67c587!important;color:#1f6b3a!important}#flow-check .start tspan{fill:#1f6b3a!important}</style><g class="node start"><rect/><foreignObject><div><span class="nodeLabel"><p>开始</p></span></div></foreignObject></g></svg>',
+      { expandBounds: false },
+    );
+
+    expect(result).toContain('data-feishu-mermaid-custom-color="true"');
+    expect(result).toContain('color:#1f6b3a!important');
+    expect(result).not.toContain('var(--feishu-mermaid-node-text) !important');
+    expect(result).not.toContain('var(--feishu-mermaid-node-bg) !important');
+
+    const doc = new DOMParser().parseFromString(result, 'image/svg+xml');
+    expect(doc.querySelector('foreignObject div[data-feishu-mermaid-custom-color]')).not.toBeNull();
+    expect(doc.querySelector('.nodeLabel[data-feishu-mermaid-custom-color]')).not.toBeNull();
+  });
+
+  it('marks Mermaid 11 custom foreignObject descendants so theme rules cannot overwrite them', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 240 100"><g class="node start"><rect style="fill:#edf4ff !important;stroke:#91b4f8 !important"/><foreignObject><div style="color:rgb(47, 85, 151) !important"><span class="nodeLabel" style="color:#2f5597 !important"><p>读取输入</p></span></div></foreignObject></g></svg>',
+      { expandBounds: false },
+    );
+
+    const doc = new DOMParser().parseFromString(result, 'image/svg+xml');
+    expect(doc.querySelector('.node[data-feishu-mermaid-custom-color]')).not.toBeNull();
+    expect(doc.querySelector('.nodeLabel[data-feishu-mermaid-custom-color]')).not.toBeNull();
+    expect(doc.querySelector('foreignObject div[data-feishu-mermaid-custom-color]')).not.toBeNull();
+    expect(result).toContain('color:#2f5597 !important');
+    expect(result).not.toContain('var(--feishu-mermaid-node-text) !important');
+  });
+
+  it('does not treat Mermaid state diagram internals as user-defined colors', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 240 100"><style>#state-check .statediagram-state rect.basic{fill:#fff4dd;stroke:#d6b656}#state-check .statediagram-state .title-state{rx:5px}</style><g class="node statediagram-state"><rect class="basic label-container"/><g class="label"><foreignObject><div><span class="nodeLabel"><p>Idle</p></span></div></foreignObject></g></g></svg>',
+      { expandBounds: false },
+    );
+
+    expect(result).not.toContain('data-feishu-mermaid-custom-color="true"');
+    expect(result).toContain('color: var(--feishu-mermaid-node-text) !important');
+    expect(result).toContain('fill: var(--feishu-mermaid-node-text) !important');
+  });
+
+  it('pins default Mermaid node geometry to the active theme inside the SVG', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 240 100"><style>#flow-check .node rect{fill:#eef4ff;stroke:#8fb1ff}</style><g class="node default"><rect class="basic label-container"/><foreignObject><div><span class="nodeLabel"><p>默认节点</p></span></div></foreignObject></g></svg>',
+      { expandBounds: false },
+    );
+
+    expect(result).toContain('fill: var(--feishu-mermaid-node-bg) !important');
+    expect(result).toContain('stroke: var(--feishu-mermaid-node-border) !important');
+    expect(result).not.toContain('data-feishu-mermaid-custom-color="true"');
+  });
+
+  it('does not treat the viewer default Mermaid paint as a custom node color', () => {
+    const result = sanitizeMermaidSvg(
+      '<svg viewBox="0 0 240 100"><g class="node default"><rect style="fill:#eef4ff;stroke:#8fb1ff"/><text class="nodeLabel" style="fill:#1f2329">Idle</text></g></svg>',
+      { expandBounds: false },
+    );
+
+    expect(result).not.toContain('data-feishu-mermaid-custom-color="true"');
+    expect(result).toContain('fill: var(--feishu-mermaid-node-text) !important');
+  });
 });

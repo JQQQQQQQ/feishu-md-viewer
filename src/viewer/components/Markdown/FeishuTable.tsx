@@ -3,6 +3,8 @@ import {
   getTableLayoutMode,
   getTableRailDragScrollDelta,
   getTableResizeScrollTarget,
+  getTableAutoFitAvailableWidth,
+  getTableAutoFitColumnWidths,
   resolveTableScrollPresentation,
   resolveTableLayoutMode,
   updateTableWideWidth,
@@ -21,6 +23,8 @@ import {
 } from './FeishuTableSelection';
 import {
   applyTableColumnWidth,
+  applyTableColumnWidths,
+  clearTableAutoFitColumnWidths,
   getTableColumnWidths,
   persistTableColumnWidths,
   restorePersistedTableColumnWidths,
@@ -526,6 +530,8 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       const cellWidth = cell.getBoundingClientRect().width;
       const fallbackWidth = cellWidth / (cellRange ? cellRange.colEnd - cellRange.colStart + 1 : 1);
       const startWidth = storedWidths[resizableColIndex] || fallbackWidth;
+      table.dataset.feishuTableCustomWidths = 'true';
+      table.dataset.feishuTableAutoFit = 'false';
 
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
@@ -689,7 +695,22 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
 
     const updateWideLayout = () => {
       const preferredMode = getTableLayoutMode(table);
-      const nextMode = resolveTableLayoutMode(wrapper, table, preferredMode);
+      let nextMode = resolveTableLayoutMode(wrapper, table, preferredMode);
+      if (nextMode === 'fit') {
+        const autoFitWidths = getTableAutoFitColumnWidths(
+          table,
+          getTableAutoFitAvailableWidth(wrapper),
+        );
+        if (autoFitWidths) {
+          applyTableColumnWidths(table, autoFitWidths);
+          table.dataset.feishuTableAutoFit = 'true';
+        } else {
+          nextMode = 'balanced';
+          clearTableAutoFitColumnWidths(table);
+        }
+      } else {
+        clearTableAutoFitColumnWidths(table);
+      }
       const renderedTableWidth = Math.ceil(
         Math.max(table.scrollWidth, table.getBoundingClientRect().width),
       );
@@ -706,10 +727,11 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
       setLayoutMode(nextMode);
     };
 
-    restorePersistedTableColumnWidths(table);
+    table.dataset.feishuTableCustomWidths = restorePersistedTableColumnWidths(table) ? 'true' : 'false';
     updateWideLayout();
     const restoreExternalWidths = () => {
       if (!restorePersistedTableColumnWidths(table)) return;
+      table.dataset.feishuTableCustomWidths = 'true';
       updateWideLayout();
     };
     window.addEventListener('feishu-table-widths-updated', restoreExternalWidths);
@@ -1170,6 +1192,7 @@ export function FeishuTable({ children, className, ...props }: FeishuTableProps)
         'feishu-table-wrapper',
         layoutMode === 'right' ? 'feishu-table-wrapper--wide-right' : '',
         layoutMode === 'balanced' ? 'feishu-table-wrapper--wide-balanced' : '',
+        layoutMode === 'fit' ? 'feishu-table-wrapper--fit' : '',
       ].filter(Boolean).join(' ')}
       tabIndex={0}
       onKeyDown={(event) => {

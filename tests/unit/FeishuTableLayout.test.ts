@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTableContentOffset, getTableLayoutMode, getTableRailDragScrollDelta, getTableResizeScrollTarget, resolveTableLayoutMode, resolveTableScrollPresentation, updateTableWideWidth } from '@/viewer/components/Markdown/FeishuTableLayout';
+import { getTableAutoFitColumnWidths, getTableContentOffset, getTableLayoutMode, getTableRailDragScrollDelta, getTableResizeScrollTarget, resolveTableLayoutMode, resolveTableScrollPresentation, updateTableWideWidth } from '@/viewer/components/Markdown/FeishuTableLayout';
 
 function createTable(columnCount: number, cellTexts?: string[]): HTMLTableElement {
   const table = document.createElement('table');
@@ -282,7 +282,7 @@ describe('FeishuTableLayout', () => {
     expect(wrapper.style.getPropertyValue('--feishu-table-wide-offset')).toBe('0px');
   });
 
-  it('upgrades right expansion to balanced when right expansion still overflows', () => {
+  it('fits a medium-width table into the reading viewport when right expansion still overflows', () => {
     const wrapper = createWrapper(150, 900);
     const table = createTable(6);
     wrapper.appendChild(table);
@@ -298,9 +298,95 @@ describe('FeishuTableLayout', () => {
       tableScrollWidth: 1240,
     });
 
-    expect(resolveTableLayoutMode(wrapper, table, 'right')).toBe('balanced');
+    expect(resolveTableLayoutMode(wrapper, table, 'right')).toBe('fit');
     expect(wrapper.classList.contains('feishu-table-wrapper--wide-right')).toBe(false);
     expect(wrapper.classList.contains('feishu-table-wrapper--wide-balanced')).toBe(false);
+  });
+
+  it('keeps an already auto-fitted table in fit mode after overflow disappears', () => {
+    const wrapper = createWrapper(150, 900);
+    const table = createTable(6);
+    table.dataset.feishuTableAutoFit = 'true';
+    wrapper.appendChild(table);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1366,
+    });
+
+    mockHorizontalMetrics(wrapper, table, {
+      clientWidth: 1079,
+      wrapperScrollWidth: 1079,
+      tableScrollWidth: 1079,
+    });
+
+    expect(resolveTableLayoutMode(wrapper, table, 'right')).toBe('fit');
+  });
+
+  it('fits a nine-column table when its minimum readable widths fit the viewport', () => {
+    const wrapper = createWrapper(150, 900);
+    const table = createTable(9);
+    wrapper.appendChild(table);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1366,
+    });
+
+    mockHorizontalMetrics(wrapper, table, {
+      clientWidth: 1079,
+      wrapperScrollWidth: 1240,
+      tableScrollWidth: 1240,
+    });
+
+    expect(resolveTableLayoutMode(wrapper, table, 'balanced')).toBe('fit');
+  });
+
+  it('keeps an extremely wide table scrollable when minimum widths cannot fit', () => {
+    const wrapper = createWrapper(150, 900);
+    const table = createTable(20);
+    wrapper.appendChild(table);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1366,
+    });
+
+    mockHorizontalMetrics(wrapper, table, {
+      clientWidth: 1079,
+      wrapperScrollWidth: 1240,
+      tableScrollWidth: 1240,
+    });
+
+    expect(resolveTableLayoutMode(wrapper, table, 'balanced')).toBe('balanced');
+  });
+
+  it('allocates less width to compact fields and more width to descriptive fields', () => {
+    const table = createTable(6, [
+      '模块',
+      '负责人',
+      '状态',
+      '最近更新时间',
+      '优先级',
+      '处理说明',
+    ]);
+    const bodyRow = table.insertRow();
+    ['Markdown', '小王', '进行中', '2026-09-14', 'P0', '这是一段需要在表格中正常换行的较长处理说明'].forEach((text) => {
+      bodyRow.insertCell().textContent = text;
+    });
+
+    const widths = getTableAutoFitColumnWidths(table, 900);
+
+    expect(widths).toHaveLength(6);
+    expect(widths?.reduce((sum, width) => sum + width, 0)).toBe(900);
+    expect(widths?.[2]).toBeLessThan(widths?.[5] ?? 0);
+    expect(widths?.[1]).toBeLessThan(widths?.[5] ?? 0);
+  });
+
+  it('does not promise a no-scroll layout when minimum readable widths cannot fit', () => {
+    const table = createTable(12);
+
+    expect(getTableAutoFitColumnWidths(table, 500)).toBeNull();
   });
 
   it('keeps right expansion when right expansion can avoid horizontal overflow', () => {

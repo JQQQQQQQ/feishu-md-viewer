@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from 'react';
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
+import { useViewerStore } from '../../store';
 
 interface DocumentSearchProps {
   containerRef: RefObject<HTMLElement>;
@@ -98,6 +99,7 @@ function highlightMatches(container: HTMLElement, query: string): HTMLElement[] 
 }
 
 export function DocumentSearch({ containerRef, contentVersion }: DocumentSearchProps) {
+  const tocSmoothScrollEnabled = useViewerStore((state) => state.tocSmoothScrollEnabled);
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -150,8 +152,15 @@ export function DocumentSearch({ containerRef, contentVersion }: DocumentSearchP
     const container = containerRef.current;
     if (!container) return;
 
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+      marksRef.current = [];
+      setTotal((current) => (current === 0 ? current : 0));
+      return;
+    }
+
     cleanupMarks(container);
-    const nextMarks = query.trim() ? highlightMatches(container, query.trim()) : [];
+    const nextMarks = highlightMatches(container, normalizedQuery);
     marksRef.current = nextMarks;
     setTotal(nextMarks.length);
     setActiveIndex((current) => (nextMarks.length > 0 ? Math.min(current, nextMarks.length - 1) : 0));
@@ -167,8 +176,12 @@ export function DocumentSearch({ containerRef, contentVersion }: DocumentSearchP
     if (!activeMark) return;
 
     activeMark.classList.add(ACTIVE_MARK_CLASS);
-    activeMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-  }, [activeIndex, total]);
+    activeMark.scrollIntoView({
+      behavior: tocSmoothScrollEnabled ? 'smooth' : 'auto',
+      block: 'center',
+      inline: 'nearest',
+    });
+  }, [activeIndex, tocSmoothScrollEnabled, total]);
 
   if (!isOpen) {
     return (

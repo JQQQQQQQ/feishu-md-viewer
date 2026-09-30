@@ -37,6 +37,7 @@ interface AppShellProps {
   contentUpdateAvailable?: boolean;
   contentUpdateRefreshing?: boolean;
   onRefreshContent?: () => void;
+  largeDocumentMode?: boolean;
 }
 
 function resolveStableDrawerMode(mediaMatches: boolean): boolean | null {
@@ -170,6 +171,7 @@ export function AppShell({
   contentUpdateAvailable = false,
   contentUpdateRefreshing = false,
   onRefreshContent,
+  largeDocumentMode = false,
 }: AppShellProps) {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -281,6 +283,7 @@ export function AppShell({
           dividerVisible={sidebarDividerVisible}
           onClose={handleCloseSidebar}
           onWidthChange={handleSidebarWidthChange}
+          largeDocumentMode={largeDocumentMode}
         />
         <main
           id="main-content"

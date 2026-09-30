@@ -6,6 +6,11 @@ import { TableOfContents } from '@/viewer/components/TOC/TableOfContents';
 import type { TOCItem } from '@/viewer/hooks/useTOC';
 import { createHeadingId } from '@/viewer/utils/heading-slug';
 import { useViewerStore } from '@/viewer/store';
+import {
+  MARKDOWN_HEADING_READY_EVENT,
+  MARKDOWN_HEADINGS_CHANGED_EVENT,
+  MARKDOWN_TOC_NAVIGATE_EVENT,
+} from '@/lib/markdown-progressive-render';
 
 function createContainerWithHeading(text: string, id = ''): HTMLElement {
   const container = document.createElement('main');
@@ -155,4 +160,81 @@ describe('TableOfContents', () => {
     expect(headings[1]).not.toHaveClass('feishu-heading--toc-target');
     vi.useRealTimers();
   });
+
+  it('large document mode does not eagerly render every nested directory item', () => {
+    const container = document.createElement('main');
+    containerRefHack.current = container;
+    const items: TOCItem[] = [{
+      id: 'document',
+      text: 'Document',
+      level: 1,
+      children: Array.from({ length: 400 }, (_, index) => ({
+        id: `section-${index}`,
+        text: `Section ${index}`,
+        level: 2,
+        children: [],
+      })),
+    }];
+
+    const view = render(
+      <TableOfContents
+        items={items}
+        containerRef={containerRefHack}
+        largeDocumentMode
+      />,
+    );
+
+    expect(view.container.querySelectorAll('[role="treeitem"]').length).toBe(1);
+  });
+
+  it('requests a missing heading batch and retries navigation when it becomes available', async () => {
+    const container = document.createElement('main');
+    document.body.appendChild(container);
+    const containerRef = { current: container } as RefObject<HTMLElement | null>;
+    const headingText = 'Section 10000';
+    const headingId = createHeadingId(headingText);
+    const items: TOCItem[] = [{ id: headingId, text: headingText, level: 2, children: [] }];
+    const requestListener = vi.fn();
+    window.addEventListener(MARKDOWN_TOC_NAVIGATE_EVENT, requestListener);
+
+    try {
+      render(<TableOfContents items={items} containerRef={containerRef} largeDocumentMode />);
+      fireEvent.click(screen.getByRole('link', { name: headingText }));
+      expect(requestListener.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
+        detail: expect.objectContaining({ id: headingId, text: headingText }),
+      }));
+
+      container.innerHTML = `<h2 id="${headingId}"><span class="feishu-heading__text">${headingText}</span></h2>`;
+      window.dispatchEvent(new CustomEvent(MARKDOWN_HEADING_READY_EVENT, { detail: { id: headingId } }));
+      await waitFor(() => expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' }));
+    } finally {
+      window.removeEventListener(MARKDOWN_TOC_NAVIGATE_EVENT, requestListener);
+    }
+  });
+
+  it('large document mode observes headings that are mounted by a later batch', () => {
+    const observed = new Set<Element>();
+    vi.stubGlobal('IntersectionObserver', vi.fn(() => ({
+      observe: (element: Element) => observed.add(element),
+      disconnect: vi.fn(),
+      unobserve: (element: Element) => observed.delete(element),
+    })));
+    const container = createContainerWithHeading('Section 0', 'section-0');
+    const containerRef = { current: container } as RefObject<HTMLElement | null>;
+    const items: TOCItem[] = [
+      { id: 'section-0', text: 'Section 0', level: 2, children: [] },
+      { id: 'section-241', text: 'Section 241', level: 2, children: [] },
+    ];
+
+    render(<TableOfContents items={items} containerRef={containerRef} largeDocumentMode />);
+    const lateHeading = document.createElement('h2');
+    lateHeading.id = 'section-241';
+    lateHeading.innerHTML = '<span class="feishu-heading__text">Section 241</span>';
+    container.appendChild(lateHeading);
+    window.dispatchEvent(new Event(MARKDOWN_HEADINGS_CHANGED_EVENT));
+
+    expect(observed).toContain(lateHeading);
+  });
 });
+
+const containerRefHack = { current: null } as RefObject<HTMLElement | null>;

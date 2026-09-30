@@ -62,10 +62,16 @@ describe('markdown table sticky header styles', () => {
     );
   });
 
-  it('keeps the existing wide-table mode in charge during a resize', () => {
+  it('uses the wide reading frame for both scrollable and fit-to-viewport tables', () => {
     expect(normalized).not.toMatch(/\.feishu-table-wrapper--resizing\s*\{/i);
     expect(normalized).toMatch(
-      /\.feishu-table-wrapper--wide-right,\s*\.feishu-table-wrapper--wide-balanced\s*\{[^}]*width:\s*min\(var\(--feishu-table-wide-width/i,
+      /\.feishu-table-wrapper--wide-right,\s*\.feishu-table-wrapper--wide-balanced,\s*\.feishu-table-wrapper--fit\s*\{[^}]*width:\s*min\(var\(--feishu-table-wide-width/i,
+    );
+    expect(normalized).toMatch(
+      /\.feishu-table-wrapper--fit\s+\.feishu-table\s*\{[^}]*width:\s*100%;/i,
+    );
+    expect(normalized).toMatch(
+      /\.feishu-table-wrapper--fit\s+\.feishu-table__header,\s*\.feishu-table-wrapper--fit\s+\.feishu-table__cell\s*\{[^}]*min-width:\s*0\s*!important;/i,
     );
   });
 

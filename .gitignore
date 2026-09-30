@@ -8,6 +8,7 @@ vscode-extension/out/
 .claude/
 .codex
 AGENTS.md
+.superpowers/brainstorm/
 
 # 临时构建产物
 tmp/

@@ -1,4 +1,4 @@
-import { useState, useCallback, type KeyboardEvent, type MouseEvent } from 'react';
+import { useState, useCallback, useEffect, type KeyboardEvent, type MouseEvent } from 'react';
 import type { TOCItem as TOCItemType } from '../../hooks/useTOC';
 
 interface TOCItemProps {
@@ -6,10 +6,11 @@ interface TOCItemProps {
   activeId: string;
   onNavigate: (id: string) => void;
   tocPath: string;
+  largeDocumentMode?: boolean;
 }
 
-export function TOCItem({ item, activeId, onNavigate, tocPath }: TOCItemProps) {
-  const [expanded, setExpanded] = useState(true);
+export function TOCItem({ item, activeId, onNavigate, tocPath, largeDocumentMode = false }: TOCItemProps) {
+  const [expanded, setExpanded] = useState(!largeDocumentMode);
   const isActive = activeId === item.id;
   const hasChildren = item.children.length > 0;
   const isMajorHeading = item.level === 1 || item.level === 2;
@@ -42,6 +43,10 @@ export function TOCItem({ item, activeId, onNavigate, tocPath }: TOCItemProps) {
       setExpanded(false);
     }
   }, [item.id, onNavigate, hasChildren, expanded]);
+
+  useEffect(() => {
+    if (largeDocumentMode) setExpanded(false);
+  }, [largeDocumentMode]);
 
   return (
     <li className="feishu-toc__item" role="treeitem" aria-selected={isActive} aria-expanded={hasChildren ? expanded : undefined}>
@@ -76,13 +81,14 @@ export function TOCItem({ item, activeId, onNavigate, tocPath }: TOCItemProps) {
       {hasChildren && expanded && (
         <ul className="feishu-toc__children" role="group">
           {item.children.map((child, childIndex) => (
-            <TOCItem
-              key={`${child.id}-${tocPath}-${childIndex}`}
-              item={child}
-              activeId={activeId}
-              onNavigate={onNavigate}
-              tocPath={`${tocPath}-${childIndex}`}
-            />
+          <TOCItem
+            key={`${child.id}-${tocPath}-${childIndex}`}
+            item={child}
+            activeId={activeId}
+            onNavigate={onNavigate}
+            tocPath={`${tocPath}-${childIndex}`}
+            largeDocumentMode={largeDocumentMode}
+          />
           ))}
         </ul>
       )}
