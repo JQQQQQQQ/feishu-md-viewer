@@ -263,7 +263,7 @@ test.describe('浏览器 Markdown 预览', () => {
       }
       dialog = await openPreview();
       await expect.poll(() => getCanvasStyles(dialog)).toEqual({
-        backgroundColor: 'rgb(26, 26, 26)',
+        backgroundColor: 'rgb(18, 18, 18)',
         backgroundImage: 'none',
       });
       const darkToolbarContrast = await getSurfaceContrast(dialog, '.mermaid-preview-toolbar');
