@@ -1,8 +1,9 @@
-import type { LocalFileRefreshMode } from '../viewer/store';
+import type { LocalFileRefreshMode, TocOverflowMode } from '../viewer/store';
 
 export interface ViewerSettingsSyncPatch {
   localFileRefreshMode?: LocalFileRefreshMode;
   sidebarDividerVisible?: boolean;
+  tocOverflowMode?: TocOverflowMode;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -19,6 +20,9 @@ export function getViewerSettingsSyncPatch(value: unknown): ViewerSettingsSyncPa
   }
   if (Object.prototype.hasOwnProperty.call(value, 'sidebarDividerVisible')) {
     patch.sidebarDividerVisible = value.sidebarDividerVisible !== false;
+  }
+  if (Object.prototype.hasOwnProperty.call(value, 'tocOverflowMode')) {
+    patch.tocOverflowMode = value.tocOverflowMode === 'wrap' ? 'wrap' : 'ellipsis';
   }
   return patch;
 }

@@ -8,13 +8,18 @@ interface ReadyMessage {
 
 export type PreviewThemeMode = 'light' | 'dark' | 'system';
 export type PreviewContentAlignment = 'left' | 'center';
+export type PreviewLocalFileRefreshMode = 'prompt' | 'auto';
+export type PreviewTocOverflowMode = 'wrap' | 'ellipsis';
 
 export interface PreviewSettings {
   theme: PreviewThemeMode;
   fontSize: number;
   tocFontSize: number;
   tocSmoothScrollEnabled: boolean;
+  sidebarDividerVisible: boolean;
   contentAlignment: PreviewContentAlignment;
+  localFileRefreshMode: PreviewLocalFileRefreshMode;
+  tocOverflowMode: PreviewTocOverflowMode;
 }
 
 export const PREVIEW_SETTINGS_KEY = 'feishu-md-viewer.previewSettings';
@@ -26,7 +31,10 @@ export const DEFAULT_PREVIEW_SETTINGS: PreviewSettings = {
   fontSize: 15,
   tocFontSize: 13,
   tocSmoothScrollEnabled: true,
+  sidebarDividerVisible: true,
   contentAlignment: 'center',
+  localFileRefreshMode: 'prompt',
+  tocOverflowMode: 'ellipsis',
 };
 
 export interface PreviewSettingsStore {
@@ -135,14 +143,20 @@ export function createWebviewHtml(webview: vscode.Webview, extensionUri: vscode.
 }
 
 function isReadyMessage(message: unknown): message is ReadyMessage {
-  return typeof message === 'object' && message !== null && (message as { type?: unknown }).type === 'ready';
+  return (
+    typeof message === 'object' &&
+    message !== null &&
+    (message as { type?: unknown }).type === 'ready'
+  );
 }
 
 function isSettingsMessage(message: unknown): message is { type: 'settings'; settings: unknown } {
-  return typeof message === 'object'
-    && message !== null
-    && (message as { type?: unknown }).type === 'settings'
-    && 'settings' in message;
+  return (
+    typeof message === 'object' &&
+    message !== null &&
+    (message as { type?: unknown }).type === 'settings' &&
+    'settings' in message
+  );
 }
 
 function clampFontSize(value: number): number {
@@ -154,31 +168,45 @@ function clampTocFontSize(value: number): number {
 }
 
 export function sanitizePreviewSettings(value: unknown): PreviewSettings {
-  const candidate = typeof value === 'object' && value !== null
-    ? value as Partial<PreviewSettings>
-    : {};
+  const candidate =
+    typeof value === 'object' && value !== null ? (value as Partial<PreviewSettings>) : {};
 
   return {
-    theme: candidate.theme === 'light' || candidate.theme === 'dark' || candidate.theme === 'system'
-      ? candidate.theme
-      : DEFAULT_PREVIEW_SETTINGS.theme,
-    fontSize: typeof candidate.fontSize === 'number' && Number.isFinite(candidate.fontSize)
-      ? clampFontSize(candidate.fontSize)
-      : DEFAULT_PREVIEW_SETTINGS.fontSize,
-    tocFontSize: typeof candidate.tocFontSize === 'number' && Number.isFinite(candidate.tocFontSize)
-      ? clampTocFontSize(candidate.tocFontSize)
-      : DEFAULT_PREVIEW_SETTINGS.tocFontSize,
-    tocSmoothScrollEnabled: typeof candidate.tocSmoothScrollEnabled === 'boolean'
-      ? candidate.tocSmoothScrollEnabled
-      : DEFAULT_PREVIEW_SETTINGS.tocSmoothScrollEnabled,
-    contentAlignment: candidate.contentAlignment === 'left' ? 'left' : DEFAULT_PREVIEW_SETTINGS.contentAlignment,
+    theme:
+      candidate.theme === 'light' || candidate.theme === 'dark' || candidate.theme === 'system'
+        ? candidate.theme
+        : DEFAULT_PREVIEW_SETTINGS.theme,
+    fontSize:
+      typeof candidate.fontSize === 'number' && Number.isFinite(candidate.fontSize)
+        ? clampFontSize(candidate.fontSize)
+        : DEFAULT_PREVIEW_SETTINGS.fontSize,
+    tocFontSize:
+      typeof candidate.tocFontSize === 'number' && Number.isFinite(candidate.tocFontSize)
+        ? clampTocFontSize(candidate.tocFontSize)
+        : DEFAULT_PREVIEW_SETTINGS.tocFontSize,
+    tocSmoothScrollEnabled:
+      typeof candidate.tocSmoothScrollEnabled === 'boolean'
+        ? candidate.tocSmoothScrollEnabled
+        : DEFAULT_PREVIEW_SETTINGS.tocSmoothScrollEnabled,
+    sidebarDividerVisible:
+      typeof candidate.sidebarDividerVisible === 'boolean'
+        ? candidate.sidebarDividerVisible
+        : DEFAULT_PREVIEW_SETTINGS.sidebarDividerVisible,
+    contentAlignment:
+      candidate.contentAlignment === 'left' ? 'left' : DEFAULT_PREVIEW_SETTINGS.contentAlignment,
+    localFileRefreshMode:
+      candidate.localFileRefreshMode === 'auto'
+        ? 'auto'
+        : DEFAULT_PREVIEW_SETTINGS.localFileRefreshMode,
+    tocOverflowMode:
+      candidate.tocOverflowMode === 'wrap' ? 'wrap' : DEFAULT_PREVIEW_SETTINGS.tocOverflowMode,
   };
 }
 
 function createMemorySettingsStore(): PreviewSettingsStore {
   let value: unknown;
   return {
-    get: <T,>(key: string) => key === PREVIEW_SETTINGS_KEY ? value as T | undefined : undefined,
+    get: <T>(key: string) => (key === PREVIEW_SETTINGS_KEY ? (value as T | undefined) : undefined),
     update: async (key: string, nextValue: unknown) => {
       if (key === PREVIEW_SETTINGS_KEY) value = nextValue;
     },
@@ -190,20 +218,17 @@ function sanitizeTableWidths(value: unknown): Record<string, number[]> {
 
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>)
-      .filter(([tableKey, widths]) => (
-        tableKey.length > 0
-        && Array.isArray(widths)
-        && widths.length <= 200
-      ))
+      .filter(
+        ([tableKey, widths]) =>
+          tableKey.length > 0 && Array.isArray(widths) && widths.length <= 200,
+      )
       .map(([tableKey, widths]) => [
         tableKey,
         (widths as unknown[])
-          .filter((width): width is number => (
-            typeof width === 'number'
-            && Number.isFinite(width)
-            && width >= 24
-            && width <= 4000
-          ))
+          .filter(
+            (width): width is number =>
+              typeof width === 'number' && Number.isFinite(width) && width >= 24 && width <= 4000,
+          )
           .map((width) => Math.round(width)),
       ])
       .filter(([, widths]) => (widths as number[]).length > 0),
@@ -216,15 +241,20 @@ function sanitizePersistedTableWidths(value: unknown): PersistedTableWidths {
   }
 
   const candidate = value as { version?: unknown; documents?: unknown };
-  if (candidate.version !== 1 || typeof candidate.documents !== 'object' || candidate.documents === null) {
+  if (
+    candidate.version !== 1 ||
+    typeof candidate.documents !== 'object' ||
+    candidate.documents === null
+  ) {
     return { version: 1, documents: {} };
   }
 
   return {
     version: 1,
     documents: Object.fromEntries(
-      Object.entries(candidate.documents as Record<string, unknown>)
-        .map(([documentKey, widths]) => [documentKey, sanitizeTableWidths(widths)]),
+      Object.entries(candidate.documents as Record<string, unknown>).map(
+        ([documentKey, widths]) => [documentKey, sanitizeTableWidths(widths)],
+      ),
     ),
   };
 }
@@ -232,13 +262,17 @@ function sanitizePersistedTableWidths(value: unknown): PersistedTableWidths {
 function sanitizeTableIdentities(value: unknown): TableIdentityRecord[] {
   if (!Array.isArray(value)) return [];
   return value
-    .filter((record): record is Partial<TableIdentityRecord> => typeof record === 'object' && record !== null)
+    .filter(
+      (record): record is Partial<TableIdentityRecord> =>
+        typeof record === 'object' && record !== null,
+    )
     .map((record) => ({
       id: typeof record.id === 'string' ? record.id : '',
       currentId: typeof record.currentId === 'string' ? record.currentId : '',
       headingPath: typeof record.headingPath === 'string' ? record.headingPath : '',
       text: typeof record.text === 'string' ? record.text.slice(0, 1200) : '',
-      columnCount: typeof record.columnCount === 'number' ? Math.max(0, Math.round(record.columnCount)) : 0,
+      columnCount:
+        typeof record.columnCount === 'number' ? Math.max(0, Math.round(record.columnCount)) : 0,
       ordinal: typeof record.ordinal === 'number' ? Math.max(0, Math.round(record.ordinal)) : 0,
     }))
     .filter((record) => record.id.length > 0 && record.headingPath.length > 0)
@@ -248,22 +282,28 @@ function sanitizeTableIdentities(value: unknown): TableIdentityRecord[] {
 function sanitizePersistedTableIdentities(value: unknown): PersistedTableIdentities {
   if (typeof value !== 'object' || value === null) return { version: 1, documents: {} };
   const candidate = value as { version?: unknown; documents?: unknown };
-  if (candidate.version !== 1 || typeof candidate.documents !== 'object' || candidate.documents === null) {
+  if (
+    candidate.version !== 1 ||
+    typeof candidate.documents !== 'object' ||
+    candidate.documents === null
+  ) {
     return { version: 1, documents: {} };
   }
 
   return {
     version: 1,
     documents: Object.fromEntries(
-      Object.entries(candidate.documents as Record<string, unknown>)
-        .map(([documentKey, identities]) => [documentKey, sanitizeTableIdentities(identities)]),
+      Object.entries(candidate.documents as Record<string, unknown>).map(
+        ([documentKey, identities]) => [documentKey, sanitizeTableIdentities(identities)],
+      ),
     ),
   };
 }
 
 function getThemeMessage(theme: vscode.ColorTheme): ThemeMessage {
-  const isLight = theme.kind === vscode.ColorThemeKind.Light
-    || theme.kind === vscode.ColorThemeKind.HighContrastLight;
+  const isLight =
+    theme.kind === vscode.ColorThemeKind.Light ||
+    theme.kind === vscode.ColorThemeKind.HighContrastLight;
 
   return { type: 'theme', kind: isLight ? 'light' : 'dark' };
 }
@@ -340,7 +380,9 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
   private savePreviewSettings(value: unknown): void {
     const settings = sanitizePreviewSettings(value);
     try {
-      void Promise.resolve(this.settingsStore.update(PREVIEW_SETTINGS_KEY, settings)).catch(() => undefined);
+      void Promise.resolve(this.settingsStore.update(PREVIEW_SETTINGS_KEY, settings)).catch(
+        () => undefined,
+      );
     } catch {
       // 持久化失败时仍要保证已打开的预览可以同步设置。
     }
@@ -392,7 +434,9 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
       [message.tableKey]: widths,
     };
     try {
-      void Promise.resolve(this.settingsStore.update(TABLE_COLUMN_WIDTHS_STORAGE_KEY, state)).catch(() => undefined);
+      void Promise.resolve(this.settingsStore.update(TABLE_COLUMN_WIDTHS_STORAGE_KEY, state)).catch(
+        () => undefined,
+      );
     } catch {
       // 持久化失败时仍保持当前预览可用。
     }
@@ -404,7 +448,9 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
     const state = this.getTableIdentitiesState();
     state.documents[message.documentKey] = sanitizeTableIdentities(message.identities);
     try {
-      void Promise.resolve(this.settingsStore.update(TABLE_IDENTITIES_STORAGE_KEY, state)).catch(() => undefined);
+      void Promise.resolve(this.settingsStore.update(TABLE_IDENTITIES_STORAGE_KEY, state)).catch(
+        () => undefined,
+      );
     } catch {
       // 身份缓存失败时仍保持当前预览可用。
     }
@@ -425,10 +471,12 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
     _token: vscode.CancellationToken,
   ): Promise<void> {
     const documentDirectory = document.uri.fsPath
-      ? vscode.Uri.file(document.uri.fsPath.slice(0, Math.max(
-        document.uri.fsPath.lastIndexOf('/'),
-        document.uri.fsPath.lastIndexOf('\\'),
-      )))
+      ? vscode.Uri.file(
+          document.uri.fsPath.slice(
+            0,
+            Math.max(document.uri.fsPath.lastIndexOf('/'), document.uri.fsPath.lastIndexOf('\\')),
+          ),
+        )
       : undefined;
     panel.webview.options = {
       enableScripts: true,
@@ -527,12 +575,16 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
     document.addDisposable(settingsDisposable);
     document.addDisposable(tableWidthsDisposable);
     messageListener = panel.webview.onDidReceiveMessage((message) => {
-      if (typeof message === 'object' && message !== null && (message as { type?: unknown }).type === 'table-width-update') {
+      if (
+        typeof message === 'object' &&
+        message !== null &&
+        (message as { type?: unknown }).type === 'table-width-update'
+      ) {
         const update = message as Partial<TableWidthUpdateMessage>;
         if (
-          update.documentKey === documentKey
-          && typeof update.tableKey === 'string'
-          && Array.isArray(update.widths)
+          update.documentKey === documentKey &&
+          typeof update.tableKey === 'string' &&
+          Array.isArray(update.widths)
         ) {
           this.saveTableWidthUpdate({
             type: 'table-width-update',
@@ -544,12 +596,13 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
         return;
       }
 
-      if (typeof message === 'object' && message !== null && (message as { type?: unknown }).type === 'table-identities-update') {
+      if (
+        typeof message === 'object' &&
+        message !== null &&
+        (message as { type?: unknown }).type === 'table-identities-update'
+      ) {
         const update = message as Partial<TableIdentitiesUpdateMessage>;
-        if (
-          update.documentKey === documentKey
-          && Array.isArray(update.identities)
-        ) {
+        if (update.documentKey === documentKey && Array.isArray(update.identities)) {
           this.saveTableIdentitiesUpdate({
             type: 'table-identities-update',
             documentKey,
@@ -600,7 +653,10 @@ export class MarkdownPreviewProvider implements vscode.CustomReadonlyEditorProvi
       const documentUri = document.uri.toString();
 
       documentChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
-        if (event.document.uri.toString() !== documentUri || event.document.version <= latestVersion) {
+        if (
+          event.document.uri.toString() !== documentUri ||
+          event.document.version <= latestVersion
+        ) {
           return;
         }
 

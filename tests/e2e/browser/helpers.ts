@@ -89,6 +89,7 @@ export async function setViewerSettings(
     tocSmoothScrollEnabled: boolean;
     contentAlignment: 'left' | 'center';
     localFileRefreshMode: 'prompt' | 'auto';
+    tocOverflowMode: 'wrap' | 'ellipsis';
   }>,
 ): Promise<void> {
   const worker = await getExtensionWorker(context);
@@ -101,6 +102,7 @@ export async function setViewerSettings(
         tocSmoothScrollEnabled: true,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
         ...nextSettings,
       },
     });

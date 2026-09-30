@@ -47,7 +47,10 @@ describe('VS Code Webview preview', () => {
       fontSize: 15,
       tocFontSize: 13,
       tocSmoothScrollEnabled: true,
+      sidebarDividerVisible: true,
       contentAlignment: 'center',
+      localFileRefreshMode: 'prompt',
+      tocOverflowMode: 'ellipsis',
       settingsHydrated: false,
     });
     window.acquireVsCodeApi = () => ({ postMessage });
@@ -65,7 +68,9 @@ describe('VS Code Webview preview', () => {
         observe() {}
         unobserve() {}
         disconnect() {}
-        takeRecords() { return []; }
+        takeRecords() {
+          return [];
+        }
       },
     });
   });
@@ -118,9 +123,15 @@ describe('VS Code Webview preview', () => {
     sendWebviewMessage({ type: 'document', text: '# 全局设置', version: 1 });
 
     expect(await screen.findByRole('heading', { name: '全局设置' })).toBeInTheDocument();
-    expect(screen.getByRole('article')).toHaveClass('feishu-viewer--dark', 'feishu-viewer--content-left');
+    expect(screen.getByRole('article')).toHaveClass(
+      'feishu-viewer--dark',
+      'feishu-viewer--content-left',
+    );
     fireEvent.click(screen.getByRole('button', { name: '打开阅读设置' }));
-    expect(screen.getByRole('button', { name: /TOC scroll: instant/ })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /TOC scroll: instant/ })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(screen.getByText('19')).toBeInTheDocument();
   });
 
@@ -149,14 +160,22 @@ describe('VS Code Webview preview', () => {
         fontSize: 16,
         tocFontSize: 13,
         tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: true,
         contentAlignment: 'center',
+        localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
       },
     });
   });
 
   it('接收宿主表格宽度快照并在调整后回传 table-width-update', async () => {
     await mountWebview();
-    sendWebviewMessage({ type: 'document', text: '# 表格宽度', version: 1, documentKey: 'file:///table.md' });
+    sendWebviewMessage({
+      type: 'document',
+      text: '# 表格宽度',
+      version: 1,
+      documentKey: 'file:///table.md',
+    });
 
     const table = document.createElement('table');
     const header = table.insertRow();
@@ -228,7 +247,9 @@ describe('VS Code Webview preview', () => {
 
     sendWebviewMessage({ type: 'theme', kind });
 
-    expect(screen.getByRole('article').classList.contains('feishu-viewer--dark')).toBe(expectsDarkClass);
+    expect(screen.getByRole('article').classList.contains('feishu-viewer--dark')).toBe(
+      expectsDarkClass,
+    );
     expect(document.documentElement).toHaveAttribute('data-feishu-vscode-theme', kind);
     if (!expectsDarkClass) {
       expect(screen.getByRole('article')).toHaveClass('feishu-viewer--light');
@@ -386,14 +407,18 @@ describe('VS Code Webview preview', () => {
   });
 
   it('仅将 VS Code 转换后的本地脚本和样式 URI 写入严格 CSP', () => {
-    const html = createWebviewHtml({
-      cspSource: 'vscode-webview://preview',
-      asWebviewUri: vi.fn((resource: { toString(): string }) => ({
-        toString: () => `vscode-webview-resource://preview/${resource.toString().replace('file:///', '')}`,
-      })),
-    } as never, {
-      toString: () => 'file:///extension',
-    } as never);
+    const html = createWebviewHtml(
+      {
+        cspSource: 'vscode-webview://preview',
+        asWebviewUri: vi.fn((resource: { toString(): string }) => ({
+          toString: () =>
+            `vscode-webview-resource://preview/${resource.toString().replace('file:///', '')}`,
+        })),
+      } as never,
+      {
+        toString: () => 'file:///extension',
+      } as never,
+    );
 
     expect(html).toContain("default-src 'none'");
     expect(html).toContain("script-src 'nonce-");

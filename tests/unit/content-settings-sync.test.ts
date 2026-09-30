@@ -3,12 +3,16 @@ import { getViewerSettingsSyncPatch } from '@/content/settings-sync';
 
 describe('阅读页设置跨上下文同步', () => {
   it('同步扩展设置页关闭目录分隔线的变更', () => {
-    expect(getViewerSettingsSyncPatch({
+    expect(
+      getViewerSettingsSyncPatch({
+        localFileRefreshMode: 'auto',
+        sidebarDividerVisible: false,
+        tocOverflowMode: 'wrap',
+      }),
+    ).toEqual({
       localFileRefreshMode: 'auto',
       sidebarDividerVisible: false,
-    })).toEqual({
-      localFileRefreshMode: 'auto',
-      sidebarDividerVisible: false,
+      tocOverflowMode: 'wrap',
     });
   });
 

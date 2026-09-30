@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { LocalFileRefreshMode } from '../viewer/store';
+import type { LocalFileRefreshMode, TocOverflowMode } from '../viewer/store';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 type ContentAlignment = 'left' | 'center';
@@ -12,6 +12,7 @@ interface Settings {
   sidebarDividerVisible: boolean;
   contentAlignment: ContentAlignment;
   localFileRefreshMode: LocalFileRefreshMode;
+  tocOverflowMode: TocOverflowMode;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +23,7 @@ const DEFAULT_SETTINGS: Settings = {
   sidebarDividerVisible: true,
   contentAlignment: 'center',
   localFileRefreshMode: 'prompt',
+  tocOverflowMode: 'ellipsis',
 };
 
 const FONT_SIZE_MIN = 12;
@@ -56,6 +58,7 @@ export function Options() {
               stored.sidebarDividerVisible ?? DEFAULT_SETTINGS.sidebarDividerVisible,
             contentAlignment: stored.contentAlignment === 'left' ? 'left' : 'center',
             localFileRefreshMode: stored.localFileRefreshMode === 'auto' ? 'auto' : 'prompt',
+            tocOverflowMode: stored.tocOverflowMode === 'wrap' ? 'wrap' : 'ellipsis',
           });
         }
       }
@@ -135,6 +138,15 @@ export function Options() {
   const handleLocalFileRefreshModeChange = useCallback(
     (localFileRefreshMode: LocalFileRefreshMode) => {
       const newSettings = { ...settings, localFileRefreshMode };
+      setSettings(newSettings);
+      void saveSettings(newSettings);
+    },
+    [settings, saveSettings],
+  );
+
+  const handleTocOverflowModeChange = useCallback(
+    (tocOverflowMode: TocOverflowMode) => {
+      const newSettings = { ...settings, tocOverflowMode };
       setSettings(newSettings);
       void saveSettings(newSettings);
     },
@@ -262,6 +274,33 @@ export function Options() {
         </section>
 
         {/* TOC scroll behavior */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>目录标题超出</h2>
+          <p style={styles.description}>选择目录标题过长时显示完整多行内容，或保持单行省略号。</p>
+          <div style={styles.radioGroup} role="radiogroup" aria-label="目录标题超出">
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="toc-overflow-mode"
+                checked={settings.tocOverflowMode === 'ellipsis'}
+                onChange={() => handleTocOverflowModeChange('ellipsis')}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>单行省略号</span>
+            </label>
+            <label style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="toc-overflow-mode"
+                checked={settings.tocOverflowMode === 'wrap'}
+                onChange={() => handleTocOverflowModeChange('wrap')}
+                style={styles.radioInput}
+              />
+              <span style={styles.radioText}>自动换行</span>
+            </label>
+          </div>
+        </section>
+
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>TOC Scroll Behavior</h2>
           <p style={styles.description}>

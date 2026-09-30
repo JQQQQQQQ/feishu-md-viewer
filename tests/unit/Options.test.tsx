@@ -8,6 +8,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it('在扩展设置页保存目录标题自动换行选择', async () => {
+  const set = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('chrome', {
+    storage: {
+      local: {
+        get: vi.fn().mockResolvedValue({ viewerSettings: {} }),
+        set,
+      },
+    },
+  });
+
+  render(<Options />);
+
+  await waitFor(() => expect(screen.getByLabelText('单行省略号')).toBeChecked());
+  fireEvent.click(screen.getByLabelText('自动换行'));
+
+  await waitFor(() =>
+    expect(set).toHaveBeenLastCalledWith({
+      viewerSettings: expect.objectContaining({ tocOverflowMode: 'wrap' }),
+    }),
+  );
+});
+
 it('在扩展设置页保存正文对齐选择', async () => {
   const set = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal('chrome', {
@@ -45,6 +68,7 @@ it('在扩展设置页保存正文对齐选择', async () => {
         sidebarDividerVisible: true,
         contentAlignment: 'left',
         localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
       },
     }),
   );
@@ -91,6 +115,7 @@ it('在扩展设置页保存本地文件自动刷新选择', async () => {
         sidebarDividerVisible: true,
         contentAlignment: 'center',
         localFileRefreshMode: 'auto',
+        tocOverflowMode: 'ellipsis',
       },
     }),
   );
@@ -134,6 +159,7 @@ it('在扩展设置页保存目录分隔线显示选择', async () => {
         sidebarDividerVisible: false,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
       },
     }),
   );

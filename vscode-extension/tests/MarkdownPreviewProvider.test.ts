@@ -98,7 +98,9 @@ interface FakePanel {
     options: { enableScripts?: boolean; localResourceRoots?: readonly { toString(): string }[] };
     asWebviewUri(resource: { toString(): string }): { toString(): string };
     postMessage: ReturnType<typeof vi.fn>;
-    onDidReceiveMessage(listener: (message: unknown) => void): { dispose: ReturnType<typeof vi.fn> };
+    onDidReceiveMessage(listener: (message: unknown) => void): {
+      dispose: ReturnType<typeof vi.fn>;
+    };
   };
   onDidDispose(listener: () => void): { dispose: ReturnType<typeof vi.fn> };
   fireMessage(message: unknown): void;
@@ -126,7 +128,10 @@ function createPanel(): FakePanel {
       html: '',
       options: {},
       asWebviewUri(resource) {
-        return { toString: () => `vscode-webview-resource://preview/${resource.toString().replace('file:///', '')}` };
+        return {
+          toString: () =>
+            `vscode-webview-resource://preview/${resource.toString().replace('file:///', '')}`,
+        };
       },
       postMessage: vi.fn(() => Promise.resolve(true)),
       onDidReceiveMessage(listener) {
@@ -179,17 +184,19 @@ describe('MarkdownPreviewProvider', () => {
     const packageJsonPath = resolve(process.cwd(), 'vscode-extension/package.json');
     const manifest = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 
-    expect(manifest.contributes.customEditors).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        viewType: 'feishu-md-viewer.markdownPreview',
-        displayName: 'Feishu Markdown Preview',
-        selector: expect.arrayContaining([
-          { filenamePattern: '*.md' },
-          { filenamePattern: '*.markdown' },
-        ]),
-        priority: 'default',
-      }),
-    ]));
+    expect(manifest.contributes.customEditors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          viewType: 'feishu-md-viewer.markdownPreview',
+          displayName: 'Feishu Markdown Preview',
+          selector: expect.arrayContaining([
+            { filenamePattern: '*.md' },
+            { filenamePattern: '*.markdown' },
+          ]),
+          priority: 'default',
+        }),
+      ]),
+    );
   });
 
   it('以 CustomDocument 模型打开 URI，并兼容 openContext 与 cancellation token', async () => {
@@ -249,7 +256,10 @@ describe('MarkdownPreviewProvider', () => {
     const sourceDocument = createDocument('# 延迟打开的内容', 7);
     let finishOpening: ((document: FakeDocument) => void) | undefined;
     vscodeMock.workspace.openTextDocument.mockImplementation(
-      () => new Promise<FakeDocument>((resolveOpen) => { finishOpening = resolveOpen; }),
+      () =>
+        new Promise<FakeDocument>((resolveOpen) => {
+          finishOpening = resolveOpen;
+        }),
     );
     const customDocument = await provider.openCustomDocument(
       sourceDocument.uri,
@@ -260,7 +270,9 @@ describe('MarkdownPreviewProvider', () => {
     const resolving = provider.resolveCustomEditor(customDocument, panel, cancellationToken);
     panel.fireMessage({ type: 'ready' });
 
-    expect(panel.webview.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'document' }));
+    expect(panel.webview.postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'document' }),
+    );
 
     finishOpening?.(sourceDocument);
     await resolving;
@@ -406,7 +418,9 @@ describe('MarkdownPreviewProvider', () => {
 
     panel.dispose();
 
-    expect(panel.listenerDisposables.every((disposable) => disposable.dispose.mock.calls.length === 1)).toBe(true);
+    expect(
+      panel.listenerDisposables.every((disposable) => disposable.dispose.mock.calls.length === 1),
+    ).toBe(true);
     expect(vscodeMock.documentListenerDisposables).toHaveLength(1);
     expect(vscodeMock.documentListenerDisposables[0]?.dispose).toHaveBeenCalledTimes(1);
 
@@ -431,7 +445,9 @@ describe('MarkdownPreviewProvider', () => {
     await provider.resolveCustomEditor(customDocument, panel, cancellationToken);
     customDocument.dispose();
 
-    expect(panel.listenerDisposables.every((disposable) => disposable.dispose.mock.calls.length === 1)).toBe(true);
+    expect(
+      panel.listenerDisposables.every((disposable) => disposable.dispose.mock.calls.length === 1),
+    ).toBe(true);
     expect(vscodeMock.documentListenerDisposables).toHaveLength(1);
     expect(vscodeMock.documentListenerDisposables[0]?.dispose).toHaveBeenCalledTimes(1);
 
@@ -466,7 +482,9 @@ describe('MarkdownPreviewProvider', () => {
 
     expect(vscodeMock.workspace.onDidChangeTextDocument).not.toHaveBeenCalled();
     expect(panel.listenerDisposables).toHaveLength(2);
-    expect(panel.listenerDisposables.every((disposable) => disposable.dispose.mock.calls.length === 1)).toBe(true);
+    expect(
+      panel.listenerDisposables.every((disposable) => disposable.dispose.mock.calls.length === 1),
+    ).toBe(true);
   });
 
   it('ready 后向 Webview 发送扩展级全局预览设置', async () => {
@@ -480,7 +498,11 @@ describe('MarkdownPreviewProvider', () => {
     const provider = new MarkdownPreviewProvider(extensionUri, settingsStore as never);
     const sourceDocument = createDocument('# 全局设置');
     vscodeMock.workspace.openTextDocument.mockResolvedValue(sourceDocument);
-    const customDocument = await provider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const customDocument = await provider.openCustomDocument(
+      sourceDocument.uri,
+      customDocumentOpenContext,
+      cancellationToken,
+    );
     const panel = createPanel();
 
     await provider.resolveCustomEditor(customDocument, panel, cancellationToken);
@@ -493,7 +515,10 @@ describe('MarkdownPreviewProvider', () => {
         fontSize: 19,
         tocFontSize: 13,
         tocSmoothScrollEnabled: false,
+        sidebarDividerVisible: true,
         contentAlignment: 'left',
+        localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
       },
     });
   });
@@ -507,8 +532,16 @@ describe('MarkdownPreviewProvider', () => {
     vscodeMock.workspace.openTextDocument
       .mockResolvedValueOnce(sourceDocument)
       .mockResolvedValueOnce(secondDocument);
-    const first = await provider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
-    const second = await provider.openCustomDocument(secondDocument.uri, customDocumentOpenContext, cancellationToken);
+    const first = await provider.openCustomDocument(
+      sourceDocument.uri,
+      customDocumentOpenContext,
+      cancellationToken,
+    );
+    const second = await provider.openCustomDocument(
+      secondDocument.uri,
+      customDocumentOpenContext,
+      cancellationToken,
+    );
     const firstPanel = createPanel();
     const secondPanel = createPanel();
 
@@ -521,7 +554,12 @@ describe('MarkdownPreviewProvider', () => {
 
     firstPanel.fireMessage({
       type: 'settings',
-      settings: { theme: 'light', fontSize: 18, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
+      settings: {
+        theme: 'light',
+        fontSize: 18,
+        tocSmoothScrollEnabled: true,
+        contentAlignment: 'center',
+      },
     });
 
     expect(settingsStore.update).toHaveBeenCalledWith('feishu-md-viewer.previewSettings', {
@@ -529,15 +567,36 @@ describe('MarkdownPreviewProvider', () => {
       fontSize: 18,
       tocFontSize: 13,
       tocSmoothScrollEnabled: true,
+      sidebarDividerVisible: true,
       contentAlignment: 'center',
+      localFileRefreshMode: 'prompt',
+      tocOverflowMode: 'ellipsis',
     });
     expect(firstPanel.webview.postMessage).toHaveBeenCalledWith({
       type: 'settings',
-      settings: { theme: 'light', fontSize: 18, tocFontSize: 13, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
+      settings: {
+        theme: 'light',
+        fontSize: 18,
+        tocFontSize: 13,
+        tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: true,
+        contentAlignment: 'center',
+        localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
+      },
     });
     expect(secondPanel.webview.postMessage).toHaveBeenCalledWith({
       type: 'settings',
-      settings: { theme: 'light', fontSize: 18, tocFontSize: 13, tocSmoothScrollEnabled: true, contentAlignment: 'center' },
+      settings: {
+        theme: 'light',
+        fontSize: 18,
+        tocFontSize: 13,
+        tocSmoothScrollEnabled: true,
+        sidebarDividerVisible: true,
+        contentAlignment: 'center',
+        localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
+      },
     });
   });
 
@@ -547,7 +606,11 @@ describe('MarkdownPreviewProvider', () => {
     const sourceDocument = createDocument('# 表格文档', 1, 'file:///table.md');
     vscodeMock.workspace.openTextDocument.mockResolvedValue(sourceDocument);
     const provider = new MarkdownPreviewProvider(extensionUri, widthsStore as never);
-    const customDocument = await provider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const customDocument = await provider.openCustomDocument(
+      sourceDocument.uri,
+      customDocumentOpenContext,
+      cancellationToken,
+    );
     const panel = createPanel();
 
     await provider.resolveCustomEditor(customDocument, panel, cancellationToken);
@@ -570,7 +633,11 @@ describe('MarkdownPreviewProvider', () => {
     );
 
     const reopenedProvider = new MarkdownPreviewProvider(extensionUri, widthsStore as never);
-    const reopenedDocument = await reopenedProvider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const reopenedDocument = await reopenedProvider.openCustomDocument(
+      sourceDocument.uri,
+      customDocumentOpenContext,
+      cancellationToken,
+    );
     const reopenedPanel = createPanel();
     await reopenedProvider.resolveCustomEditor(reopenedDocument, reopenedPanel, cancellationToken);
     reopenedPanel.fireMessage({ type: 'ready' });
@@ -588,20 +655,26 @@ describe('MarkdownPreviewProvider', () => {
     const sourceDocument = createDocument('# 表格文档', 1, 'file:///identity-table.md');
     vscodeMock.workspace.openTextDocument.mockResolvedValue(sourceDocument);
     const provider = new MarkdownPreviewProvider(extensionUri, identitiesStore as never);
-    const customDocument = await provider.openCustomDocument(sourceDocument.uri, customDocumentOpenContext, cancellationToken);
+    const customDocument = await provider.openCustomDocument(
+      sourceDocument.uri,
+      customDocumentOpenContext,
+      cancellationToken,
+    );
     const panel = createPanel();
 
     await provider.resolveCustomEditor(customDocument, panel, cancellationToken);
     panel.fireMessage({ type: 'ready' });
     panel.webview.postMessage.mockClear();
-    const identities = [{
-      id: 'table-original',
-      currentId: 'table-runtime',
-      headingPath: 'h2:1',
-      text: 'A B',
-      columnCount: 2,
-      ordinal: 0,
-    }];
+    const identities = [
+      {
+        id: 'table-original',
+        currentId: 'table-runtime',
+        headingPath: 'h2:1',
+        text: 'A B',
+        columnCount: 2,
+        ordinal: 0,
+      },
+    ];
 
     panel.fireMessage({
       type: 'table-identities-update',
@@ -609,12 +682,9 @@ describe('MarkdownPreviewProvider', () => {
       identities,
     });
 
-    expect(identitiesStore.update).toHaveBeenCalledWith(
-      'feishu-md-viewer.tableIdentities',
-      {
-        version: 1,
-        documents: { 'file:///identity-table.md': identities },
-      },
-    );
+    expect(identitiesStore.update).toHaveBeenCalledWith('feishu-md-viewer.tableIdentities', {
+      version: 1,
+      documents: { 'file:///identity-table.md': identities },
+    });
   });
 });

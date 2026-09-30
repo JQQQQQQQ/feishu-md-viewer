@@ -1,8 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PreviewRoot } from '../../src/viewer/PreviewRoot';
-import { createMarkdownSourceContext, type MarkdownSourceContext } from '../../src/lib/markdown-resource-resolver';
-import { useViewerStore, type ContentAlignment, type ThemeMode } from '../../src/viewer/store';
+import {
+  createMarkdownSourceContext,
+  type MarkdownSourceContext,
+} from '../../src/lib/markdown-resource-resolver';
+import {
+  useViewerStore,
+  type ContentAlignment,
+  type LocalFileRefreshMode,
+  type ThemeMode,
+  type TocOverflowMode,
+} from '../../src/viewer/store';
 import {
   setTableColumnWidthsBridge,
   type TableColumnWidthsBridge,
@@ -47,7 +56,10 @@ interface PreviewSettings {
   fontSize: number;
   tocFontSize: number;
   tocSmoothScrollEnabled: boolean;
+  sidebarDividerVisible: boolean;
   contentAlignment: ContentAlignment;
+  localFileRefreshMode: LocalFileRefreshMode;
+  tocOverflowMode: TocOverflowMode;
 }
 
 interface SettingsMessage {
@@ -84,9 +96,18 @@ interface TableIdentitiesUpdateMessage {
   identities: TableIdentityRecord[];
 }
 
-type WebviewMessage = DocumentMessage | ThemeMessage | SettingsMessage | TableWidthsMessage | ErrorMessage;
+type WebviewMessage =
+  | DocumentMessage
+  | ThemeMessage
+  | SettingsMessage
+  | TableWidthsMessage
+  | ErrorMessage;
 
-type WebviewOutgoingMessage = { type: 'ready' } | SettingsMessage | TableWidthUpdateMessage | TableIdentitiesUpdateMessage;
+type WebviewOutgoingMessage =
+  | { type: 'ready' }
+  | SettingsMessage
+  | TableWidthUpdateMessage
+  | TableIdentitiesUpdateMessage;
 
 interface VsCodeApi {
   postMessage(message: WebviewOutgoingMessage): void;
@@ -116,22 +137,22 @@ function isWebviewMessage(message: unknown): message is WebviewMessage {
   };
   if (candidate.type === 'document') {
     const sourceContext = candidate.sourceContext;
-    const validSourceContext = sourceContext === undefined || (
-      typeof sourceContext === 'object'
-      && sourceContext !== null
-      && (sourceContext as { source?: unknown }).source === 'file'
-      && (sourceContext as { runtime?: unknown }).runtime === 'vscode-webview'
-      && typeof (sourceContext as { documentUrl?: unknown }).documentUrl === 'string'
-      && typeof (sourceContext as { contentUrl?: unknown }).contentUrl === 'string'
-    );
+    const validSourceContext =
+      sourceContext === undefined ||
+      (typeof sourceContext === 'object' &&
+        sourceContext !== null &&
+        (sourceContext as { source?: unknown }).source === 'file' &&
+        (sourceContext as { runtime?: unknown }).runtime === 'vscode-webview' &&
+        typeof (sourceContext as { documentUrl?: unknown }).documentUrl === 'string' &&
+        typeof (sourceContext as { contentUrl?: unknown }).contentUrl === 'string');
     return (
-      typeof candidate.text === 'string'
-      && typeof candidate.version === 'number'
-      && Number.isFinite(candidate.version)
-      && Number.isInteger(candidate.version)
-      && candidate.version >= 0
-      && (candidate.documentKey === undefined || typeof candidate.documentKey === 'string')
-      && validSourceContext
+      typeof candidate.text === 'string' &&
+      typeof candidate.version === 'number' &&
+      Number.isFinite(candidate.version) &&
+      Number.isInteger(candidate.version) &&
+      candidate.version >= 0 &&
+      (candidate.documentKey === undefined || typeof candidate.documentKey === 'string') &&
+      validSourceContext
     );
   }
 
@@ -139,36 +160,57 @@ function isWebviewMessage(message: unknown): message is WebviewMessage {
     return candidate.kind === 'light' || candidate.kind === 'dark';
   }
 
-  if (candidate.type === 'settings' && typeof candidate.settings === 'object' && candidate.settings !== null) {
+  if (
+    candidate.type === 'settings' &&
+    typeof candidate.settings === 'object' &&
+    candidate.settings !== null
+  ) {
     const settings = candidate.settings as Partial<PreviewSettings>;
     return (
-      (settings.theme === 'light' || settings.theme === 'dark' || settings.theme === 'system')
-      && typeof settings.fontSize === 'number'
-      && Number.isFinite(settings.fontSize)
-      && (settings.tocFontSize === undefined || (typeof settings.tocFontSize === 'number' && Number.isFinite(settings.tocFontSize)))
-      && typeof settings.tocSmoothScrollEnabled === 'boolean'
-      && (settings.contentAlignment === 'left' || settings.contentAlignment === 'center')
+      (settings.theme === 'light' || settings.theme === 'dark' || settings.theme === 'system') &&
+      typeof settings.fontSize === 'number' &&
+      Number.isFinite(settings.fontSize) &&
+      (settings.tocFontSize === undefined ||
+        (typeof settings.tocFontSize === 'number' && Number.isFinite(settings.tocFontSize))) &&
+      typeof settings.tocSmoothScrollEnabled === 'boolean' &&
+      (settings.sidebarDividerVisible === undefined ||
+        typeof settings.sidebarDividerVisible === 'boolean') &&
+      (settings.contentAlignment === 'left' || settings.contentAlignment === 'center') &&
+      (settings.localFileRefreshMode === undefined ||
+        settings.localFileRefreshMode === 'prompt' ||
+        settings.localFileRefreshMode === 'auto') &&
+      (settings.tocOverflowMode === undefined ||
+        settings.tocOverflowMode === 'wrap' ||
+        settings.tocOverflowMode === 'ellipsis')
     );
   }
 
-  if (candidate.type === 'table-widths' && typeof candidate.documentKey === 'string' && typeof candidate.widths === 'object' && candidate.widths !== null) {
-    const validWidths = Object.values(candidate.widths as Record<string, unknown>).every((widths) => (
-      Array.isArray(widths)
-      && widths.every((width) => typeof width === 'number' && Number.isFinite(width))
-    ));
-    const validIdentities = candidate.identities === undefined || (
-      Array.isArray(candidate.identities)
-      && candidate.identities.every((record) => {
-        if (typeof record !== 'object' || record === null) return false;
-        const identity = record as Partial<TableIdentityRecord>;
-        return typeof identity.id === 'string'
-          && typeof identity.currentId === 'string'
-          && typeof identity.headingPath === 'string'
-          && typeof identity.text === 'string'
-          && typeof identity.columnCount === 'number'
-          && typeof identity.ordinal === 'number';
-      })
+  if (
+    candidate.type === 'table-widths' &&
+    typeof candidate.documentKey === 'string' &&
+    typeof candidate.widths === 'object' &&
+    candidate.widths !== null
+  ) {
+    const validWidths = Object.values(candidate.widths as Record<string, unknown>).every(
+      (widths) =>
+        Array.isArray(widths) &&
+        widths.every((width) => typeof width === 'number' && Number.isFinite(width)),
     );
+    const validIdentities =
+      candidate.identities === undefined ||
+      (Array.isArray(candidate.identities) &&
+        candidate.identities.every((record) => {
+          if (typeof record !== 'object' || record === null) return false;
+          const identity = record as Partial<TableIdentityRecord>;
+          return (
+            typeof identity.id === 'string' &&
+            typeof identity.currentId === 'string' &&
+            typeof identity.headingPath === 'string' &&
+            typeof identity.text === 'string' &&
+            typeof identity.columnCount === 'number' &&
+            typeof identity.ordinal === 'number'
+          );
+        }));
     return validWidths && validIdentities;
   }
 
@@ -191,12 +233,18 @@ export function WebviewPreview() {
   const fontSize = useViewerStore((state) => state.fontSize);
   const tocFontSize = useViewerStore((state) => state.tocFontSize);
   const tocSmoothScrollEnabled = useViewerStore((state) => state.tocSmoothScrollEnabled);
+  const sidebarDividerVisible = useViewerStore((state) => state.sidebarDividerVisible);
   const contentAlignment = useViewerStore((state) => state.contentAlignment);
+  const localFileRefreshMode = useViewerStore((state) => state.localFileRefreshMode);
+  const tocOverflowMode = useViewerStore((state) => state.tocOverflowMode);
   const setStoredTheme = useViewerStore((state) => state.setTheme);
   const setStoredFontSize = useViewerStore((state) => state.setFontSize);
   const setStoredTocFontSize = useViewerStore((state) => state.setTocFontSize);
   const setStoredSmoothScroll = useViewerStore((state) => state.setTocSmoothScrollEnabled);
+  const setStoredSidebarDividerVisible = useViewerStore((state) => state.setSidebarDividerVisible);
   const setStoredContentAlignment = useViewerStore((state) => state.setContentAlignment);
+  const setStoredLocalFileRefreshMode = useViewerStore((state) => state.setLocalFileRefreshMode);
+  const setStoredTocOverflowMode = useViewerStore((state) => state.setTocOverflowMode);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const [isResumeOverlayVisible, setIsResumeOverlayVisible] = useState(
     () => document.visibilityState === 'hidden',
@@ -209,7 +257,11 @@ export function WebviewPreview() {
     documentKey: '',
     widths: {},
   });
-  const tableIdentitiesRef = useRef<{ documentKey: string; identities: TableIdentityRecord[]; ready: boolean }>({
+  const tableIdentitiesRef = useRef<{
+    documentKey: string;
+    identities: TableIdentityRecord[];
+    ready: boolean;
+  }>({
     documentKey: '',
     identities: [],
     ready: false,
@@ -223,9 +275,8 @@ export function WebviewPreview() {
         if (!vscodeApi || !documentKey) return;
         vscodeApi.postMessage({ type: 'table-width-update', documentKey, tableKey, widths });
       },
-      readIdentities: () => tableIdentitiesRef.current.ready
-        ? tableIdentitiesRef.current.identities
-        : null,
+      readIdentities: () =>
+        tableIdentitiesRef.current.ready ? tableIdentitiesRef.current.identities : null,
       writeIdentities: (identities) => {
         const documentKey = tableIdentitiesRef.current.documentKey;
         if (!vscodeApi || !documentKey || !tableIdentitiesRef.current.ready) return;
@@ -334,9 +385,29 @@ export function WebviewPreview() {
     if (!settingsHydrated) return;
     vscodeApi?.postMessage({
       type: 'settings',
-      settings: { theme: storedTheme, fontSize, tocFontSize, tocSmoothScrollEnabled, contentAlignment },
+      settings: {
+        theme: storedTheme,
+        fontSize,
+        tocFontSize,
+        tocSmoothScrollEnabled,
+        sidebarDividerVisible,
+        contentAlignment,
+        localFileRefreshMode,
+        tocOverflowMode,
+      },
     });
-  }, [contentAlignment, fontSize, settingsHydrated, storedTheme, tocFontSize, tocSmoothScrollEnabled, vscodeApi]);
+  }, [
+    contentAlignment,
+    fontSize,
+    localFileRefreshMode,
+    settingsHydrated,
+    sidebarDividerVisible,
+    storedTheme,
+    tocFontSize,
+    tocOverflowMode,
+    tocSmoothScrollEnabled,
+    vscodeApi,
+  ]);
 
   useEffect(() => {
     vscodeApi?.postMessage({ type: 'ready' });
@@ -396,7 +467,10 @@ export function WebviewPreview() {
         setStoredFontSize(event.data.settings.fontSize);
         setStoredTocFontSize(event.data.settings.tocFontSize ?? 13);
         setStoredSmoothScroll(event.data.settings.tocSmoothScrollEnabled);
+        setStoredSidebarDividerVisible(event.data.settings.sidebarDividerVisible ?? true);
         setStoredContentAlignment(event.data.settings.contentAlignment);
+        setStoredLocalFileRefreshMode(event.data.settings.localFileRefreshMode ?? 'prompt');
+        setStoredTocOverflowMode(event.data.settings.tocOverflowMode ?? 'ellipsis');
         setSettingsHydrated(true);
         return;
       }
@@ -406,7 +480,16 @@ export function WebviewPreview() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [setStoredContentAlignment, setStoredFontSize, setStoredSmoothScroll, setStoredTheme, setStoredTocFontSize]);
+  }, [
+    setStoredContentAlignment,
+    setStoredFontSize,
+    setStoredLocalFileRefreshMode,
+    setStoredSidebarDividerVisible,
+    setStoredSmoothScroll,
+    setStoredTheme,
+    setStoredTocFontSize,
+    setStoredTocOverflowMode,
+  ]);
 
   const sourceContext: MarkdownSourceContext | undefined = useMemo(() => {
     const context = documentState?.sourceContext;

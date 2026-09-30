@@ -14,6 +14,8 @@ beforeEach(() => {
     tocSmoothScrollEnabled: true,
     sidebarDividerVisible: true,
     contentAlignment: 'center',
+    localFileRefreshMode: 'prompt',
+    tocOverflowMode: 'ellipsis',
   });
 });
 
@@ -82,4 +84,18 @@ it('阅读页可以切换目录与正文分隔线显示设置', () => {
 
   expect(useViewerStore.getState().sidebarDividerVisible).toBe(false);
   expect(toggle).toHaveAttribute('aria-pressed', 'false');
+});
+
+it('阅读设置可在页面内切换本地文件自动刷新与目录超长标题展示方式', () => {
+  render(<TopBar title="示例文档" isSidebarOpen onToggleSidebar={() => {}} settingsEnabled />);
+
+  fireEvent.click(screen.getByRole('button', { name: '打开阅读设置' }));
+
+  const refreshMode = screen.getByRole('group', { name: '本地文件更新' });
+  fireEvent.click(within(refreshMode).getByRole('button', { name: '自动刷新' }));
+  expect(useViewerStore.getState().localFileRefreshMode).toBe('auto');
+
+  const tocOverflow = screen.getByRole('group', { name: '目录标题超出' });
+  fireEvent.click(within(tocOverflow).getByRole('button', { name: '换行' }));
+  expect(tocOverflow).toHaveAttribute('data-mode', 'wrap');
 });

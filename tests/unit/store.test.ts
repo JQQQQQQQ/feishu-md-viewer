@@ -19,6 +19,7 @@ describe('预览版 ViewerStore', () => {
       sidebarDividerVisible: true,
       contentAlignment: 'center',
       localFileRefreshMode: 'prompt',
+      tocOverflowMode: 'ellipsis',
       settingsHydrated: false,
     });
   });
@@ -50,6 +51,7 @@ describe('预览版 ViewerStore', () => {
         sidebarDividerVisible: true,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
       },
     });
   });
@@ -98,6 +100,7 @@ describe('预览版 ViewerStore', () => {
         sidebarDividerVisible: true,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
       },
     });
   });
@@ -118,6 +121,7 @@ describe('预览版 ViewerStore', () => {
         sidebarDividerVisible: false,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
       },
     });
   });
@@ -138,7 +142,22 @@ describe('预览版 ViewerStore', () => {
         sidebarDividerVisible: true,
         contentAlignment: 'center',
         localFileRefreshMode: 'prompt',
+        tocOverflowMode: 'ellipsis',
       },
+    });
+  });
+
+  it('持久化目录标题超出方式并将未知值回退为省略号', async () => {
+    const set = vi.fn().mockResolvedValue(undefined);
+    const get = vi.fn().mockResolvedValue({ viewerSettings: { tocOverflowMode: 'wrap' } });
+    vi.stubGlobal('chrome', { storage: { local: { get, set } } });
+
+    await useViewerStore.getState().loadSettings();
+    expect(useViewerStore.getState().tocOverflowMode).toBe('wrap');
+
+    useViewerStore.getState().setTocOverflowMode('ellipsis');
+    expect(set).toHaveBeenLastCalledWith({
+      viewerSettings: expect.objectContaining({ tocOverflowMode: 'ellipsis' }),
     });
   });
 });

@@ -9,7 +9,13 @@ interface TOCItemProps {
   largeDocumentMode?: boolean;
 }
 
-export function TOCItem({ item, activeId, onNavigate, tocPath, largeDocumentMode = false }: TOCItemProps) {
+export function TOCItem({
+  item,
+  activeId,
+  onNavigate,
+  tocPath,
+  largeDocumentMode = false,
+}: TOCItemProps) {
   const [expanded, setExpanded] = useState(!largeDocumentMode);
   const isActive = activeId === item.id;
   const hasChildren = item.children.length > 0;
@@ -19,7 +25,9 @@ export function TOCItem({ item, activeId, onNavigate, tocPath, largeDocumentMode
     isMajorHeading ? 'feishu-toc__link--major' : '',
     item.isDocumentTitle ? 'feishu-toc__link--document-title' : '',
     isActive ? 'feishu-toc__link--active' : '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const handleClick = useCallback(() => {
     onNavigate(item.id);
@@ -31,25 +39,33 @@ export function TOCItem({ item, activeId, onNavigate, tocPath, largeDocumentMode
     setExpanded((prev) => !prev);
   }, []);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onNavigate(item.id);
-    } else if (e.key === 'ArrowRight' && hasChildren && !expanded) {
-      e.preventDefault();
-      setExpanded(true);
-    } else if (e.key === 'ArrowLeft' && hasChildren && expanded) {
-      e.preventDefault();
-      setExpanded(false);
-    }
-  }, [item.id, onNavigate, hasChildren, expanded]);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onNavigate(item.id);
+      } else if (e.key === 'ArrowRight' && hasChildren && !expanded) {
+        e.preventDefault();
+        setExpanded(true);
+      } else if (e.key === 'ArrowLeft' && hasChildren && expanded) {
+        e.preventDefault();
+        setExpanded(false);
+      }
+    },
+    [item.id, onNavigate, hasChildren, expanded],
+  );
 
   useEffect(() => {
     if (largeDocumentMode) setExpanded(false);
   }, [largeDocumentMode]);
 
   return (
-    <li className="feishu-toc__item" role="treeitem" aria-selected={isActive} aria-expanded={hasChildren ? expanded : undefined}>
+    <li
+      className="feishu-toc__item"
+      role="treeitem"
+      aria-selected={isActive}
+      aria-expanded={hasChildren ? expanded : undefined}
+    >
       <div
         className={linkClasses}
         style={{ paddingLeft: `${(item.level - 1) * 12 + 12}px` }}
@@ -76,19 +92,21 @@ export function TOCItem({ item, activeId, onNavigate, tocPath, largeDocumentMode
             </button>
           )}
         </span>
-        <span className="feishu-toc__text">{item.text}</span>
+        <span className="feishu-toc__text" title={item.text}>
+          {item.text}
+        </span>
       </div>
       {hasChildren && expanded && (
         <ul className="feishu-toc__children" role="group">
           {item.children.map((child, childIndex) => (
-          <TOCItem
-            key={`${child.id}-${tocPath}-${childIndex}`}
-            item={child}
-            activeId={activeId}
-            onNavigate={onNavigate}
-            tocPath={`${tocPath}-${childIndex}`}
-            largeDocumentMode={largeDocumentMode}
-          />
+            <TOCItem
+              key={`${child.id}-${tocPath}-${childIndex}`}
+              item={child}
+              activeId={activeId}
+              onNavigate={onNavigate}
+              tocPath={`${tocPath}-${childIndex}`}
+              largeDocumentMode={largeDocumentMode}
+            />
           ))}
         </ul>
       )}

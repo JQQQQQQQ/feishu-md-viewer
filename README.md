@@ -58,9 +58,9 @@
 
 ### VS Code 扩展
 
-当前 VS Code 扩展版本为 `0.1.6`，从 Release 下载：
+当前 VS Code 扩展版本为 `0.1.7`，从 Release 下载：
 
-[下载 VS Code 扩展](https://github.com/JQQQQQQQ/feishu-md-viewer/releases/download/v0.1.1/feishu-md-viewer-vscode-0.1.6.vsix)
+[下载 VS Code 扩展](https://github.com/JQQQQQQQ/feishu-md-viewer/releases/download/v0.1.3/feishu-md-viewer-vscode-0.1.7.vsix)
 
 安装方式：
 
@@ -68,7 +68,7 @@
 2. 在终端执行：
 
    ```bash
-   code --install-extension feishu-md-viewer-vscode-0.1.6.vsix
+   code --install-extension feishu-md-viewer-vscode-0.1.7.vsix
    ```
 
 安装后重新加载 VS Code，打开任意 `.md` 或 `.markdown` 文件即可进入 Feishu 只读预览。
@@ -234,7 +234,7 @@ Chrome 扩展和 VS Code 扩展使用独立版本号：
 | 产品         | 当前版本 |
 | ------------ | -------- |
 | Chrome 扩展  | `0.1.1`  |
-| VS Code 扩展 | `0.1.6`  |
+| VS Code 扩展 | `0.1.7`  |
 
 两个版本会在同一个 GitHub Release 中发布，但安装包、版本号和发布节奏可以独立演进。
 

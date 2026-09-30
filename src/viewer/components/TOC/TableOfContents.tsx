@@ -63,13 +63,18 @@ function escapeCssIdentifier(value: string): string {
 const TOC_TARGET_HIGHLIGHT_CLASS = 'feishu-heading--toc-target';
 const TOC_TARGET_HIGHLIGHT_DURATION_MS = 2000;
 
-export function TableOfContents({ items, containerRef, largeDocumentMode = false }: TableOfContentsProps) {
+export function TableOfContents({
+  items,
+  containerRef,
+  largeDocumentMode = false,
+}: TableOfContentsProps) {
   const [activeId, setActiveId] = useState('');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const highlightedHeadingRef = useRef<HTMLElement | null>(null);
   const highlightTimerRef = useRef<number | undefined>(undefined);
   const pendingNavigationIdRef = useRef<string | null>(null);
   const tocSmoothScrollEnabled = useViewerStore((s) => s.tocSmoothScrollEnabled);
+  const tocOverflowMode = useViewerStore((s) => s.tocOverflowMode);
 
   const clearHeadingHighlight = useCallback(() => {
     if (highlightTimerRef.current !== undefined) {
@@ -188,9 +193,11 @@ export function TableOfContents({ items, containerRef, largeDocumentMode = false
 
       pendingNavigationIdRef.current = id;
       setActiveId(id);
-      window.dispatchEvent(new CustomEvent(MARKDOWN_TOC_NAVIGATE_EVENT, {
-        detail: { id, text: targetText ?? '' },
-      }));
+      window.dispatchEvent(
+        new CustomEvent(MARKDOWN_TOC_NAVIGATE_EVENT, {
+          detail: { id, text: targetText ?? '' },
+        }),
+      );
     },
     [containerRef, ensureHeadingAnchors, highlightHeading, items, tocSmoothScrollEnabled],
   );
@@ -209,7 +216,11 @@ export function TableOfContents({ items, containerRef, largeDocumentMode = false
   if (items.length === 0) return null;
 
   return (
-    <nav className="feishu-toc" aria-label="Table of contents" role="navigation">
+    <nav
+      className={`feishu-toc feishu-toc--overflow-${tocOverflowMode}`}
+      aria-label="Table of contents"
+      role="navigation"
+    >
       <div className="feishu-toc__header">目录</div>
       <ul className="feishu-toc__list" role="tree">
         {items.map((item, index) => (

@@ -34,6 +34,10 @@ function SettingsControls() {
   const setSidebarDividerVisible = useViewerStore((s) => s.setSidebarDividerVisible);
   const contentAlignment = useViewerStore((s) => s.contentAlignment);
   const setContentAlignment = useViewerStore((s) => s.setContentAlignment);
+  const localFileRefreshMode = useViewerStore((s) => s.localFileRefreshMode);
+  const setLocalFileRefreshMode = useViewerStore((s) => s.setLocalFileRefreshMode);
+  const tocOverflowMode = useViewerStore((s) => s.tocOverflowMode);
+  const setTocOverflowMode = useViewerStore((s) => s.setTocOverflowMode);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAlignmentMenuOpen, setIsAlignmentMenuOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -191,6 +195,33 @@ function SettingsControls() {
               </div>
             </div>
 
+            <div className="feishu-topbar__settings-section">
+              <div className="feishu-topbar__settings-label">目录标题超出</div>
+              <div
+                className="feishu-topbar__settings-choice"
+                role="group"
+                aria-label="目录标题超出"
+                data-mode={tocOverflowMode}
+              >
+                <button
+                  type="button"
+                  aria-pressed={tocOverflowMode === 'ellipsis'}
+                  onClick={() => setTocOverflowMode('ellipsis')}
+                  title="目录标题单行显示，超出部分以省略号表示"
+                >
+                  省略号
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={tocOverflowMode === 'wrap'}
+                  onClick={() => setTocOverflowMode('wrap')}
+                  title="目录标题自动换行显示完整内容"
+                >
+                  换行
+                </button>
+              </div>
+            </div>
+
             <div className="feishu-topbar__settings-section feishu-topbar__settings-section--actions">
               <button
                 className="feishu-topbar__theme-btn"
@@ -302,6 +333,30 @@ function SettingsControls() {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="feishu-topbar__settings-section">
+              <div className="feishu-topbar__settings-label">本地文件更新</div>
+              <div
+                className="feishu-topbar__settings-choice"
+                role="group"
+                aria-label="本地文件更新"
+              >
+                <button
+                  type="button"
+                  aria-pressed={localFileRefreshMode === 'prompt'}
+                  onClick={() => setLocalFileRefreshMode('prompt')}
+                >
+                  提示刷新
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={localFileRefreshMode === 'auto'}
+                  onClick={() => setLocalFileRefreshMode('auto')}
+                >
+                  自动刷新
+                </button>
               </div>
             </div>
           </div>

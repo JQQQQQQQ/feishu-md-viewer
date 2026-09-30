@@ -16,6 +16,7 @@ interface ChromeStorageArea {
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ContentAlignment = 'left' | 'center';
 export type LocalFileRefreshMode = 'prompt' | 'auto';
+export type TocOverflowMode = 'wrap' | 'ellipsis';
 
 interface DocumentSlice {
   content: string;
@@ -39,6 +40,7 @@ interface SettingsSlice {
   sidebarDividerVisible: boolean;
   contentAlignment: ContentAlignment;
   localFileRefreshMode: LocalFileRefreshMode;
+  tocOverflowMode: TocOverflowMode;
   /** 本次阅读会话的设置已完成首次加载，后续不再用旧存储覆盖用户选择。 */
   settingsHydrated: boolean;
 }
@@ -60,6 +62,7 @@ interface Actions {
   setSidebarDividerVisible: (visible: boolean) => void;
   setContentAlignment: (alignment: ContentAlignment) => void;
   setLocalFileRefreshMode: (mode: LocalFileRefreshMode) => void;
+  setTocOverflowMode: (mode: TocOverflowMode) => void;
   loadSettings: () => Promise<void>;
 }
 
@@ -82,6 +85,7 @@ function currentSettings(state: SettingsSlice): PersistedSettings {
     sidebarDividerVisible: state.sidebarDividerVisible,
     contentAlignment: state.contentAlignment,
     localFileRefreshMode: state.localFileRefreshMode,
+    tocOverflowMode: state.tocOverflowMode,
   };
 }
 
@@ -115,6 +119,7 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
   sidebarDividerVisible: true,
   contentAlignment: 'center',
   localFileRefreshMode: 'prompt',
+  tocOverflowMode: 'ellipsis',
   settingsHydrated: false,
 
   initDocument: (content: string) => {
@@ -196,6 +201,12 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
     void persistSettings(currentSettings({ ...get(), localFileRefreshMode }));
   },
 
+  setTocOverflowMode: (tocOverflowMode: TocOverflowMode) => {
+    settingsRevision += 1;
+    set({ tocOverflowMode, settingsHydrated: true });
+    void persistSettings(currentSettings({ ...get(), tocOverflowMode }));
+  },
+
   loadSettings: async () => {
     if (get().settingsHydrated) return;
     const loadRevision = settingsRevision;
@@ -214,6 +225,7 @@ export const useViewerStore = create<ViewerStore>((set, get) => ({
             sidebarDividerVisible: settings.sidebarDividerVisible ?? true,
             contentAlignment: settings.contentAlignment === 'left' ? 'left' : 'center',
             localFileRefreshMode: settings.localFileRefreshMode === 'auto' ? 'auto' : 'prompt',
+            tocOverflowMode: settings.tocOverflowMode === 'wrap' ? 'wrap' : 'ellipsis',
             // 兼容旧数据：无论存储值为何，都从阅读态启动。
             mode: 'read',
             settingsHydrated: true,
